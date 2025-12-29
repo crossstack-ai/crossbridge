@@ -29,11 +29,23 @@ class AssertionType(str, Enum):
 @dataclass
 class TestMetadata:
     """Metadata describing a test case."""
-    id: str
-    name: str
-    framework: str
+    framework: str                 # selenium-java, pytest, robot, etc.
+    test_name: str                 # LoginTest.testValidLogin
     file_path: str
     tags: List[str] = field(default_factory=list)
+    test_type: str = "ui"
+    language: str = "python"
+    
+    # Backward compatibility - auto-generate id from test_name if needed
+    @property
+    def id(self) -> str:
+        """Generate test ID from test_name for backward compatibility."""
+        return self.test_name
+    
+    @property
+    def name(self) -> str:
+        """Alias for test_name for backward compatibility."""
+        return self.test_name
 
 
 @dataclass
