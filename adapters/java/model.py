@@ -114,7 +114,7 @@ class JavaTestCase:
     """
     Represents a single executable test case (method within a class).
     
-    This is the neutral representation used throughout CrossBridge AI.
+    This is the neutral representation used throughout CrossBridge.
     Maps to TestMetadata for the common adapter interface.
     
     Attributes:

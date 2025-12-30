@@ -1,5 +1,5 @@
 """
-Robot Framework adapter implementation for CrossBridge AI.
+Robot Framework adapter implementation for CrossBridge.
 
 This adapter translates between Robot Framework test structure and the
 framework-agnostic internal model.

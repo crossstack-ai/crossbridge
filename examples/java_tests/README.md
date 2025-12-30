@@ -1,6 +1,6 @@
 # Java Test Examples
 
-This directory contains various Java test project scenarios for testing CrossBridge AI's detection capabilities.
+This directory contains various Java test project scenarios for testing CrossBridge's detection capabilities.
 
 ## Project Structure
 

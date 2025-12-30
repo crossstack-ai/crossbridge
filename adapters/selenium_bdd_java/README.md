@@ -199,7 +199,7 @@ pytest tests/unit/adapters/selenium_bdd_java/ -v
 
 ## Related Documentation
 
-- [Main README](../../../README.md) - CrossBridge AI overview
+- [Main README](../../../README.md) - CrossBridge overview
 - [Selenium Java Adapter](../selenium_java/README.md) - Traditional JUnit/TestNG adapter
 - [Common Models](../common/models.py) - Shared `TestMetadata` structure
 - [CLI Documentation](../../../cli/README.md) - Command-line usage

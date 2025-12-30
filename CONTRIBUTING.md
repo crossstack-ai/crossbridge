@@ -1,6 +1,6 @@
-# Contributing to CrossBridge AI
+# Contributing to CrossBridge
 
-Thank you for your interest in contributing to CrossBridge AI!
+Thank you for your interest in contributing to CrossBridge!
 
 ## Getting Started
 

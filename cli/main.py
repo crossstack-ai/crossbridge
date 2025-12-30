@@ -1,5 +1,5 @@
 """
-CrossBridge AI - Main CLI Entry Point
+CrossBridge - Main CLI Entry Point
 """
 
 import argparse
@@ -28,6 +28,9 @@ from adapters.java.selenium import run_selenium_java_tests
 # Import persistence
 from persistence import DatabaseConfig
 from persistence.orchestrator import persist_discovery
+
+# Import CLI commands
+from cli.commands.coverage import add_coverage_commands, execute_coverage_command
 
 logger = logging.getLogger(__name__)
 
@@ -946,9 +949,9 @@ def cmd_validate_coverage(args):
 
 
 def main():
-    """Main entry point for the CrossBridge AI CLI."""
+    """Main entry point for the CrossBridge CLI."""
     parser = argparse.ArgumentParser(
-        description="CrossBridge AI - Framework-agnostic test automation platform",
+        description="CrossBridge - Framework-agnostic test automation platform",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -1152,6 +1155,9 @@ def main():
     )
     coverage_parser.set_defaults(func=cmd_validate_coverage)
     
+    # Add coverage mapping commands
+    add_coverage_commands(subparsers)
+    
     # Parse arguments
     args = parser.parse_args()
     
@@ -1159,6 +1165,10 @@ def main():
     if not args.command:
         parser.print_help()
         return 0
+    
+    # Execute coverage commands if specified
+    if args.command == 'coverage':
+        return execute_coverage_command(args)
     
     # Execute command
     return args.func(args)

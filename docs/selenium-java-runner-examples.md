@@ -185,7 +185,7 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Install CrossBridge AI
+      - name: Install CrossBridge
         run: pip install -e .
       
       - name: Run smoke tests

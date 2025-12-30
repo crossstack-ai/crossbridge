@@ -1,4 +1,4 @@
-# CrossBridge AI Governance
+# CrossBridge Governance
 
 ## Project Governance Model
 

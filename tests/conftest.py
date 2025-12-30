@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for CrossBridge AI tests.
+Pytest configuration and shared fixtures for CrossBridge tests.
 """
 
 import pytest

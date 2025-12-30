@@ -340,4 +340,4 @@ When modifying expansion logic:
 
 ## License
 
-Part of CrossBridge AI - internal test migration framework.
+Part of CrossBridge - internal test migration framework.

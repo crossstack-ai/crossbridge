@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Selenium-Java Runner Adapter enables running JUnit and TestNG Selenium tests from CrossBridge AI CLI with selective execution support. 
+The Selenium-Java Runner Adapter enables running JUnit and TestNG Selenium tests from CrossBridge CLI with selective execution support. 
 
 **Key Design Principle**: The adapter **does not** reimplement Selenium execution logic in Python. Instead, it delegates execution to native Java build tools (Maven/Gradle), acting as an orchestrator.
 
@@ -50,7 +50,7 @@ Normalized TestExecutionResult
 
 ## Installation
 
-The adapter is included in CrossBridge AI. No additional installation required.
+The adapter is included in CrossBridge. No additional installation required.
 
 ## Usage
 
@@ -174,7 +174,7 @@ jobs:
         with:
           java-version: '11'
       
-      - name: Install CrossBridge AI
+      - name: Install CrossBridge
         run: pip install -e .
       
       - name: Run smoke tests

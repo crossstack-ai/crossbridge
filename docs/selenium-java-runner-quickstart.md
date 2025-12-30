@@ -2,7 +2,7 @@
 
 ## Installation
 
-No additional installation required - included with CrossBridge AI.
+No additional installation required - included with CrossBridge.
 
 ## Basic Usage
 

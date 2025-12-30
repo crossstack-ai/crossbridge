@@ -2,7 +2,7 @@
 
 ## Overview
 
-CrossBridge AI has comprehensive test coverage across all major components:
+CrossBridge has comprehensive test coverage across all major components:
 - Framework detection (Java/JUnit/TestNG)
 - Test discovery and execution
 - Page Object to Test impact mapping

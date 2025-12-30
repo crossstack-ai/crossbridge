@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "crossbridge-ai"
+name = "crossbridge"
 version = "0.1.0"
 description = "AI-powered test automation framework"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "CrossBridge AI Contributors"}
+    {name = "CrossBridge Contributors"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

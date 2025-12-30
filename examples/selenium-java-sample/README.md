@@ -1,6 +1,6 @@
 # Selenium-Java Sample Project
 
-Sample Maven project for testing CrossBridge AI Selenium-Java runner.
+Sample Maven project for testing CrossBridge Selenium-Java runner.
 
 ## Structure
 
@@ -15,7 +15,7 @@ selenium-java-sample/
 │       └── UserProfileTest.java     # Profile tests (2 tests, tags: smoke, regression)
 ```
 
-## Running Tests with CrossBridge AI
+## Running Tests with CrossBridge
 
 ### Run All Tests in a Class
 ```bash

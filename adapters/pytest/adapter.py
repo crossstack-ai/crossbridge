@@ -1,5 +1,5 @@
 """
-Pytest adapter implementation for CrossBridge AI.
+Pytest adapter implementation for CrossBridge.
 
 This adapter translates between pytest-specific test structure and the
 framework-agnostic internal model.
