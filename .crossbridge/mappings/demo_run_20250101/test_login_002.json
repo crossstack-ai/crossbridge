@@ -1,0 +1,21 @@
+{
+  "test_id": "test_login_002",
+  "run_id": "demo_run_20250101",
+  "timestamp": "2025-12-30T03:39:40.539716+00:00",
+  "mapping": {
+    "step": "When user logs in with admin and password123",
+    "page_objects": [
+      "LoginPage"
+    ],
+    "methods": [
+      "login",
+      "enterCredentials"
+    ],
+    "code_paths": [
+      "pages/login_page.py::LoginPage.login",
+      "pages/login_page.py::LoginPage.enterCredentials"
+    ],
+    "signals": []
+  },
+  "metadata": {}
+}

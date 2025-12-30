@@ -1,0 +1,22 @@
+{
+  "test_id": "test_order_001",
+  "run_id": "demo_run_20250101",
+  "timestamp": "2025-12-30T03:39:40.540627+00:00",
+  "mapping": {
+    "step": "When user creates order for product",
+    "page_objects": [
+      "OrderPage",
+      "OrderAPI"
+    ],
+    "methods": [
+      "createOrder",
+      "post_order"
+    ],
+    "code_paths": [
+      "pages/order_page.py::OrderPage.createOrder",
+      "api/order_api.py::OrderAPI.post_order"
+    ],
+    "signals": []
+  },
+  "metadata": {}
+}

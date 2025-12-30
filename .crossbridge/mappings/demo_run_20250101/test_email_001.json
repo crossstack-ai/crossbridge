@@ -1,0 +1,13 @@
+{
+  "test_id": "test_email_001",
+  "run_id": "demo_run_20250101",
+  "timestamp": "2025-12-30T03:39:40.541030+00:00",
+  "mapping": {
+    "step": "When user receives email notification",
+    "page_objects": [],
+    "methods": [],
+    "code_paths": [],
+    "signals": []
+  },
+  "metadata": {}
+}

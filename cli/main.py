@@ -14,6 +14,8 @@ from adapters.robot.robot_adapter import RobotAdapter
 from adapters.robot.config import RobotConfig
 from adapters.selenium_java.extractor import SeleniumJavaExtractor
 from adapters.selenium_java.config import SeleniumJavaConfig
+from adapters.selenium_bdd_java.extractor import SeleniumBDDJavaExtractor
+from adapters.selenium_bdd_java.config import SeleniumBDDJavaConfig
 from adapters.common.base import BaseTestAdapter
 
 # Import impact mappers
@@ -40,6 +42,7 @@ class AdapterRegistry:
     
     _extractors = {
         "selenium-java": SeleniumJavaExtractor,
+        "selenium-bdd-java": SeleniumBDDJavaExtractor,
     }
     
     @classmethod
@@ -71,6 +74,10 @@ class AdapterRegistry:
         )
         if java_frameworks:
             detected.append("selenium-java")
+        
+        # Check for Cucumber/BDD feature files
+        if list(root_path.rglob("*.feature")):
+            detected.append("selenium-bdd-java")
         
         return detected
     
@@ -128,6 +135,11 @@ class AdapterRegistry:
         # Create config based on framework
         if framework == "selenium-java":
             config = SeleniumJavaConfig(root_dir=project_root)
+            return extractor_class(config)
+        elif framework == "selenium-bdd-java":
+            config = SeleniumBDDJavaConfig(
+                features_dir=str(Path(project_root) / "src" / "test" / "resources" / "features")
+            )
             return extractor_class(config)
         
         return extractor_class(project_root)
@@ -189,7 +201,6 @@ def cmd_discover(args):
                 
                 if framework == "selenium-java":
                     # Special handling for Java: show sub-frameworks
-                    from pathlib import Path
                     test_source_dir = str(Path(args.project_root) / "src" / "test" / "java")
                     
                     java_frameworks = SeleniumJavaConfig.detect_all_frameworks(
@@ -254,7 +265,6 @@ def cmd_discover(args):
         
         # Special handling for selenium-java: detect mixed frameworks
         if args.framework == "selenium-java":
-            from pathlib import Path
             test_source_dir = str(Path(args.project_root) / "src" / "test" / "java")
             
             detected_frameworks = SeleniumJavaConfig.detect_all_frameworks(
@@ -771,6 +781,170 @@ def cmd_impact(args):
         return 1
 
 
+def cmd_show_mappings(args):
+    """Show step-to-code-path mappings."""
+    from adapters.common.mapping.persistence import MappingPersistence
+    import json
+    
+    persistence = MappingPersistence()
+    
+    try:
+        if args.test_id and args.run_id:
+            # Show single mapping
+            mapping = persistence.load_mapping(args.test_id, args.run_id)
+            if not mapping:
+                print(f"❌ No mapping found for test_id={args.test_id}, run_id={args.run_id}")
+                return 1
+            
+            if args.format == "json":
+                print(json.dumps(mapping.to_dict(), indent=2))
+            else:
+                print(f"\n📍 Mapping for: {mapping.step}")
+                print(f"   Page Objects: {', '.join(mapping.page_objects) or 'none'}")
+                print(f"   Methods: {', '.join(mapping.methods) or 'none'}")
+                print(f"   Code Paths:")
+                for cp in mapping.code_paths:
+                    print(f"     • {cp}")
+        
+        elif args.run_id:
+            # Show all mappings for run
+            mappings = persistence.load_mappings_for_run(args.run_id)
+            if not mappings:
+                print(f"❌ No mappings found for run_id={args.run_id}")
+                return 1
+            
+            if args.format == "json":
+                output = {tid: m.to_dict() for tid, m in mappings.items()}
+                print(json.dumps(output, indent=2))
+            elif args.format == "summary":
+                print(f"\n📊 Mapping Summary for Run: {args.run_id}")
+                print(f"   Total Tests: {len(mappings)}")
+                total_paths = sum(len(m.code_paths) for m in mappings.values())
+                print(f"   Total Code Paths: {total_paths}")
+                mapped = len([m for m in mappings.values() if m.code_paths])
+                print(f"   Tests with Mappings: {mapped}/{len(mappings)} ({mapped/len(mappings)*100:.1f}%)")
+            else:  # table
+                print(f"\n📋 Mappings for Run: {args.run_id}\n")
+                for test_id, mapping in sorted(mappings.items()):
+                    status = "✅" if mapping.code_paths else "⚠️ "
+                    print(f"{status} {test_id}")
+                    print(f"   Step: {mapping.step}")
+                    if mapping.code_paths:
+                        print(f"   Paths: {', '.join(mapping.code_paths)}")
+                    print()
+        
+        else:
+            print("❌ Please specify either --test-id with --run-id, or just --run-id")
+            return 1
+        
+        return 0
+    
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+def cmd_analyze_impact(args):
+    """Analyze impact of code changes using step-to-code mappings."""
+    from adapters.common.mapping.persistence import MappingPersistence
+    import json
+    
+    persistence = MappingPersistence()
+    
+    try:
+        changed_paths = [cp.strip() for cp in args.changed.split(',')]
+        
+        print(f"\n🔍 Analyzing impact of changes:")
+        for cp in changed_paths:
+            print(f"   • {cp}")
+        print()
+        
+        # Find affected tests for each changed path
+        all_affected = {}
+        for code_path in changed_paths:
+            affected = persistence.find_tests_by_code_path(code_path, args.run_id)
+            for test_id in affected:
+                if test_id not in all_affected:
+                    all_affected[test_id] = []
+                all_affected[test_id].append(code_path)
+        
+        if not all_affected:
+            print("✅ No tests affected by these changes")
+            return 0
+        
+        if args.format == "json":
+            print(json.dumps(all_affected, indent=2))
+        elif args.format == "detailed":
+            print(f"⚠️  {len(all_affected)} test(s) affected:\n")
+            for test_id, paths in sorted(all_affected.items()):
+                print(f"📌 {test_id}")
+                for path in paths:
+                    print(f"   └─ {path}")
+                print()
+        else:  # list
+            print(f"⚠️  {len(all_affected)} test(s) affected:\n")
+            for test_id in sorted(all_affected.keys()):
+                print(f"  • {test_id}")
+        
+        return 0
+    
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+def cmd_validate_coverage(args):
+    """Validate step-to-code mapping coverage."""
+    from adapters.common.mapping.persistence import MappingPersistence
+    import json
+    
+    persistence = MappingPersistence()
+    
+    try:
+        report = persistence.get_coverage_report(args.run_id)
+        
+        if args.format == "json":
+            print(json.dumps(report, indent=2))
+        elif args.format == "detailed":
+            print(f"\n📊 Coverage Report for Run: {report['run_id']}\n")
+            print(f"Total Tests: {report['total_tests']}")
+            print(f"Code Paths Covered: {report['code_paths_covered']}")
+            print(f"Page Objects Used: {report['page_objects_used']}")
+            print(f"Methods Used: {report['methods_used']}")
+            print(f"Coverage: {report['coverage_percentage']:.1f}%\n")
+            
+            if args.show_unmapped and report['steps_without_mapping']:
+                print(f"⚠️  Steps Without Mappings ({len(report['steps_without_mapping'])}):\n")
+                for step in report['steps_without_mapping']:
+                    print(f"  • {step}")
+        else:  # summary
+            print(f"\n📊 Coverage Summary")
+            print(f"   Run ID: {report['run_id']}")
+            print(f"   Tests: {report['total_tests']}")
+            print(f"   Coverage: {report['coverage_percentage']:.1f}%")
+            print(f"   Code Paths: {report['code_paths_covered']}")
+            
+            if report['steps_without_mapping']:
+                print(f"   ⚠️  {len(report['steps_without_mapping'])} steps unmapped")
+                if args.show_unmapped:
+                    print()
+                    for step in report['steps_without_mapping']:
+                        print(f"      • {step}")
+        
+        print()
+        return 0
+    
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
 def main():
     """Main entry point for the CrossBridge AI CLI."""
     parser = argparse.ArgumentParser(
@@ -907,6 +1081,76 @@ def main():
         help="Minimum confidence threshold (default: 0.5)"
     )
     impact_parser.set_defaults(func=cmd_impact)
+    
+    # Show mappings command
+    mappings_parser = subparsers.add_parser(
+        "show-mappings",
+        help="Show step-to-code-path mappings"
+    )
+    mappings_parser.add_argument(
+        "--run-id",
+        help="Test run ID to show mappings for"
+    )
+    mappings_parser.add_argument(
+        "--test-id",
+        help="Show mappings for specific test ID"
+    )
+    mappings_parser.add_argument(
+        "--pattern",
+        help="Filter mappings by step pattern"
+    )
+    mappings_parser.add_argument(
+        "--format",
+        choices=["table", "json", "summary"],
+        default="table",
+        help="Output format (default: table)"
+    )
+    mappings_parser.set_defaults(func=cmd_show_mappings)
+    
+    # Analyze impact command (enhanced with mapping support)
+    analyze_impact_parser = subparsers.add_parser(
+        "analyze-impact",
+        help="Find tests affected by code changes using step-to-code mappings"
+    )
+    analyze_impact_parser.add_argument(
+        "--changed",
+        required=True,
+        help="Comma-separated list of changed code paths (e.g., pages/login.py::LoginPage.login)"
+    )
+    analyze_impact_parser.add_argument(
+        "--run-id",
+        help="Test run ID to analyze (if not specified, uses latest)"
+    )
+    analyze_impact_parser.add_argument(
+        "--format",
+        choices=["list", "detailed", "json"],
+        default="list",
+        help="Output format (default: list)"
+    )
+    analyze_impact_parser.set_defaults(func=cmd_analyze_impact)
+    
+    # Validate coverage command
+    coverage_parser = subparsers.add_parser(
+        "validate-coverage",
+        help="Check step-to-code mapping coverage"
+    )
+    coverage_parser.add_argument(
+        "--run-id",
+        required=True,
+        help="Test run ID to validate"
+    )
+    coverage_parser.add_argument(
+        "--show-unmapped",
+        action="store_true",
+        help="Show steps without code path mappings"
+    )
+    coverage_parser.add_argument(
+        "--format",
+        choices=["summary", "detailed", "json"],
+        default="summary",
+        help="Output format (default: summary)"
+    )
+    coverage_parser.set_defaults(func=cmd_validate_coverage)
     
     # Parse arguments
     args = parser.parse_args()

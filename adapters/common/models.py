@@ -70,6 +70,7 @@ class IntentModel:
     intent: str
     steps: List[TestStep] = field(default_factory=list)
     assertions: List[Assertion] = field(default_factory=list)
+    code_paths: List[str] = field(default_factory=list)  # Step → code mapping for impact analysis
 
 
 @dataclass

@@ -1,0 +1,21 @@
+{
+  "test_id": "test_dashboard_001",
+  "run_id": "demo_run_20250101",
+  "timestamp": "2025-12-30T03:39:40.540060+00:00",
+  "mapping": {
+    "step": "Then user should see dashboard",
+    "page_objects": [
+      "DashboardPage"
+    ],
+    "methods": [
+      "isVisible",
+      "waitForElement"
+    ],
+    "code_paths": [
+      "pages/dashboard_page.py::DashboardPage.isVisible",
+      "pages/base_page.py::BasePage.waitForElement"
+    ],
+    "signals": []
+  },
+  "metadata": {}
+}

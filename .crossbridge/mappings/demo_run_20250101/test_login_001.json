@@ -1,0 +1,21 @@
+{
+  "test_id": "test_login_001",
+  "run_id": "demo_run_20250101",
+  "timestamp": "2025-12-30T03:39:40.539226+00:00",
+  "mapping": {
+    "step": "Given user is on login page",
+    "page_objects": [
+      "LoginPage"
+    ],
+    "methods": [
+      "open",
+      "navigateTo"
+    ],
+    "code_paths": [
+      "pages/login_page.py::LoginPage.open",
+      "pages/base_page.py::BasePage.navigateTo"
+    ],
+    "signals": []
+  },
+  "metadata": {}
+}
