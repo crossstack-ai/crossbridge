@@ -1,0 +1,59 @@
+{
+  "last_updated": "2025-12-31T17:32:57.782929",
+  "total_entries": 4,
+  "entries": [
+    {
+      "event_type": "policy_evaluated",
+      "timestamp": "2025-12-31T17:32:57.778227",
+      "actor": "demo_user",
+      "policy_id": "test-coverage",
+      "details": {
+        "compliant": false,
+        "violations_count": 2
+      },
+      "severity": "warning",
+      "outcome": "success"
+    },
+    {
+      "event_type": "violation_detected",
+      "timestamp": "2025-12-31T17:32:57.780618",
+      "actor": "demo_user",
+      "policy_id": "test-coverage",
+      "details": {
+        "rule_id": "min-coverage",
+        "rule_name": "Minimum Coverage Threshold",
+        "severity": "error",
+        "description": "Test coverage must be at least 80%"
+      },
+      "severity": "error",
+      "outcome": "success"
+    },
+    {
+      "event_type": "violation_detected",
+      "timestamp": "2025-12-31T17:32:57.781734",
+      "actor": "demo_user",
+      "policy_id": "test-coverage",
+      "details": {
+        "rule_id": "no-untested-critical",
+        "rule_name": "Critical Paths Must Be Tested",
+        "severity": "critical",
+        "description": "All critical code paths must have tests"
+      },
+      "severity": "critical",
+      "outcome": "success"
+    },
+    {
+      "event_type": "compliance_check",
+      "timestamp": "2025-12-31T17:32:57.782722",
+      "actor": "demo_user",
+      "policy_id": null,
+      "details": {
+        "policies_checked": 1,
+        "violations_found": 2,
+        "compliance_rate": 0.0
+      },
+      "severity": "warning",
+      "outcome": "success"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "title": "Demo Compliance Report",
+  "generated_at": "2025-12-31T17:32:57.756815",
+  "summary": {
+    "policies_evaluated": 3,
+    "total_rules_checked": 7,
+    "total_violations": 5,
+    "compliance_rate": 28.57142857142857
+  },
+  "violations_by_severity": {
+    "error": 2,
+    "critical": 1,
+    "warning": 2
+  },
+  "compliance_by_category": {
+    "testing": {
+      "total_rules": 2,
+      "passed_rules": 0,
+      "violations": 2,
+      "compliance_rate": 0.0
+    },
+    "quality": {
+      "total_rules": 3,
+      "passed_rules": 1,
+      "violations": 2,
+      "compliance_rate": 33.33333333333333
+    },
+    "security": {
+      "total_rules": 2,
+      "passed_rules": 1,
+      "violations": 1,
+      "compliance_rate": 50.0
+    }
+  },
+  "policy_results": [
+    {
+      "policy_id": "test-coverage",
+      "policy_name": "Test Coverage Policy",
+      "compliant": false,
+      "checked_rules": 2,
+      "passed_rules": 0,
+      "compliance_rate": 0.0,
+      "violations": [
+        {
+          "rule_id": "min-coverage",
+          "rule_name": "Minimum Coverage Threshold",
+          "severity": "error",
+          "description": "Test coverage must be at least 80%",
+          "status": "open"
+        },
+        {
+          "rule_id": "no-untested-critical",
+          "rule_name": "Critical Paths Must Be Tested",
+          "severity": "critical",
+          "description": "All critical code paths must have tests",
+          "status": "open"
+        }
+      ]
+    },
+    {
+      "policy_id": "test-quality",
+      "policy_name": "Test Quality Policy",
+      "compliant": false,
+      "checked_rules": 3,
+      "passed_rules": 1,
+      "compliance_rate": 33.33333333333333,
+      "violations": [
+        {
+          "rule_id": "no-flaky-tests",
+          "rule_name": "No Flaky Tests",
+          "severity": "warning",
+          "description": "Tests must not be flaky (pass rate < 95%)",
+          "status": "open"
+        },
+        {
+          "rule_id": "test-execution-time",
+          "rule_name": "Test Execution Time Limit",
+          "severity": "warning",
+          "description": "Tests should complete within reasonable time",
+          "status": "open"
+        }
+      ]
+    },
+    {
+      "policy_id": "security",
+      "policy_name": "Security Policy",
+      "compliant": false,
+      "checked_rules": 2,
+      "passed_rules": 1,
+      "compliance_rate": 50.0,
+      "violations": [
+        {
+          "rule_id": "secure-data-handling",
+          "rule_name": "Secure Test Data Handling",
+          "severity": "error",
+          "description": "Sensitive test data must be encrypted or masked",
+          "status": "open"
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,11 @@ scikit-learn>=1.0.0
 SQLAlchemy>=1.4.0
 psycopg2-binary>=2.9.0
 
+# Logging Framework (core/logging/)
+# - Uses Python standard library only (no external dependencies required)
+# - Features: CrossStack-AI branding, multiple verbosity levels, file/console output
+# - Modules: logger, formatters, handlers, filters
+
 # Development dependencies
 pytest>=7.0.0
 pytest-cov>=4.0.0
