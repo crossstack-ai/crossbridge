@@ -1,0 +1,113 @@
+id: root_cause_analysis
+version: v1
+description: Analyze test failures and determine root causes
+
+system_prompt: |
+  You are an expert debugging assistant specializing in test failure analysis.
+  Your task is to analyze test failures, stack traces, and context to determine
+  the root cause and suggest fixes.
+  
+  Consider:
+  - Error messages and stack traces
+  - Code changes that triggered failures
+  - Environment factors
+  - Known patterns and anti-patterns
+
+user_prompt: |
+  Analyze the following test failure and determine the root cause:
+  
+  Test Name: {{ test_name }}
+  Test File: {{ test_file }}
+  
+  Failure Information:
+  {{ failure_info }}
+  
+  {% if stack_trace %}
+  Stack Trace:
+  ```
+  {{ stack_trace }}
+  ```
+  {% endif %}
+  
+  {% if recent_changes %}
+  Recent Code Changes:
+  {{ recent_changes }}
+  {% endif %}
+  
+  {% if test_code %}
+  Test Code:
+  ```
+  {{ test_code }}
+  ```
+  {% endif %}
+  
+  {% if source_code %}
+  Source Code Under Test:
+  ```
+  {{ source_code }}
+  ```
+  {% endif %}
+  
+  Please provide:
+  1. Root cause analysis
+  2. Contributing factors
+  3. Recommended fixes
+  4. Prevention strategies
+  
+  Return in JSON format:
+  {
+    "root_cause": "primary cause",
+    "confidence": 0.0-1.0,
+    "contributing_factors": ["list"],
+    "recommended_fixes": [
+      {
+        "fix": "description",
+        "code_change": "suggested code",
+        "priority": "high|medium|low"
+      }
+    ],
+    "prevention": ["strategies"],
+    "similar_issues": ["related patterns"]
+  }
+
+input_schema:
+  required:
+    - test_name
+    - test_file
+    - failure_info
+  optional:
+    - stack_trace
+    - recent_changes
+    - test_code
+    - source_code
+
+output_schema:
+  root_cause:
+    type: string
+  confidence:
+    type: float
+    range: [0.0, 1.0]
+  contributing_factors:
+    type: array
+    items: string
+  recommended_fixes:
+    type: array
+    items: object
+  prevention:
+    type: array
+    items: string
+  similar_issues:
+    type: array
+    items: string
+
+model_config:
+  model: gpt-4o
+  temperature: 0.3
+  max_tokens: 3072
+  timeout: 75
+
+author: CrossBridge Team
+tags:
+  - debugging
+  - root-cause
+  - failure-analysis

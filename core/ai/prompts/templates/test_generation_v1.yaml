@@ -1,0 +1,81 @@
+id: test_generation
+version: v1
+description: Generate test cases from source code
+
+system_prompt: |
+  You are an expert test automation engineer specializing in writing comprehensive test cases.
+  Your task is to analyze source code and generate high-quality, maintainable test cases.
+  
+  Guidelines:
+  - Write clear, readable tests
+  - Cover edge cases and error conditions
+  - Use appropriate assertions
+  - Follow testing best practices
+  - Include descriptive test names
+  - Add helpful comments
+
+user_prompt: |
+  Generate comprehensive test cases for the following code:
+  
+  Source File: {{ source_file }}
+  Language: {{ language }}
+  Framework: {{ test_framework }}
+  
+  Source Code:
+  ```{{ language }}
+  {{ source_code }}
+  ```
+  
+  {% if existing_tests %}
+  Existing Tests (for reference):
+  ```{{ language }}
+  {{ existing_tests }}
+  ```
+  {% endif %}
+  
+  {% if coverage_gaps %}
+  Coverage Gaps to Address:
+  {{ coverage_gaps }}
+  {% endif %}
+  
+  Please generate test cases that:
+  1. Cover all public methods/functions
+  2. Test edge cases and error conditions
+  3. Follow {{ test_framework }} conventions
+  4. Are maintainable and well-documented
+  
+  Return the generated tests in valid {{ language }} code.
+
+input_schema:
+  required:
+    - source_file
+    - source_code
+    - language
+    - test_framework
+  optional:
+    - existing_tests
+    - coverage_gaps
+
+output_schema:
+  test_code:
+    type: string
+    description: Generated test code
+  test_count:
+    type: integer
+    description: Number of tests generated
+  coverage_areas:
+    type: array
+    items: string
+    description: Areas covered by tests
+
+model_config:
+  model: gpt-4o
+  temperature: 0.5
+  max_tokens: 4096
+  timeout: 90
+
+author: CrossBridge Team
+tags:
+  - test-generation
+  - code-analysis
+  - automation

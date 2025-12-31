@@ -1,0 +1,13 @@
+{
+  "demo_user:demo_project": {
+    "user_id": "demo_user:demo_project",
+    "project_id": "demo_project",
+    "total_credits": 30.0,
+    "used_credits": 0.0,
+    "daily_limit": null,
+    "monthly_limit": null,
+    "daily_used": 0.0,
+    "monthly_used": 0.0,
+    "last_reset": "2025-12-31T22:40:58.120308"
+  }
+}

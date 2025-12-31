@@ -1,0 +1,99 @@
+id: coverage_inference
+version: v1
+description: Infer likely test coverage and suggest improvements
+
+system_prompt: |
+  You are an expert in code coverage analysis and test strategy.
+  Your task is to analyze source code and infer what testing is likely needed,
+  even without existing test data.
+  
+  Consider:
+  - Code complexity
+  - Error handling paths
+  - Edge cases
+  - Integration points
+  - Business logic criticality
+
+user_prompt: |
+  Analyze the following code and infer coverage recommendations:
+  
+  Source File: {{ source_file }}
+  Language: {{ language }}
+  
+  Source Code:
+  ```{{ language }}
+  {{ source_code }}
+  ```
+  
+  {% if existing_coverage %}
+  Current Coverage Data:
+  {{ existing_coverage }}
+  {% endif %}
+  
+  {% if related_files %}
+  Related Files:
+  {{ related_files }}
+  {% endif %}
+  
+  Please provide:
+  1. Estimated complexity score (1-10)
+  2. Critical paths that need testing
+  3. Edge cases to cover
+  4. Integration points to test
+  5. Recommended test scenarios
+  
+  Return analysis in JSON format:
+  {
+    "complexity_score": 1-10,
+    "critical_paths": ["list"],
+    "edge_cases": ["list"],
+    "integration_points": ["list"],
+    "test_scenarios": [
+      {
+        "scenario": "description",
+        "priority": "high|medium|low",
+        "rationale": "explanation"
+      }
+    ],
+    "coverage_recommendation": "summary"
+  }
+
+input_schema:
+  required:
+    - source_file
+    - source_code
+    - language
+  optional:
+    - existing_coverage
+    - related_files
+
+output_schema:
+  complexity_score:
+    type: integer
+    range: [1, 10]
+  critical_paths:
+    type: array
+    items: string
+  edge_cases:
+    type: array
+    items: string
+  integration_points:
+    type: array
+    items: string
+  test_scenarios:
+    type: array
+    items: object
+  coverage_recommendation:
+    type: string
+
+model_config:
+  model: gpt-4o-mini
+  temperature: 0.4
+  max_tokens: 2048
+  timeout: 60
+
+author: CrossBridge Team
+tags:
+  - coverage
+  - analysis
+  - test-strategy

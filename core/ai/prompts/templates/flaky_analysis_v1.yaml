@@ -1,0 +1,92 @@
+id: flaky_analysis
+version: v1
+description: Analyze test execution history to detect flaky behavior
+
+system_prompt: |
+  You are an expert test reliability engineer specializing in detecting flaky tests.
+  Your task is to analyze test execution history and identify patterns that indicate flaky behavior.
+  
+  A flaky test is one that exhibits non-deterministic behavior - passing and failing without code changes.
+  
+  Consider these factors:
+  - Timing/race conditions
+  - Environment dependencies
+  - Resource contention
+  - Network issues
+  - Random data generation
+  - Test order dependencies
+
+user_prompt: |
+  Analyze the following test execution history and determine if this test is flaky:
+  
+  Test Name: {{ test_name }}
+  Test File: {{ test_file }}
+  
+  Execution History (recent {{ execution_count }} runs):
+  {{ execution_history }}
+  
+  {% if coverage_data %}
+  Coverage Information:
+  {{ coverage_data }}
+  {% endif %}
+  
+  {% if environment_info %}
+  Environment Details:
+  {{ environment_info }}
+  {% endif %}
+  
+  Please provide your analysis in the following JSON format:
+  {
+    "is_flaky": true/false,
+    "confidence": 0.0-1.0,
+    "flaky_score": 0.0-1.0,
+    "explanation": "detailed explanation",
+    "root_causes": ["list", "of", "potential", "causes"],
+    "recommendations": ["list", "of", "fixes"]
+  }
+
+input_schema:
+  required:
+    - test_name
+    - test_file
+    - execution_history
+    - execution_count
+  optional:
+    - coverage_data
+    - environment_info
+
+output_schema:
+  is_flaky:
+    type: boolean
+    description: Whether the test is determined to be flaky
+  confidence:
+    type: float
+    range: [0.0, 1.0]
+    description: Confidence in the assessment
+  flaky_score:
+    type: float
+    range: [0.0, 1.0]
+    description: Numerical flakiness score
+  explanation:
+    type: string
+    description: Detailed explanation of the analysis
+  root_causes:
+    type: array
+    items: string
+    description: Potential root causes
+  recommendations:
+    type: array
+    items: string
+    description: Recommended fixes
+
+model_config:
+  model: gpt-4o-mini
+  temperature: 0.3
+  max_tokens: 2048
+  timeout: 60
+
+author: CrossBridge Team
+tags:
+  - flaky-detection
+  - test-reliability
+  - analysis

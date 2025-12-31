@@ -19,9 +19,9 @@ black>=23.0.0
 flake8>=6.0.0
 mypy>=1.0.0
 
-# Optional runtime dependencies
-# Uncomment if using Playwright for migration/testing
-# playwright>=1.40.0
+# Translation feature dependencies
+requests>=2.31.0  # For API test generation (pytest generator)
+playwright>=1.40.0  # For UI test translation and generation
 
 # Note: External test framework dependencies (installed separately):
 # - Cypress: npm install cypress
