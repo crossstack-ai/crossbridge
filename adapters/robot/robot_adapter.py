@@ -9,11 +9,14 @@ import subprocess
 import time
 import json
 import tempfile
+import re
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from xml.etree import ElementTree as ET
 
 from adapters.common.base import BaseTestAdapter, TestResult
+from adapters.common.models import TestMetadata
+from .config import RobotConfig
 
 
 class RobotAdapter(BaseTestAdapter):
@@ -23,8 +26,19 @@ class RobotAdapter(BaseTestAdapter):
     Translates Robot Framework tests to and from the framework-agnostic internal model.
     """
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, project_root: str, config: Optional[RobotConfig] = None):
+        """
+        Initialize Robot Framework adapter.
+        
+        Args:
+            project_root: Root directory of the project
+            config: Optional RobotConfig, defaults to sensible values
+        """
+        self.project_root = Path(project_root)
+        self.config = config or RobotConfig(
+            tests_path=str(self.project_root / "tests"),
+            pythonpath=str(self.project_root)
+        )
 
     def discover_tests(self) -> List[str]:
         """
@@ -165,3 +179,183 @@ class RobotAdapter(BaseTestAdapter):
             )
 
         return results
+
+
+class RobotExtractor:
+    """
+    Extractor for Robot Framework tests.
+    
+    Parses .robot files to extract metadata without execution.
+    """
+    
+    def __init__(self, project_root: str):
+        """
+        Initialize extractor.
+        
+        Args:
+            project_root: Root directory of the project
+        """
+        self.project_root = Path(project_root)
+    
+    def extract_tests(self) -> List[TestMetadata]:
+        """
+        Extract test metadata from .robot files.
+        
+        Returns:
+            List of TestMetadata objects
+        """
+        tests = []
+        
+        # Find all .robot files
+        robot_files = list(self.project_root.rglob("*.robot"))
+        
+        for robot_file in robot_files:
+            # Skip files in output directories
+            if any(part.startswith('.') or part in ['output', 'results', 'logs'] 
+                   for part in robot_file.parts):
+                continue
+            
+            try:
+                file_tests = self._parse_robot_file(robot_file)
+                tests.extend(file_tests)
+            except Exception as e:
+                print(f"Warning: Failed to parse {robot_file}: {e}")
+                continue
+        
+        return tests
+    
+    def _parse_robot_file(self, file_path: Path) -> List[TestMetadata]:
+        """Parse a single .robot file."""
+        tests = []
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Parse test cases
+        in_test_cases = False
+        in_test = False
+        current_test = None
+        current_tags = []
+        suite_tags = []
+        
+        for line in content.split('\n'):
+            stripped = line.strip()
+            
+            # Check for Force Tags (suite-level tags)
+            if stripped.startswith('Force Tags'):
+                tags_str = stripped[10:].strip()
+                suite_tags = [t.strip() for t in tags_str.split() if t.strip()]
+                continue
+            
+            # Check for Test Cases section
+            if stripped.startswith('*** Test Cases ***'):
+                in_test_cases = True
+                continue
+            
+            # Check for other sections (end of Test Cases)
+            if stripped.startswith('***') and 'Test Cases' not in stripped:
+                in_test_cases = False
+                # Save current test if any
+                if current_test:
+                    all_tags = list(set(suite_tags + current_tags))
+                    tests.append(TestMetadata(
+                        framework="robot",
+                        test_name=current_test,
+                        file_path=str(file_path),
+                        tags=all_tags,
+                        test_type="robot",
+                        language="robot"
+                    ))
+                    current_test = None
+                    current_tags = []
+                continue
+            
+            if not in_test_cases or not stripped:
+                continue
+            
+            # Check if line starts a new test (not indented)
+            if not line.startswith(' ') and not line.startswith('\t') and stripped:
+                # Save previous test
+                if current_test:
+                    all_tags = list(set(suite_tags + current_tags))
+                    tests.append(TestMetadata(
+                        framework="robot",
+                        test_name=current_test,
+                        file_path=str(file_path),
+                        tags=all_tags,
+                        test_type="robot",
+                        language="robot"
+                    ))
+                
+                # Start new test
+                current_test = stripped
+                current_tags = []
+                in_test = True
+                continue
+            
+            # Check for tags within test
+            if in_test and stripped.startswith('[Tags]'):
+                tags_str = stripped[6:].strip()
+                current_tags = [t.strip() for t in tags_str.split() if t.strip()]
+        
+        # Save last test
+        if current_test:
+            all_tags = list(set(suite_tags + current_tags))
+            tests.append(TestMetadata(
+                framework="robot",
+                test_name=current_test,
+                file_path=str(file_path),
+                tags=all_tags,
+                test_type="robot",
+                language="robot"
+            ))
+        
+        return tests
+
+
+class RobotDetector:
+    """
+    Detector for Robot Framework projects.
+    
+    Identifies if a project uses Robot Framework.
+    """
+    
+    @staticmethod
+    def detect(project_root: str) -> bool:
+        """
+        Detect if project uses Robot Framework.
+        
+        Args:
+            project_root: Root directory to check
+        
+        Returns:
+            True if Robot Framework project detected
+        """
+        root = Path(project_root)
+        
+        # Check for .robot files
+        robot_files = list(root.rglob("*.robot"))
+        has_robot_files = len(robot_files) > 0
+        
+        # Check for requirements
+        has_robot_requirement = False
+        for req_file in ['requirements.txt', 'requirements-test.txt', 'test-requirements.txt']:
+            req_path = root / req_file
+            if req_path.exists():
+                try:
+                    with open(req_path, 'r') as f:
+                        content = f.read().lower()
+                        if 'robotframework' in content or 'robot-framework' in content:
+                            has_robot_requirement = True
+                            break
+                except:
+                    continue
+        
+        # Check for robot configuration files
+        has_robot_config = any([
+            (root / "robot.yaml").exists(),
+            (root / "robot.yml").exists(),
+            (root / ".robot").exists(),
+        ])
+        
+        return has_robot_files or (has_robot_requirement and has_robot_config)
