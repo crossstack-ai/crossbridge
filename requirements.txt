@@ -1,0 +1,26 @@
+# CrossBridge Framework Dependencies
+
+# Core dependencies
+numpy>=1.21.0
+scikit-learn>=1.0.0
+SQLAlchemy>=1.4.0
+psycopg2-binary>=2.9.0
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-anyio>=0.0.0  
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# Optional runtime dependencies
+# Uncomment if using Playwright for migration/testing
+# playwright>=1.40.0
+
+# Note: External test framework dependencies (installed separately):
+# - Cypress: npm install cypress
+# - Robot Framework: pip install robotframework
+# - pytest plugins as needed
+# - Java/Maven/Gradle for Java adapters
+# - .NET SDK for SpecFlow adapter

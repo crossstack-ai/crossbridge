@@ -135,3 +135,6 @@ docs/_templates/
 examples/**/output/
 migration/output/
 persistence/data/
+
+# Documents
+QA_Automation_AI_Platform_Analysis_v2.pdf

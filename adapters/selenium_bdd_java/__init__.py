@@ -18,6 +18,21 @@ from .models import (
     StepResult
 )
 
+# Import step definition parser for migration
+try:
+    from .step_definition_parser import (
+        JavaStepDefinitionParser,
+        StepDefinitionIntent,
+        StepDefinitionMapper,
+        SeleniumAction,
+        PageObjectCall,
+        translate_selenium_to_playwright,
+        SELENIUM_TO_PLAYWRIGHT
+    )
+    _STEP_PARSER_AVAILABLE = True
+except ImportError:
+    _STEP_PARSER_AVAILABLE = False
+
 __all__ = [
     "SeleniumBDDJavaExtractor",
     "SeleniumBDDJavaConfig",
@@ -28,3 +43,14 @@ __all__ = [
     "ScenarioResult",
     "StepResult",
 ]
+
+if _STEP_PARSER_AVAILABLE:
+    __all__.extend([
+        "JavaStepDefinitionParser",
+        "StepDefinitionIntent",
+        "StepDefinitionMapper",
+        "SeleniumAction",
+        "PageObjectCall",
+        "translate_selenium_to_playwright",
+        "SELENIUM_TO_PLAYWRIGHT"
+    ])

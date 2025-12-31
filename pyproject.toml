@@ -21,7 +21,12 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-dependencies = []
+dependencies = [
+    "numpy>=1.21.0",
+    "scikit-learn>=1.0.0",
+    "SQLAlchemy>=1.4.0",
+    "psycopg2-binary>=2.9.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["cli", "core", "adapters", "adapters.*", "migration", "persistence", "persistence.*", "common"]
