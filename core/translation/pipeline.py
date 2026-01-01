@@ -150,7 +150,16 @@ class TranslationPipeline:
         framework_lower = framework.lower()
         
         # Import parsers dynamically to avoid circular dependencies
-        if "selenium" in framework_lower and "bdd" in framework_lower:
+        if "python" in framework_lower and "bdd" in framework_lower:
+            from core.translation.parsers.python_selenium_bdd_parser import PythonSeleniumBDDParser
+            return PythonSeleniumBDDParser()
+        elif "cypress" in framework_lower:
+            from core.translation.parsers.cypress_parser import CypressParser
+            return CypressParser()
+        elif "specflow" in framework_lower or ("dotnet" in framework_lower and "bdd" in framework_lower):
+            from core.translation.parsers.specflow_parser import SpecFlowParser
+            return SpecFlowParser()
+        elif "selenium" in framework_lower and "bdd" in framework_lower:
             from core.translation.parsers.selenium_bdd_parser import SeleniumJavaBDDParser
             return SeleniumJavaBDDParser(framework)
         elif "selenium" in framework_lower:
