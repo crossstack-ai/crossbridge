@@ -2913,14 +2913,38 @@ Placeholder Keyword
                         if step_def.selenium_actions:
                             for action in step_def.selenium_actions:
                                 playwright_action = self._selenium_to_playwright(action)
-                                lines.append(f"    {playwright_action}")
+                                # Handle multiline TODO comments
+                                if '\\n' in playwright_action:
+                                    for line in playwright_action.split('\\n'):
+                                        lines.append(f"    {line}" if not line.startswith('    #') else line)
+                                else:
+                                    lines.append(f"    {playwright_action}")
                         elif step_def.page_object_calls:
                             # Use Page Object method calls
                             for po_call in step_def.page_object_calls:
-                                lines.append(f"    # Call: {po_call.page_object_name}.{po_call.method_name}")
                                 # Generate keyword call from page object method
-                                po_keyword = ' '.join(word.capitalize() for word in po_call.method_name.split('_'))
-                                lines.append(f"    {po_keyword}")
+                                method_words = re.findall(r'[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)', po_call.method_name)
+                                po_keyword = ' '.join(word.capitalize() for word in method_words)
+                                
+                                # Add comment showing original call
+                                lines.append(f"    # Original: {po_call.page_object_name}.{po_call.method_name}()")
+                                
+                                # If has return value, assign it
+                                if po_call.return_variable:
+                                    var_name = po_call.return_variable.upper()
+                                    lines.append(f"    ${{{var_name}}}=    {po_keyword}")
+                                else:
+                                    lines.append(f"    {po_keyword}")
+                                
+                                # Add parameters as arguments if present
+                                if po_call.parameters:
+                                    params_str = "    ".join(po_call.parameters)
+                                    lines.append(f"    # Parameters: {params_str}")
+                        elif step_def.assertions:
+                            # Convert assertions to Robot Framework verifications
+                            for assertion in step_def.assertions:
+                                robot_assertion = self._convert_assertion_to_robot(assertion)
+                                lines.append(f"    {robot_assertion}")
                         else:
                             # No implementation details found - generate action from step pattern
                             lines.append(f"    # Original Java method body not parsed - add implementation")
@@ -3055,28 +3079,173 @@ Placeholder Keyword
         - clear() → Clear Text
         - isDisplayed() → Get Element States (validate visible)
         - findElement() → (handled via locator)
+        - navigation actions → Go To, Back, Forward, Reload
         """
         action_type = action.action_type.lower()
-        target = action.target or "LOCATOR_NEEDED"
         
-        # Map Selenium actions to Playwright
+        # Determine the locator/target
+        if action.locator_value:
+            # Use the actual locator from parsing
+            locator_type = action.locator_type or "css"
+            locator_value = action.locator_value
+            
+            # Convert Selenium locator to Playwright format
+            if locator_type == "id":
+                target = f"id={locator_value}"
+            elif locator_type == "name":
+                target = f"xpath=//*[@name='{locator_value}']"
+            elif locator_type == "className":
+                target = f".{locator_value}"
+            elif locator_type == "cssSelector":
+                target = locator_value  # CSS selector as-is
+            elif locator_type == "xpath":
+                target = f"xpath={locator_value}"
+            elif locator_type == "linkText":
+                target = f"text={locator_value}"
+            elif locator_type == "partialLinkText":
+                target = f"text=/{locator_value}/"
+            else:
+                target = locator_value
+        elif action.target and action.target != "driver" and action.target != "element":
+            # Use variable name or target as-is
+            target = f"${{{action.target.upper()}}}"
+        else:
+            target = "LOCATOR_NEEDED"
+        
+        # Handle navigation actions
+        if action_type.startswith("navigate_"):
+            nav_action = action_type.replace("navigate_", "")
+            if nav_action == "get" or nav_action == "navigate_to":
+                url = action.parameters[0] if action.parameters else "URL"
+                return f"Go To    {url}"
+            elif nav_action == "back":
+                return "Go Back"
+            elif nav_action == "forward":
+                return "Go Forward"
+            elif nav_action == "refresh":
+                return "Reload"
+        
+        # Handle wait actions
+        if action_type.startswith("wait_"):
+            wait_type = action_type.replace("wait_", "")
+            if wait_type == "explicit_wait":
+                condition = action.parameters[0] if action.parameters else "condition"
+                # Parse the expected condition
+                if "visibilityOfElementLocated" in condition or "presenceOfElementLocated" in condition:
+                    return f"Wait For Elements State    {target}    visible    timeout=10s"
+                elif "elementToBeClickable" in condition:
+                    return f"Wait For Elements State    {target}    enabled    timeout=10s"
+                else:
+                    return f"# TODO: Convert wait condition: {condition}"
+            elif wait_type == "thread_sleep":
+                duration = action.parameters[0] if action.parameters else "1000"
+                # Convert milliseconds to seconds
+                try:
+                    seconds = int(duration) / 1000
+                    return f"Sleep    {seconds}s"
+                except:
+                    return f"Sleep    1s"
+        
+        # Map standard Selenium actions to Playwright
         if action_type == "click":
             return f"Click    {target}"
         elif action_type == "sendkeys":
             value = action.parameters[0] if action.parameters else "TEXT"
+            # Clean up the parameter (remove quotes if present)
+            value = value.strip('"\'')
             return f"Fill Text    {target}    {value}"
         elif action_type == "gettext":
+            if action.variable_name:
+                return f"${{{action.variable_name}}}=    Get Text    {target}"
             return f"Get Text    {target}"
         elif action_type == "clear":
             return f"Clear Text    {target}"
         elif action_type == "isdisplayed":
+            if action.variable_name:
+                return f"${{{action.variable_name}}}=    Get Element States    {target}    validate    visible"
             return f"Get Element States    {target}    validate    visible"
         elif action_type == "isenabled":
+            if action.variable_name:
+                return f"${{{action.variable_name}}}=    Get Element States    {target}    validate    enabled"
             return f"Get Element States    {target}    validate    enabled"
         elif action_type == "submit":
             return f"Click    {target}"
+        elif action_type == "getattribute":
+            attr = action.parameters[0].strip('"\'') if action.parameters else "ATTRIBUTE"
+            if action.variable_name:
+                return f"${{{action.variable_name}}}=    Get Attribute    {target}    {attr}"
+            return f"Get Attribute    {target}    {attr}"
+        elif action_type == "getcssvalue":
+            prop = action.parameters[0].strip('"\'') if action.parameters else "PROPERTY"
+            if action.variable_name:
+                return f"${{{action.variable_name}}}=    Get Style    {target}    {prop}"
+            return f"Get Style    {target}    {prop}"
         else:
-            return f"# TODO: Convert Selenium {action_type} to Playwright"
+            # Include the full statement as a comment for context
+            comment = action.full_statement if action.full_statement else f"Selenium {action_type}"
+            return f"# TODO: Convert Selenium {action_type} to Playwright\\n    # Original: {comment}"
+    
+    def _convert_assertion_to_robot(self, assertion: str) -> str:
+        """
+        Convert Java assertion to Robot Framework verification.
+        
+        Examples:
+            assertEquals(expected, actual) → Should Be Equal    ${actual}    ${expected}
+            assertTrue(condition) → Should Be True    ${condition}
+            assertNotNull(value) → Should Not Be Equal    ${value}    ${None}
+        """
+        assertion = assertion.strip()
+        
+        # assertEquals / assertEqual
+        if "assertEquals" in assertion or "assertEqual" in assertion:
+            match = re.search(r'assert(?:Equals?|Equal)\s*\(\s*([^,]+),\s*([^)]+)\)', assertion)
+            if match:
+                expected = match.group(1).strip()
+                actual = match.group(2).strip()
+                return f"Should Be Equal    {actual}    {expected}"
+        
+        # assertTrue
+        elif "assertTrue" in assertion:
+            match = re.search(r'assertTrue\s*\(\s*([^)]+)\)', assertion)
+            if match:
+                condition = match.group(1).strip()
+                return f"Should Be True    {condition}"
+        
+        # assertFalse
+        elif "assertFalse" in assertion:
+            match = re.search(r'assertFalse\s*\(\s*([^)]+)\)', assertion)
+            if match:
+                condition = match.group(1).strip()
+                return f"Should Be True    not {condition}"
+        
+        # assertNotNull
+        elif "assertNotNull" in assertion:
+            match = re.search(r'assertNotNull\s*\(\s*([^)]+)\)', assertion)
+            if match:
+                value = match.group(1).strip()
+                return f"Should Not Be Equal    {value}    ${{None}}"
+        
+        # assertNull
+        elif "assertNull" in assertion:
+            match = re.search(r'assertNull\s*\(\s*([^)]+)\)', assertion)
+            if match:
+                value = match.group(1).strip()
+                return f"Should Be Equal    {value}    ${{None}}"
+        
+        # assertNotEquals
+        elif "assertNotEquals" in assertion:
+            match = re.search(r'assertNotEquals\s*\(\s*([^,]+),\s*([^)]+)\)', assertion)
+            if match:
+                expected = match.group(1).strip()
+                actual = match.group(2).strip()
+                return f"Should Not Be Equal    {actual}    {expected}"
+        
+        # verify methods (TestNG style)
+        elif "verifyEquals" in assertion or "verifyTrue" in assertion:
+            return assertion.replace("verify", "Should Be ").replace("(", "    ").replace(")", "").replace(",", "    ")
+        
+        # Default: Keep as comment with TODO
+        return f"# TODO: Convert assertion: {assertion}"
     
     def _validate_robot_file(self, content: str, file_path: str) -> tuple[bool, list]:
         """

@@ -21,8 +21,12 @@ class SeleniumAction:
     """Represents a Selenium WebDriver action"""
     action_type: str  # click, sendKeys, getText, etc.
     target: str  # element reference
+    locator_type: str = ""  # id, css, xpath, name, etc.
+    locator_value: str = ""  # actual selector value
     parameters: list[str] = field(default_factory=list)
     line_number: int = 0
+    variable_name: str = ""  # if result is assigned to variable
+    full_statement: str = ""  # complete Java statement for context
 
 
 @dataclass
@@ -32,6 +36,9 @@ class PageObjectCall:
     method_name: str
     parameters: list[str] = field(default_factory=list)
     line_number: int = 0
+    return_variable: str = ""  # if result is assigned
+    is_chained: bool = False  # if part of method chain
+    full_statement: str = ""  # complete Java statement
 
 
 @dataclass
@@ -116,6 +123,37 @@ class JavaStepDefinitionParser:
         "isSelected": r"\.isSelected\(\)",
         "findElement": r"\.findElement\((.*?)\)",
         "findElements": r"\.findElements\((.*?)\)",
+        "getAttribute": r"\.getAttribute\((.*?)\)",
+        "getCssValue": r"\.getCssValue\((.*?)\)",
+        "getTagName": r"\.getTagName\(\)",
+    }
+    
+    # By locator patterns
+    LOCATOR_PATTERNS = {
+        "id": r'By\.id\(["\']([^"\']+)["\']\)',
+        "name": r'By\.name\(["\']([^"\']+)["\']\)',
+        "className": r'By\.className\(["\']([^"\']+)["\']\)',
+        "cssSelector": r'By\.cssSelector\(["\']([^"\']+)["\']\)',
+        "xpath": r'By\.xpath\(["\']([^"\']+)["\']\)',
+        "linkText": r'By\.linkText\(["\']([^"\']+)["\']\)',
+        "partialLinkText": r'By\.partialLinkText\(["\']([^"\']+)["\']\)',
+        "tagName": r'By\.tagName\(["\']([^"\']+)["\']\)',
+    }
+    
+    # WebDriver navigation patterns
+    NAVIGATION_PATTERNS = {
+        "get": r'driver\.get\(["\']([^"\']+)["\']\)',
+        "navigate_to": r'driver\.navigate\(\)\.to\(["\']([^"\']+)["\']\)',
+        "back": r'driver\.navigate\(\)\.back\(\)',
+        "forward": r'driver\.navigate\(\)\.forward\(\)',
+        "refresh": r'driver\.navigate\(\)\.refresh\(\)',
+    }
+    
+    # Wait patterns
+    WAIT_PATTERNS = {
+        "explicit_wait": r"WebDriverWait\([^)]+\)\.until\((.*?)\)",
+        "implicit_wait": r"driver\.manage\(\)\.timeouts\(\)\.implicitlyWait\((.*?)\)",
+        "thread_sleep": r"Thread\.sleep\((\d+)\)",
     }
     
     # Common assertion patterns
@@ -339,6 +377,14 @@ class JavaStepDefinitionParser:
         # Extract direct Selenium actions
         step_def.selenium_actions = self._extract_selenium_actions(body)
         
+        # Add navigation actions
+        nav_actions = self._extract_navigation_actions(body)
+        step_def.selenium_actions.extend(nav_actions)
+        
+        # Add wait actions
+        wait_actions = self._extract_wait_actions(body)
+        step_def.selenium_actions.extend(wait_actions)
+        
         # Extract variables
         step_def.variables = self._extract_variables(body)
         
@@ -347,55 +393,182 @@ class JavaStepDefinitionParser:
     
     def _extract_page_object_calls(self, body: str) -> list[PageObjectCall]:
         """
-        Extract Page Object method calls.
+        Extract Page Object method calls with full context.
         
         Examples:
             loginPage.enterUsername(username);
-            homePage.clickProfile();
+            String result = homePage.getTitle();
+            dashboard.getHeader().clickProfile(); // chained
         """
         calls = []
         
-        # Pattern: objectName.methodName(params)
-        pattern = r'(\w+(?:Page|page))\s*\.\s*(\w+)\s*\((.*?)\)'
+        lines = body.split('\n')
         
-        for match in re.finditer(pattern, body):
-            po_name = match.group(1)
-            method_name = match.group(2)
-            params_str = match.group(3).strip()
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('//'):
+                continue
             
-            # Parse parameters
-            params = [p.strip() for p in params_str.split(',') if p.strip()]
+            # Pattern: objectName.methodName(params)
+            # Support both Page suffix and general objects
+            pattern = r'(\w+(?:Page|page|Page\w*))\s*\.\s*(\w+)\s*\(([^)]*)\)'
             
-            calls.append(PageObjectCall(
-                page_object_name=po_name,
-                method_name=method_name,
-                parameters=params,
-                line_number=0  # TODO: track line numbers
-            ))
+            for match in re.finditer(pattern, line):
+                po_name = match.group(1)
+                method_name = match.group(2)
+                params_str = match.group(3).strip()
+                
+                # Parse parameters (handle nested parentheses)
+                params = []
+                if params_str:
+                    # Simple split for now - could be enhanced for nested calls
+                    params = [p.strip() for p in params_str.split(',') if p.strip()]
+                
+                # Check if result is assigned to variable
+                return_variable = ""
+                assign_match = re.search(r'(\w+(?:<[^>]+>)?)\s+(\w+)\s*=.*?' + 
+                                       re.escape(po_name) + r'\s*\.\s*' + re.escape(method_name), line)
+                if assign_match:
+                    return_variable = assign_match.group(2)
+                
+                # Check if this is part of a method chain
+                is_chained = ').' in line[match.end():]
+                
+                calls.append(PageObjectCall(
+                    page_object_name=po_name,
+                    method_name=method_name,
+                    parameters=params,
+                    line_number=line_num,
+                    return_variable=return_variable,
+                    is_chained=is_chained,
+                    full_statement=line
+                ))
         
         return calls
     
     def _extract_selenium_actions(self, body: str) -> list[SeleniumAction]:
-        """Extract direct Selenium WebDriver calls"""
+        """Extract direct Selenium WebDriver calls with full context"""
         actions = []
         
-        for action_name, pattern in self.SELENIUM_PATTERNS.items():
-            for match in re.finditer(pattern, body):
-                # Extract target element (preceding reference)
-                # This is a simplified heuristic
-                target = "element"
-                
-                # Extract parameters if any
-                params = []
-                if match.groups():
-                    params = [g for g in match.groups() if g]
-                
-                actions.append(SeleniumAction(
-                    action_type=action_name,
-                    target=target,
-                    parameters=params,
-                    line_number=0
-                ))
+        # Split body into statements for better parsing
+        lines = body.split('\n')
+        
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('//'):
+                continue
+            
+            # Extract findElement/findElements calls first to get locators
+            for action_name, pattern in self.SELENIUM_PATTERNS.items():
+                for match in re.finditer(pattern, line):
+                    # Extract the full statement for context
+                    full_statement = line
+                    
+                    # Try to extract locator information
+                    locator_type = ""
+                    locator_value = ""
+                    
+                    # Look for By.xxx locator in the same line or preceding lines
+                    for loc_type, loc_pattern in self.LOCATOR_PATTERNS.items():
+                        loc_match = re.search(loc_pattern, line)
+                        if loc_match:
+                            locator_type = loc_type
+                            locator_value = loc_match.group(1)
+                            break
+                    
+                    # If no By locator, check for direct selector methods
+                    if not locator_type:
+                        # Check for findElement(By.xxx) in context
+                        find_match = re.search(r'findElement\(By\.(\w+)\(["\']([^"\']+)["\']\)\)', line)
+                        if find_match:
+                            locator_type = find_match.group(1)
+                            locator_value = find_match.group(2)
+                    
+                    # Extract target (variable or element reference)
+                    target = "element"
+                    var_match = re.search(r'(\w+)\s*\.\s*' + action_name.replace('.', '\\.'), line)
+                    if var_match:
+                        target = var_match.group(1)
+                    
+                    # Extract parameters
+                    params = []
+                    if match.groups():
+                        params = [g.strip() for g in match.groups() if g]
+                    
+                    # Check if result is assigned to a variable
+                    variable_name = ""
+                    assign_match = re.search(r'(\w+(?:<[^>]+>)?)\s+(\w+)\s*=', line)
+                    if assign_match:
+                        variable_name = assign_match.group(2)
+                    
+                    actions.append(SeleniumAction(
+                        action_type=action_name,
+                        target=target,
+                        locator_type=locator_type,
+                        locator_value=locator_value,
+                        parameters=params,
+                        line_number=line_num,
+                        variable_name=variable_name,
+                        full_statement=full_statement
+                    ))
+        
+        return actions
+    
+    def _extract_navigation_actions(self, body: str) -> list[SeleniumAction]:
+        """Extract WebDriver navigation calls (driver.get, navigate, etc.)"""
+        actions = []
+        
+        lines = body.split('\n')
+        
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('//'):
+                continue
+            
+            for nav_type, pattern in self.NAVIGATION_PATTERNS.items():
+                match = re.search(pattern, line)
+                if match:
+                    url = match.group(1) if match.groups() else ""
+                    
+                    actions.append(SeleniumAction(
+                        action_type=f"navigate_{nav_type}",
+                        target="driver",
+                        locator_type="",
+                        locator_value="",
+                        parameters=[url] if url else [],
+                        line_number=line_num,
+                        variable_name="",
+                        full_statement=line
+                    ))
+        
+        return actions
+    
+    def _extract_wait_actions(self, body: str) -> list[SeleniumAction]:
+        """Extract wait/synchronization calls"""
+        actions = []
+        
+        lines = body.split('\n')
+        
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('//'):
+                continue
+            
+            for wait_type, pattern in self.WAIT_PATTERNS.items():
+                match = re.search(pattern, line)
+                if match:
+                    condition = match.group(1) if match.groups() else ""
+                    
+                    actions.append(SeleniumAction(
+                        action_type=f"wait_{wait_type}",
+                        target="driver",
+                        locator_type="",
+                        locator_value="",
+                        parameters=[condition] if condition else [],
+                        line_number=line_num,
+                        variable_name="",
+                        full_statement=line
+                    ))
         
         return actions
     
@@ -412,19 +585,30 @@ class JavaStepDefinitionParser:
         return variables
     
     def _extract_assertions(self, body: str) -> list[str]:
-        """Extract assertion statements"""
+        """Extract assertion statements with enhanced context"""
         assertions = []
         
-        for pattern in self.ASSERTION_PATTERNS:
-            for match in re.finditer(pattern, body):
-                # Extract full assertion line
-                start = match.start()
-                
-                # Find the full statement (until semicolon)
-                semicolon = body.find(';', start)
-                if semicolon != -1:
-                    assertion = body[start:semicolon + 1].strip()
-                    assertions.append(assertion)
+        lines = body.split('\n')
+        
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('//'):
+                continue
+            
+            # Check assertion patterns
+            for pattern in self.ASSERTION_PATTERNS:
+                match = re.search(pattern, line)
+                if match:
+                    # Extract full assertion statement (until semicolon)
+                    semicolon_idx = line.find(';')
+                    if semicolon_idx != -1:
+                        assertion = line[:semicolon_idx + 1]
+                    else:
+                        assertion = line
+                    
+                    # Don't duplicate if already added from same line
+                    if assertion not in assertions:
+                        assertions.append(assertion)
         
         return assertions
     
