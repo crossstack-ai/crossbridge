@@ -60,13 +60,6 @@ def add_coverage_commands(subparsers):
         default='crossbridge.db',
         help='Database path (default: crossbridge.db)'
     )
-
-
-    collect_isolated_parser.add_argument(
-        '--db',
-        default='crossbridge.db',
-        help='Database path (default: crossbridge.db)'
-    )
     
     # collect-batch command
     collect_batch_parser = coverage_subparsers.add_parser(

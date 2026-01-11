@@ -29,6 +29,19 @@ virtualenv/
 *.sublime-project
 *.sublime-workspace
 
+# Images and Assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.bmp
+*.webp
+assets/
+images/
+logos/
+
 # Testing
 .pytest_cache/
 .coverage
