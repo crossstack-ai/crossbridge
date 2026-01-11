@@ -279,16 +279,23 @@ class JavaStepDefinitionParser:
         """
         Parse Cucumber step annotation.
         
-        Examples:
+        Supports multiple formats:
             @Given("user is on login page")
             @When("^user clicks login button$")
             @Then("user should see dashboard")
+            @Given(value = "pattern")
+            @cucumber.java.en.Given("pattern")
         """
         for step_type in self.STEP_ANNOTATIONS:
-            # Pattern: @Given("pattern") or @Given(value = "pattern")
+            # Pattern variations:
+            # 1. Standard: @Given("pattern")
+            # 2. With value: @Given(value = "pattern")
+            # 3. Fully qualified: @cucumber.java.en.Given("pattern") or @io.cucumber.java.en.Given("pattern")
+            # 4. Multiline: annotation on one line, string on next
             patterns = [
-                rf'@{step_type}\s*\(\s*"([^"]+)"\s*\)',
-                rf'@{step_type}\s*\(\s*value\s*=\s*"([^"]+)"\s*\)',
+                rf'@{step_type}\s*\(\s*"([^"]+)"\s*\)',  # Standard
+                rf'@{step_type}\s*\(\s*value\s*=\s*"([^"]+)"\s*\)',  # With value=
+                rf'@(?:cucumber\.java\.en|io\.cucumber\.java\.en)\.{step_type}\s*\(\s*"([^"]+)"\s*\)',  # Fully qualified
             ]
             
             for pattern in patterns:

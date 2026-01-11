@@ -929,9 +929,9 @@ class MigrationOrchestrator:
             elif file.path.endswith('.java'):
                 target_path = file.path.replace('.java', '.robot')
                 target_path = target_path.replace('/java/', '/robot/')
-                target_path = target_path.replace('/pagefactory/', '/robot/resources/')
                 
-                # Transform Java Page Objects to Robot Framework + Playwright
+                # Transform Java files to Robot Framework + Playwright
+                # Preserve original folder structure (stepdefinition, pagefactory, resources, etc.)
                 transformed_content = self._transform_java_to_robot_keywords(source_content, file.path, with_review_markers=False)
             else:
                 continue
@@ -1703,7 +1703,7 @@ Generate Robot Framework variables file with improved locators.
                 # Re-transform as feature file
                 mode = request.transformation_mode
                 if mode == TransformationMode.MANUAL:
-                    transformed_content = self._create_manual_placeholder(file.path, 'feature')
+                    transformed_content = self._create_manual_placeholder(file.path, 'feature', current_content)
                 elif mode == TransformationMode.ENHANCED or mode == TransformationMode.HYBRID:
                     # Apply enhanced formatting with force flag and tier
                     transformed_content = self._apply_enhanced_formatting(
@@ -1720,7 +1720,7 @@ Generate Robot Framework variables file with improved locators.
                 # Treat as java/keyword file
                 mode = request.transformation_mode
                 if mode == TransformationMode.MANUAL:
-                    transformed_content = self._create_manual_placeholder(file.path, 'java')
+                    transformed_content = self._create_manual_placeholder(file.path, 'java', current_content)
                 elif mode == TransformationMode.HYBRID:
                     transformed_content = self._add_review_markers(current_content)
                 else:
@@ -2025,7 +2025,7 @@ Samples: {', '.join(file_info['sample_files'])}
                     # Choose transformation strategy
                     if mode == TransformationMode.MANUAL:
                         # Manual mode: Create placeholders only
-                        transformed_content = self._create_manual_placeholder(file.path, 'feature')
+                        transformed_content = self._create_manual_placeholder(file.path, 'feature', source_content)
                     elif mode == TransformationMode.ENHANCED or mode == TransformationMode.HYBRID:
                         # Enhanced/Hybrid: Parse Gherkin and generate Robot code
                         transformed_content = self._transform_feature_to_robot(
@@ -2034,7 +2034,7 @@ Samples: {', '.join(file_info['sample_files'])}
                             mode == TransformationMode.HYBRID
                         )
                     else:
-                        transformed_content = self._create_manual_placeholder(file.path, 'feature')
+                        transformed_content = self._create_manual_placeholder(file.path, 'feature', source_content)
                     
                 elif file.path.endswith('.java'):
                     target_path = file.path.replace('.java', '.robot')
@@ -2043,8 +2043,10 @@ Samples: {', '.join(file_info['sample_files'])}
                     target_path = self.sanitize_filename(target_path)
                     
                     # Java files: Create keyword resource files
+                    logger.info(f"📄 Processing Java file: {file.path}, mode: {mode}")
                     if mode == TransformationMode.MANUAL:
-                        transformed_content = self._create_manual_placeholder(file.path, 'java')
+                        logger.info(f"   Using MANUAL mode transformation")
+                        transformed_content = self._create_manual_placeholder(file.path, 'java', source_content)
                     elif mode == TransformationMode.ENHANCED or mode == TransformationMode.HYBRID:
                         transformed_content = self._transform_java_to_robot_keywords(
                             source_content,
@@ -2052,7 +2054,7 @@ Samples: {', '.join(file_info['sample_files'])}
                             mode == TransformationMode.HYBRID
                         )
                     else:
-                        transformed_content = self._create_manual_placeholder(file.path, 'java')
+                        transformed_content = self._create_manual_placeholder(file.path, 'java', source_content)
                 else:
                     logger.warning(f"Skipping unknown file type: {file.path}")
                     return None
@@ -2504,7 +2506,7 @@ Samples: {', '.join(file_info['sample_files'])}
         ]
         return candidates[0]
     
-    def _create_manual_placeholder(self, source_path: str, file_type: str) -> str:
+    def _create_manual_placeholder(self, source_path: str, file_type: str, content: str = None) -> str:
         """Create placeholder content for manual transformation mode."""
         if file_type == 'feature':
             return f"""*** Settings ***
@@ -2521,6 +2523,19 @@ Placeholder Test
     Log    Feature file migrated: {Path(source_path).name}
 """
         elif file_type == 'java':
+            # For Java files, use enhanced fallback if content is provided
+            logger.debug(f"_create_manual_placeholder called for {source_path}, content length: {len(content) if content else 0}")
+            if content:
+                # Check if this is a step definition file
+                is_step_def = any(pattern in source_path.lower() for pattern in ['stepdefinition', 'stepdefs', 'steps'])
+                logger.debug(f"Is step definition file: {is_step_def}")
+                if is_step_def:
+                    logger.info(f"🔧 Using enhanced fallback extraction for step definition: {source_path}")
+                    return self._create_step_definition_fallback(content, source_path, with_review_markers=False)
+            else:
+                logger.warning(f"⚠️  No content provided for {source_path}, using simple placeholder")
+            
+            # Default placeholder for non-step-definition files or if no content
             return f"""*** Settings ***
 Documentation    Migrated from: {source_path}
 Library          Browser
@@ -2858,13 +2873,26 @@ Placeholder Keyword
             Robot Framework keyword resource content with proper Playwright syntax
         """
         try:
+            # Check if this is likely a step definition file first
+            is_step_def_file = any(indicator in source_path.lower() for indicator in 
+                                  ['stepdefinition', 'stepdef', 'steps.java', 'step_def'])
+            
             if ADVANCED_TRANSFORMATION_AVAILABLE:
                 # STEP 1: Parse Java step definitions using advanced AST parser
                 parser = JavaStepDefinitionParser()
-                step_file = parser.parse_content(content, source_path)
+                
+                logger.info(f"Attempting to parse {source_path} (is_step_def={is_step_def_file})")
+                
+                try:
+                    step_file = parser.parse_content(content, source_path)
+                    
+                    if step_file and step_file.step_definitions:
+                        logger.info(f"✓ Successfully parsed {len(step_file.step_definitions)} step definitions from {source_path}")
+                except Exception as parse_error:
+                    logger.error(f"Parser error for {source_path}: {parse_error}")
+                    step_file = None
                 
                 if step_file and step_file.step_definitions:
-                    logger.info(f"Parsed {len(step_file.step_definitions)} step definitions from {source_path}")
                     
                     # STEP 2 & 3: Generate Robot Framework keywords from parsed steps
                     lines = []
@@ -2961,9 +2989,30 @@ Placeholder Keyword
                     
                     return robot_content
                 else:
-                    logger.warning(f"No step definitions found in {source_path}")
+                    # No step definitions found - could be a Page Object or parsing failed
+                    is_step_def_file = any(indicator in source_path.lower() for indicator in 
+                                          ['stepdefinition', 'stepdef', 'steps.java', 'step_def'])
+                    
+                    if is_step_def_file:
+                        logger.error(f"⚠️  Step definition file detected but no steps parsed: {source_path}")
+                        logger.error(f"    File will use enhanced fallback transformation")
+                        # Log first 500 chars of content for debugging
+                        preview = (content or '')[:500].replace('\n', ' ')
+                        logger.debug(f"    Content preview: {preview}...")
+                        
+                        # Create better fallback for step definition files
+                        # Try to extract method names at least
+                        return self._create_step_definition_fallback(content, source_path, with_review_markers)
+                    else:
+                        logger.info(f"No step definitions found in {source_path} - treating as Page Object")
+            else:
+                # ADVANCED_TRANSFORMATION_AVAILABLE is False
+                if is_step_def_file:
+                    logger.warning(f"⚠️  Advanced parser not available but step definition file detected: {source_path}")
+                    logger.warning(f"    Using basic method extraction fallback")
+                    return self._create_step_definition_fallback(content, source_path, with_review_markers)
             
-            # Fallback to basic placeholder if advanced parser not available or no steps found
+            # Fallback to Page Object transformation if not a step definition file or parsing failed
             logger.info(f"Using enhanced Java Page Object transformation for {source_path}")
             
             # ENHANCED: Parse Java Page Object file
@@ -3067,6 +3116,126 @@ Placeholder Keyword
         
         # Convert to title case
         return ' '.join(word.capitalize() for word in clean_text.split())
+    
+    def _create_step_definition_fallback(self, content: str, source_path: str, with_review_markers: bool = False) -> str:
+        """
+        Create fallback Robot Framework file for step definition files that couldn't be parsed.
+        Uses aggressive pattern matching to extract anything useful.
+        
+        Args:
+            content: Java source content
+            source_path: Source file path
+            with_review_markers: Whether to add review markers
+            
+        Returns:
+            Robot Framework content with extracted method keywords
+        """
+        import re
+        from datetime import datetime
+        
+        lines = []
+        lines.append("*** Settings ***")
+        class_name = Path(source_path).stem
+        lines.append(f"Documentation    {class_name} - Step Definitions")
+        lines.append(f"...              ⚠️  Enhanced fallback transformation")
+        lines.append(f"...              Parser could not extract all step annotations")
+        lines.append(f"...              Migrated from: {source_path}")
+        lines.append(f"...              Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("Library          Browser")
+        lines.append("Library          BuiltIn")
+        lines.append("")
+        
+        lines.append("*** Keywords ***")
+        
+        # Strategy 1: Try to find Cucumber annotations with simple regex
+        # Updated pattern to handle escaped quotes inside patterns
+        annotation_pattern = r'@(Given|When|Then|And|But)\s*\(["\']((?:[^"\'\\]|\\.)+)["\']\)'
+        annotations_found = re.findall(annotation_pattern, content, re.IGNORECASE)
+        
+        # Strategy 2: Extract all public methods
+        method_pattern = r'public\s+(?:static\s+)?(?:void|[\w<>]+)\s+(\w+)\s*\([^)]*\)\s*\{'
+        methods = re.findall(method_pattern, content)
+        
+        keywords_created = 0
+        
+        if annotations_found:
+            logger.info(f"Found {len(annotations_found)} Cucumber annotations in {source_path} using fallback regex")
+            
+            # Create a mapping of annotations
+            for step_type, pattern in annotations_found:
+                # Clean up the pattern
+                pattern_clean = pattern.strip('^$')
+                
+                # Convert pattern to keyword name
+                keyword_name = pattern_clean
+                # Replace regex patterns with placeholders
+                keyword_name = re.sub(r'\(\.\*\?\)', '{value}', keyword_name)
+                keyword_name = re.sub(r'\(\.\*\)', '{value}', keyword_name)
+                keyword_name = re.sub(r'\([^)]+\)', '{value}', keyword_name)
+                keyword_name = re.sub(r'\{string\}', '{value}', keyword_name)
+                keyword_name = re.sub(r'\{int\}', '{number}', keyword_name)
+                
+                # Title case
+                keyword_name = ' '.join(word.capitalize() for word in keyword_name.split())
+                
+                lines.append(keyword_name)
+                lines.append(f"    [Documentation]    {step_type}: {pattern}")
+                lines.append(f"    ...                ⚠️  Fallback extraction - implement Playwright actions")
+                lines.append(f"    [Tags]    {step_type.lower()}    needs-implementation")
+                lines.append(f"    Log    TODO: Implement '{keyword_name}'")
+                lines.append(f"    # Original pattern: {pattern}")
+                lines.append("")
+                keywords_created += 1
+        
+        elif methods:
+            logger.info(f"Extracted {len(methods)} methods from {source_path} for fallback transformation")
+            
+            for method_name in methods:
+                # Skip common non-step methods
+                if method_name in ['setUp', 'tearDown', 'before', 'after', 'init', 'constructor']:
+                    continue
+                
+                # Convert camelCase to Title Case
+                keyword_name = re.sub(r'([A-Z])', r' \1', method_name).strip().title()
+                
+                # Try to infer step type from method name
+                step_tag = "unknown"
+                if any(prefix in method_name.lower() for prefix in ['given', 'setup', 'navigate', 'open']):
+                    step_tag = "given"
+                elif any(prefix in method_name.lower() for prefix in ['when', 'enter', 'click', 'select', 'input']):
+                    step_tag = "when"
+                elif any(prefix in method_name.lower() for prefix in ['then', 'should', 'verify', 'assert', 'check']):
+                    step_tag = "then"
+                
+                lines.append(keyword_name)
+                lines.append(f"    [Documentation]    Extracted from method: {method_name}")
+                lines.append(f"    ...                ⚠️  No Cucumber annotation found - implement manually")
+                lines.append(f"    [Tags]    {step_tag}    needs-implementation")
+                lines.append(f"    Log    TODO: Implement '{keyword_name}' keyword")
+                lines.append(f"    # Original Java method: {method_name}()")
+                lines.append("")
+                keywords_created += 1
+        
+        if keywords_created == 0:
+            # No methods or annotations found at all
+            logger.warning(f"No methods or annotations could be extracted from {source_path}")
+            lines.append("TODO Implement Keywords")
+            lines.append(f"    [Documentation]    ⚠️  CRITICAL: No methods could be parsed from {class_name}")
+            lines.append(f"    ...                Source file requires complete manual conversion")
+            lines.append(f"    ...                Check file encoding, syntax, or Java version compatibility")
+            lines.append(f"    [Tags]    manual-conversion-required")
+            lines.append(f"    Log    ERROR: Manual implementation required for {class_name}")
+            lines.append(f"    # Source: {source_path}")
+            lines.append("")
+        else:
+            logger.info(f"Created {keywords_created} keywords for {source_path} using fallback transformation")
+        
+        robot_content = '\n'.join(lines)
+        
+        if with_review_markers:
+            robot_content = self._add_review_markers(robot_content, source_path)
+        
+        return robot_content
     
     def _selenium_to_playwright(self, action: SeleniumAction) -> str:
         """
