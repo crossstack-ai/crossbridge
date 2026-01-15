@@ -179,25 +179,32 @@ def prompt_force_retransform(operation_type: OperationType) -> bool:
     return choice
 
 
-def prompt_transformation_tier(force_retransform: bool) -> TransformationTier:
+def prompt_transformation_tier(force_retransform: bool, transformation_mode=None) -> TransformationTier:
     """Prompt user to select transformation tier (depth of transformation).
-    
-    Only asked when force_retransform is True.
     
     Args:
         force_retransform: Whether user chose to force re-transformation
+        transformation_mode: Current transformation mode (Manual/Enhanced/Hybrid) for smart defaults
         
     Returns:
         TransformationTier enum value
     """
-    # Only prompt if force retransform is enabled
-    if not force_retransform:
-        return TransformationTier.TIER_1
+    # Smart default based on transformation mode
+    if transformation_mode:
+        from core.orchestration.models import TransformationMode
+        if transformation_mode == TransformationMode.MANUAL:
+            default_tier = "1"  # Manual mode → Quick refresh
+        elif transformation_mode == TransformationMode.HYBRID:
+            default_tier = "2"  # Hybrid → Content validation (review markers need validation)
+        else:  # Enhanced
+            default_tier = "2"  # Enhanced → Content validation
+    else:
+        default_tier = "1"  # Fallback
     
     console.print("\n[bold cyan]═══ Transformation Depth Selection ═══[/bold cyan]")
     console.print("[dim]Choose how deep you want to transform the files:[/dim]\n")
     
-    console.print("[1] [green]TIER 1 - Quick Header Refresh[/green] [DEFAULT]")
+    console.print("[1] [green]TIER 1 - Quick Header Refresh[/green]")
     console.print("    • Update timestamps and metadata")
     console.print("    • Refresh CrossStack platform integration headers")
     console.print("    • Fastest option (~1-2 seconds per file)")
@@ -218,10 +225,16 @@ def prompt_transformation_tier(force_retransform: bool) -> TransformationTier:
     console.print("    • Slowest option (~30-60 seconds per file)")
     console.print("    • [dim]Best for: Major refactoring, fixing broken tests, applying new patterns[/dim]\n")
     
+    # Show context-aware default in prompt
+    if transformation_mode:
+        from core.orchestration.models import TransformationMode
+        mode_name = transformation_mode.value.title()
+        console.print(f"[dim]💡 Recommended for {mode_name} mode: TIER {default_tier}[/dim]\n")
+    
     choice = Prompt.ask(
-        "Select transformation tier [1–3] (default: 1)",
+        f"Select transformation tier [1–3] (default: {default_tier})",
         choices=["1", "2", "3"],
-        default="1",
+        default=default_tier,
         show_choices=False
     )
     
@@ -1029,7 +1042,7 @@ def prompt_ai_settings() -> Dict:
     console.print("[3] Disabled\n")
     
     mode_choice = Prompt.ask(
-        "AI mode",
+        "Enter choice [1–3] (default: 1)",
         choices=["1", "2", "3"],
         default="1"
     )
@@ -1063,12 +1076,53 @@ def prompt_ai_settings() -> Dict:
             password=True
         )
         
+        # Model selection based on provider
+        console.print("")
+        if provider == "openai":
+            console.print("[1] gpt-3.5-turbo [DEFAULT]")
+            console.print("    • Most economical, efficient for most tasks")
+            console.print("[2] gpt-4")
+            console.print("    • More capable, higher cost")
+            console.print("[3] gpt-4-turbo")
+            console.print("    • Latest GPT-4, faster and more capable\n")
+            
+            model_choice = Prompt.ask(
+                "Enter choice [1–3] (default: 1)",
+                choices=["1", "2", "3"],
+                default="1"
+            )
+            
+            model_map = {
+                "1": "gpt-3.5-turbo",
+                "2": "gpt-4",
+                "3": "gpt-4-turbo"
+            }
+            model = model_map[model_choice]
+        else:  # Anthropic
+            console.print("[1] claude-3-sonnet-20240229 [DEFAULT]")
+            console.print("    • Most economical, balanced performance")
+            console.print("[2] claude-3-opus-20240229")
+            console.print("    • Most capable, higher cost\n")
+            
+            model_choice = Prompt.ask(
+                "Enter choice [1–2] (default: 1)",
+                choices=["1", "2"],
+                default="1"
+            )
+            
+            model_map = {
+                "1": "claude-3-sonnet-20240229",
+                "2": "claude-3-opus-20240229"
+            }
+            model = model_map[model_choice]
+        
         return {
             "enabled": True,
             "config": AIConfig(
                 mode=ai_mode,
                 provider=provider,
-                api_key=api_key
+                api_key=api_key,
+                model=model
             )
         }
     
@@ -1076,13 +1130,20 @@ def prompt_ai_settings() -> Dict:
         endpoint = Prompt.ask("AI endpoint URL")
         api_key = Prompt.ask("API Key", password=True)
         
+        # For on-prem, allow user to specify custom model name
+        model = Prompt.ask(
+            "Model name (e.g., gpt-3.5-turbo, custom-model)",
+            default="gpt-3.5-turbo"
+        )
+        
         return {
             "enabled": True,
             "config": AIConfig(
                 mode=ai_mode,
                 provider="custom",
-                api_endpoint=endpoint,
-                api_key=api_key
+                endpoint=endpoint,
+                api_key=api_key,
+                model=model
             )
         }
 

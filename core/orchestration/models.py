@@ -84,9 +84,11 @@ class RepositoryAuth(BaseModel):
 class AIConfig(BaseModel):
     """AI service configuration."""
     mode: AIMode
+    provider: Optional[str] = None  # AI provider: openai, anthropic, custom
     api_key: Optional[str] = Field(default=None, exclude=True)  # Never log/serialize
     endpoint: Optional[str] = None
-    model: str = "gpt-4"
+    model: str = "gpt-3.5-turbo"  # Most economical and efficient default model
+    region: Optional[str] = "US"  # Data residency region
 
 
 class MigrationRequest(BaseModel):

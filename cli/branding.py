@@ -117,7 +117,9 @@ def show_migration_summary(
     target_branch: Optional[str] = None,
     framework_config: Optional[dict] = None,
     force_retransform: bool = False,
-    transformation_tier: Optional[str] = None
+    transformation_tier: Optional[str] = None,
+    ai_provider: Optional[str] = None,
+    ai_model: Optional[str] = None
 ):
     """Display migration configuration summary.
     
@@ -133,6 +135,8 @@ def show_migration_summary(
         framework_config: Framework-specific configuration
         force_retransform: Whether to force re-transformation
         transformation_tier: Transformation depth tier (TIER_1/TIER_2/TIER_3)
+        ai_provider: AI provider name (openai/anthropic)
+        ai_model: AI model name (gpt-3.5-turbo, gpt-4, etc.)
     """
     
     table = Table(show_header=False, box=None, padding=(0, 2))
@@ -200,6 +204,18 @@ def show_migration_summary(
                 table.add_row("Feature Files Path", framework_config["feature_files_path"])
     
     table.add_row("AI Assistance", "✓ Enabled" if use_ai else "○ Disabled")
+    
+    # Show AI provider and model if AI is enabled
+    if use_ai and ai_provider and ai_model:
+        # Format provider name for display
+        provider_map = {
+            "openai": "OpenAI",
+            "anthropic": "Anthropic"
+        }
+        provider_display = provider_map.get(ai_provider.lower(), ai_provider.title()) if ai_provider else "Unknown"
+        table.add_row("AI Provider", provider_display)
+        table.add_row("AI Model", ai_model)
+    
     table.add_row("Create PR", "✓ Yes" if create_pr else "○ No")
     
     panel = Panel(

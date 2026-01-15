@@ -1,10 +1,18 @@
 # CrossBridge Framework Dependencies
+# Product: CrossBridge by CrossStack AI
+# Description: Framework-agnostic test automation migration and transformation platform
 
 # Core dependencies
 numpy>=1.21.0
 scikit-learn>=1.0.0
 SQLAlchemy>=1.4.0
 psycopg2-binary>=2.9.0
+
+# CLI dependencies
+typer>=0.9.0  # Modern CLI framework
+rich>=13.0.0  # Beautiful terminal output
+questionary>=2.0.0  # Interactive prompts (future use)
+click>=8.0.0  # Command-line interface creation
 
 # Logging Framework (core/logging/)
 # - Uses Python standard library only (no external dependencies required)
@@ -22,6 +30,30 @@ mypy>=1.0.0
 # Translation feature dependencies
 requests>=2.31.0  # For API test generation (pytest generator)
 playwright>=1.40.0  # For UI test translation and generation
+
+# AI/LLM provider dependencies (optional - for AI-powered features)
+openai>=1.0.0  # For OpenAI GPT models
+anthropic>=0.7.0  # For Anthropic Claude models
+
+# Repository integration (optional - for repo-native transformation)
+PyGithub>=2.0.0  # GitHub API integration
+python-gitlab>=4.0.0  # GitLab API integration
+atlassian-python-api>=3.41.0  # Bitbucket Cloud/Server API
+azure-devops>=7.0.0  # Azure DevOps / TFS integration
+msrest>=0.7.0  # Azure authentication support
+
+# Additional utilities
+python-dotenv>=1.0.0  # Environment variable management
+PyYAML>=6.0  # YAML configuration parsing
+certifi>=2023.0.0  # SSL certificate bundle
+urllib3>=1.26.0  # HTTP client (used by repository connectors)
+
+# Note: External test framework dependencies (installed separately):
+# - Cypress: npm install cypress
+# - Robot Framework: pip install robotframework
+# - pytest plugins as needed
+# - Java/Maven/Gradle for Java adapters
+# - .NET SDK for SpecFlow adapter
 
 # Note: External test framework dependencies (installed separately):
 # - Cypress: npm install cypress

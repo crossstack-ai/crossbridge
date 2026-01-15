@@ -333,8 +333,8 @@ def _run_operation(
             if operation_type in [OperationType.TRANSFORMATION, OperationType.MIGRATION_AND_TRANSFORMATION]:
                 from cli.prompts import prompt_force_retransform, prompt_transformation_tier
                 force_retransform = prompt_force_retransform(operation_type)
-                if force_retransform:
-                    transformation_tier = prompt_transformation_tier(force_retransform)
+                # Always prompt for tier when transforming (not just on force_retransform)
+                transformation_tier = prompt_transformation_tier(force_retransform, transformation_mode)
             
             # 10. AI settings
             ai_config = prompt_ai_settings()
@@ -382,7 +382,9 @@ def _run_operation(
                 target_branch=target_branch_for_transformation,
                 framework_config=framework_config,
                 force_retransform=force_retransform,
-                transformation_tier=transformation_tier.value if transformation_tier else None
+                transformation_tier=transformation_tier.value if transformation_tier else None,
+                ai_provider=ai_config.get("config").provider if request.use_ai and ai_config.get("config") else None,
+                ai_model=ai_config.get("config").model if request.use_ai and ai_config.get("config") else None
             )
             
             if not confirm_migration(dry_run, operation_type):

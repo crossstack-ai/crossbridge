@@ -4,7 +4,7 @@
 > **AI-Powered Test Automation Transformation Platform**  
 > Modernize legacy test frameworks to modern, maintainable architectures
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Development Status](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/yourusername/crossbridge)
 [![CrossStack AI](https://img.shields.io/badge/by-CrossStack%20AI-blue)](https://crossstack.ai)
@@ -46,7 +46,7 @@ Testing teams worldwide face a critical challenge: **legacy test automation debt
 - ✅ **Automated Migration**: Convert entire test suites in hours, not months
 - ✅ **Intelligent Parsing**: Extracts test intent, locators, and page objects
 - ✅ **Framework-Agnostic**: Plugin architecture supports multiple sources/targets
-- ✅ **AI-Enhanced** (Optional): Improves locator strategies and test quality
+- ✅ **AI-Enhanced** (Optional): Improves transformation quality, locator strategies, and provides self-healing recommendations
 - ✅ **Repository-Native**: Works directly with Git/Bitbucket/Azure DevOps
 - ✅ **Impact Analysis**: Understand what tests break when code changes
 - ✅ **Validation & Review**: Built-in quality checks and hybrid modes
@@ -140,6 +140,55 @@ python -m cli.app
 Manual Mode         → Creates placeholders with TODOs (fast, requires review)
 Enhanced Mode       → Smart extraction with pattern matching (recommended)
 Hybrid Mode         → AI-enhanced with human review markers (best quality)
+```
+
+**🤖 AI-Powered Enhancement** (Optional):
+- Enable OpenAI/Anthropic integration for intelligent transformation
+- Supports **step definitions**, **page objects**, and **locators**
+- Better Cucumber pattern recognition and Playwright action generation
+- **Self-healing locator strategies** - prioritizes data-testid > id > CSS > XPath
+- **Locator extraction tracking** - counts and reports all locators extracted from page objects
+- **AI metrics & cost analysis** - detailed token usage, cost per file, and transformation statistics
+- Natural language documentation and best practice implementations
+- Automatic fallback to pattern-based if AI unavailable
+- See [`docs/AI_TRANSFORMATION_USAGE.md`](docs/AI_TRANSFORMATION_USAGE.md) for setup
+
+```python
+# Enable AI transformation for all file types
+request.use_ai = True
+request.ai_config = {
+    'provider': 'openai',  # or 'anthropic'
+    'api_key': 'sk-...',
+    'model': 'gpt-3.5-turbo'  # or 'gpt-4', 'claude-3-sonnet'
+}
+
+# AI will transform:
+# • Step Definitions: Cucumber → Robot Framework with smart pattern matching
+# • Page Objects: Selenium → Playwright with locator extraction (tracked!)
+# • Locators: Quality analysis + self-healing recommendations
+# • Generates comprehensive AI summary with cost breakdown and metrics
+```
+
+**📊 AI Transformation Summary** (displayed after migration):
+```
+🤖 AI Transformation Statistics:
+  ✓ Total Files Transformed: 50
+  ✓ Step Definitions: 35
+  ✓ Page Objects: 15
+  ✓ Standalone Locator Files: 0
+  ✓ Locators Extracted from Page Objects: 243  ← NEW!
+
+🛡️  Self-Healing Locator Strategy Applied:  ← NEW!
+  ✓ Priority: data-testid > id > CSS > XPath
+  ✓ Text-based matching for visible elements
+  ✓ Avoided brittle positional XPath selectors
+  ✓ Modern Playwright locator best practices
+
+💰 Token Usage & Cost:
+  • Total Tokens: 125,430
+  • Total Cost: $0.1254
+  • Avg Tokens/File: 2,508
+  • Avg Cost/File: $0.0025
 ```
 
 ### 2. Transformation Tiers
@@ -245,7 +294,65 @@ crossbridge analyze-impact --changed-files src/pages/HomePage.java
 
 ---
 
-## 🛠️ Configuration Example
+## � AI Monetization & Cost Management
+
+CrossBridge provides transparent AI cost tracking to help you optimize your migration budget:
+
+### Cost Transparency Features
+- **Real-time cost tracking** - See token usage and costs during transformation
+- **Per-file cost breakdown** - Identify expensive files (complex step definitions, large page objects)
+- **Model comparison** - Compare costs between GPT-3.5-turbo, GPT-4, Claude, etc.
+- **Cost savings calculator** - Shows potential savings with different models
+- **Budget-friendly defaults** - Uses GPT-3.5-turbo by default (~15x cheaper than GPT-4)
+
+### Typical Migration Costs
+
+| Project Size | Files | Estimated Tokens | GPT-3.5-turbo | GPT-4 |
+|--------------|-------|------------------|---------------|-------|
+| Small (50 files) | 50 | ~125K tokens | $0.12 | $1.80 |
+| Medium (200 files) | 200 | ~500K tokens | $0.50 | $7.20 |
+| Large (500 files) | 500 | ~1.25M tokens | $1.25 | $18.00 |
+| Enterprise (2000 files) | 2000 | ~5M tokens | $5.00 | $72.00 |
+
+**💡 Cost Optimization Tips:**
+- Use **GPT-3.5-turbo** for initial migrations (93% cost savings vs GPT-4)
+- Enable AI only for **complex files** (step definitions, page objects)
+- Use **pattern-based transformation** for simple utility files (free!)
+- Set **batch limits** to control spending per run
+- Review **top cost files** in AI summary to optimize retry strategies
+
+**🎯 Hybrid Approach** (Recommended):
+```python
+# Use pattern-based for utilities (free)
+# Use AI for complex logic (paid)
+transformation_mode: "hybrid"
+
+# Result: ~60% cost savings while maintaining quality
+```
+
+### AI Summary Cost Breakdown
+After each migration, CrossBridge displays:
+- **Total cost and token usage**
+- **Cost per file type** (step definitions vs page objects vs locators)
+- **Top 5 most expensive files** - helps identify optimization opportunities
+- **Model comparison** - shows savings with alternative models
+
+Example:
+```
+💵 Top Cost Files:
+  1. DataStoreSteps.robot (Step Definition): $0.0234 (5,430 tokens)
+  2. BackUpJobStep.robot (Step Definition): $0.0198 (4,102 tokens)
+  3. AddPolicies.robot (Step Definition): $0.0187 (3,988 tokens)
+
+💡 Cost Savings:
+  • Using gpt-3.5-turbo: $1.25
+  • Same with gpt-4: ~$18.00
+  • Savings: ~$16.75 (93% reduction)
+```
+
+---
+
+## �🛠️ Configuration Example
 
 ```yaml
 # Example: Selenium Java BDD migration
@@ -321,9 +428,11 @@ pytest tests/
 
 ## 📜 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
 
-**Commercial Use**: Allowed. Attribution appreciated but not required.
+**Commercial Use**: Allowed under the terms of the Apache 2.0 license. 
+**Attribution**: Required as per Apache 2.0 terms.
+**Patent Grant**: Includes explicit patent protection for contributors and users.
 
 ---
 

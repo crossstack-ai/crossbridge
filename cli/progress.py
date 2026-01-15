@@ -66,6 +66,23 @@ class MigrationProgressTracker:
             status: Current migration status
             completed_percent: Optional specific completion percentage (0-100)
         """
+        # Check if this is a summary (multi-line formatted text)
+        # Summaries start with specific headers
+        is_summary = any(header in message for header in [
+            '│                  Migration Summary',
+            '│           🔄 TRANSFORMATION SUMMARY',
+            '│           🤖 AI TRANSFORMATION SUMMARY'
+        ])
+        
+        # If it's a summary and status is COMPLETED, print it directly to console
+        if is_summary and status == MigrationStatus.COMPLETED:
+            # Stop progress bar if running
+            if self.live:
+                self.stop()
+            # Print summary directly to console
+            console.print(message)
+            return
+        
         # Start live progress if not started
         if self.live is None:
             self.start()

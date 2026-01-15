@@ -245,6 +245,21 @@ class MigrationOrchestrator:
         self.enable_modernization = False  # Disabled by default
         self.ai_enabled = False  # AI disabled by default (heuristic-only mode)
         self.modernization_recommendations = []  # Stores analysis results
+        
+        # AI Transformation Metrics
+        self.ai_metrics = {
+            'enabled': False,
+            'provider': None,
+            'model': None,
+            'total_tokens': 0,
+            'total_cost': 0.0,
+            'files_transformed': 0,
+            'step_definitions_transformed': 0,
+            'page_objects_transformed': 0,
+            'locators_transformed': 0,
+            'locators_extracted_count': 0,  # Total locators extracted from page objects
+            'transformations': []  # List of individual transformation details
+        }
     
     @staticmethod
     def sanitize_filename(file_path: str) -> str:
@@ -415,17 +430,28 @@ class MigrationOrchestrator:
                     page_results = self._migrate_page_objects_and_locators(request, connector, progress_callback)
                     if page_results:
                         results.extend(page_results)
-                        logger.info(f"Migrated {len(page_results)} page objects/locators")
+                        self.response.files_transformed = results  # Update with complete list
+                        logger.info(f"Migrated {len(page_results)} page objects/step definitions/locators")
                     
                     self._update_progress(
                         progress_callback,
-                        f"Migration complete: {len(results)} files migrated (including page objects/locators)",
+                        f"Migration complete: {len(results)} files migrated (including page objects/step definitions/locators)",
                         MigrationStatus.TRANSFORMING,
                         completed_percent=85
                     )
             
             elif operation_type == OperationType.TRANSFORMATION:
                 # Transformation only - transform already migrated files
+                # Initialize AI metrics if AI is enabled
+                if request.use_ai and request.ai_config:
+                    ai_provider = request.ai_config.provider or 'openai'
+                    ai_model = request.ai_config.model or 'gpt-3.5-turbo'
+                    self.ai_metrics['enabled'] = True
+                    self.ai_metrics['provider'] = ai_provider
+                    self.ai_metrics['model'] = ai_model
+                    logger.info(f"🤖 AI-POWERED transformation mode enabled")
+                    logger.info(f"   Provider: {ai_provider.title()}, Model: {ai_model}")
+                
                 # Build comprehensive transformation message
                 tier_map = {
                     TransformationTier.TIER_1: "Quick Refresh",
@@ -459,6 +485,16 @@ class MigrationOrchestrator:
             
             else:  # MIGRATION_AND_TRANSFORMATION (default)
                 # Full flow - migrate and transform
+                # Initialize AI metrics if AI is enabled
+                if request.use_ai and request.ai_config:
+                    ai_provider = request.ai_config.provider or 'openai'
+                    ai_model = request.ai_config.model or 'gpt-3.5-turbo'
+                    self.ai_metrics['enabled'] = True
+                    self.ai_metrics['provider'] = ai_provider
+                    self.ai_metrics['model'] = ai_model
+                    logger.info(f"🤖 AI-POWERED transformation mode enabled")
+                    logger.info(f"   Provider: {ai_provider.title()}, Model: {ai_model}")
+                
                 tier_map = {
                     TransformationTier.TIER_1: "Quick Refresh",
                     TransformationTier.TIER_2: "Content Validation",
@@ -480,9 +516,25 @@ class MigrationOrchestrator:
                 if not request.dry_run:
                     results = self._transform_files(request, connector, all_files, progress_callback)
                     self.response.files_transformed = results
+                    
+                    # Process additional page objects and locators if explicitly configured in separate paths
+                    # This handles cases where pagefactory/stepdefinition paths are separate from java_source_path
+                    page_results = self._migrate_page_objects_and_locators(request, connector, progress_callback)
+                    if page_results:
+                        # Deduplicate: only add files not already in results
+                        existing_sources = {r.get('source_file', r.get('source_path', '')) for r in results if isinstance(r, dict)}
+                        new_results = [pr for pr in page_results if pr.source_file not in existing_sources]
+                        if new_results:
+                            results.extend(new_results)
+                            self.response.files_transformed = results
+                            logger.info(f"✅ Added {len(new_results)} additional files from page_objects_path/step_definitions_path")
+                    
+                    total_count = len(results)
+                    logger.info(f"✅ All {total_count} files transformed (including page objects, step definitions, and features)")
+                    
                     self._update_progress(
                         progress_callback,
-                        f"Migration and transformation complete: {len(results)} files processed",
+                        f"Migration and transformation complete: {total_count} files processed",
                         MigrationStatus.TRANSFORMING,
                         completed_percent=85
                     )
@@ -537,19 +589,9 @@ class MigrationOrchestrator:
                 MigrationStatus.COMPLETED
             )
             
-            # Generate and display transformation summary for all operation types
-            if operation_type == OperationType.TRANSFORMATION:
-                # Transformation-only summary
-                if self.response.files_transformed:
-                    summary = self._generate_transformation_summary(
-                        request=request,
-                        transformed_files=self.response.files_transformed
-                    )
-                    logger.info(summary)
-                    if progress_callback:
-                        progress_callback(summary, MigrationStatus.COMPLETED)
-            elif operation_type in [OperationType.MIGRATION, OperationType.MIGRATION_AND_TRANSFORMATION]:
-                # Migration and Migration+Transformation summary
+            # Generate and display summaries based on operation type
+            if operation_type in [OperationType.MIGRATION, OperationType.MIGRATION_AND_TRANSFORMATION]:
+                # Migration summary (only for MIGRATION and MIGRATION_AND_TRANSFORMATION)
                 if hasattr(self, 'detected_assets') and (java_files or feature_files):
                     migrated_count = len(self.response.files_transformed) if self.response.files_transformed else 0
                     summary = self._generate_migration_summary(
@@ -558,28 +600,34 @@ class MigrationOrchestrator:
                         feature_files=feature_files,
                         migrated_count=migrated_count
                     )
-                    
-                    # Display summary
-                    logger.info(summary)
                     if progress_callback:
                         progress_callback(summary, MigrationStatus.COMPLETED)
-                    
-                    # Add detailed transformation breakdown
-                    if self.response.files_transformed:
-                        transform_summary = self._generate_transformation_summary(
-                            request=request,
-                            transformed_files=self.response.files_transformed
-                        )
-                        logger.info(transform_summary)
-                        if progress_callback:
-                            progress_callback(transform_summary, MigrationStatus.COMPLETED)
-                    
-                    # Display Phase 3: Locator Modernization Report (if enabled and available)
-                    if self.enable_modernization and self.modernization_recommendations:
-                        modernization_summary = self._generate_modernization_summary()
-                        logger.info(modernization_summary)
-                        if progress_callback:
-                            progress_callback(modernization_summary, MigrationStatus.COMPLETED)
+            
+            # Transformation summary (for ALL operation types if files were transformed)
+            if self.response.files_transformed:
+                transform_summary = self._generate_transformation_summary(
+                    request=request,
+                    transformed_files=self.response.files_transformed
+                )
+                if progress_callback:
+                    progress_callback(transform_summary, MigrationStatus.COMPLETED)
+            
+            # AI-specific summary (if AI was enabled)
+            if self.ai_metrics['enabled']:
+                logger.info(f"Generating AI summary... Files transformed: {self.ai_metrics['files_transformed']}")
+                ai_summary = self._generate_ai_summary()
+                if ai_summary:
+                    logger.info(f"AI summary generated, length: {len(ai_summary)}")
+                    if progress_callback:
+                        progress_callback(ai_summary, MigrationStatus.COMPLETED)
+                else:
+                    logger.warning("AI summary was empty")
+            
+            # Locator Modernization Report (if enabled)
+            if self.enable_modernization and self.modernization_recommendations:
+                modernization_summary = self._generate_modernization_summary()
+                if progress_callback:
+                    progress_callback(modernization_summary, MigrationStatus.COMPLETED)
             
         except Exception as e:
             # Use appropriate error message based on operation type
@@ -732,6 +780,27 @@ class MigrationOrchestrator:
         
         logger.info(f"Using paths - Java: {java_path}, Features: {feature_path}")
         
+        # Auto-discover pagefactory if page_objects_path not configured
+        if request.framework_config and not request.framework_config.get('page_objects_path'):
+            # Try common pagefactory paths relative to java_path
+            base_path = java_path.rsplit('/stepdefinition', 1)[0] if '/stepdefinition' in java_path else java_path.rsplit('/java', 1)[0] if '/java' in java_path else None
+            if base_path:
+                potential_paths = [
+                    f"{base_path}/pagefactory",
+                    f"{base_path}/pages",
+                    f"{base_path}/pageobjects",
+                ]
+                for potential_path in potential_paths:
+                    try:
+                        # Check if path exists by attempting to list files
+                        test_files = connector.list_files_in_directory(potential_path, pattern="*.java")
+                        if test_files:
+                            logger.info(f"🔍 Auto-discovered Page Objects at: {potential_path}")
+                            request.framework_config['page_objects_path'] = potential_path
+                            break
+                    except:
+                        continue
+        
         # Discover Java files
         if progress_callback:
             progress_callback(
@@ -793,7 +862,14 @@ class MigrationOrchestrator:
                 'file': feature_file.path
             })
         
-        logger.info(f"Discovered {len(java_files)} Java files, {len(feature_files)} feature files")
+        # Log Java file breakdown for transparency
+        page_obj_count = len([f for f in java_files if 'pagefactory' in f.path.lower() or 'pageobject' in f.path.lower() or '/pages/' in f.path])
+        step_def_count = len([f for f in java_files if 'stepdefinition' in f.path.lower() or 'stepdef' in f.path.lower() or '/steps/' in f.path])
+        other_java_count = len(java_files) - page_obj_count - step_def_count
+        
+        logger.info(f"✅ Discovered {len(java_files)} Java files (Page Objects: {page_obj_count}, Step Definitions: {step_def_count}, Other: {other_java_count})")
+        logger.info(f"✅ Discovered {len(feature_files)} feature files")
+        logger.info(f"📋 All files will be migrated and transformed with {'AI-powered' if request.use_ai else 'pattern-based'} transformation")
         return java_files, feature_files
     
     def _discover_migrated_files(
@@ -906,6 +982,7 @@ class MigrationOrchestrator:
         
         # Phase 2: Transform files with proper Playwright conversion
         logger.info(f"Phase 2: Migrating {len(successful_reads)} files with transformation")
+        
         if progress_callback:
             progress_callback(
                 f"🔄 Transforming {len(successful_reads)} files to Robot Framework + Playwright",
@@ -920,19 +997,40 @@ class MigrationOrchestrator:
             file = file_data["file"]
             source_content = file_data["content"]
             
-            # Determine target path (change extension and path)
+            # Determine target path (change extension and path) while preserving directory structure
             if file.path.endswith('.feature'):
+                # Preserve original directory structure
                 target_path = file.path.replace('.feature', '.robot')
-                target_path = target_path.replace('/UIFeature/', '/robot/features/')
+                
+                # Replace common Java paths with robot path while preserving subdirectories
+                if '/resources/' in target_path:
+                    target_path = target_path.replace('/resources/', '/robot/')
+                elif '/java/' in target_path:
+                    target_path = target_path.replace('/java/', '/robot/')
+                else:
+                    # Fallback: insert /robot/ after src/main or src/test
+                    if '/src/main/' in target_path:
+                        target_path = target_path.replace('/src/main/', '/src/main/robot/', 1)
+                    elif '/src/test/' in target_path:
+                        target_path = target_path.replace('/src/test/', '/src/test/robot/', 1)
+                
                 # Transform BDD features to Robot Framework
                 transformed_content = self._transform_feature_to_robot(source_content, file.path)
             elif file.path.endswith('.java'):
+                # Preserve original directory structure including package hierarchy
                 target_path = file.path.replace('.java', '.robot')
-                target_path = target_path.replace('/java/', '/robot/')
+                
+                # Replace /java/ with /robot/ to maintain package structure
+                if '/java/' in target_path:
+                    target_path = target_path.replace('/java/', '/robot/')
+                elif '/src/main/' in target_path:
+                    target_path = target_path.replace('/src/main/', '/src/main/robot/', 1)
+                elif '/src/test/' in target_path:
+                    target_path = target_path.replace('/src/test/', '/src/test/robot/', 1)
                 
                 # Transform Java files to Robot Framework + Playwright
                 # Preserve original folder structure (stepdefinition, pagefactory, resources, etc.)
-                transformed_content = self._transform_java_to_robot_keywords(source_content, file.path, with_review_markers=False)
+                transformed_content = self._transform_java_to_robot_keywords(source_content, file.path, with_review_markers=False, request=request)
             else:
                 continue
             
@@ -1068,11 +1166,11 @@ Samples: {', '.join(file_info['sample_files'])}
         progress_callback: Optional[Callable]
     ) -> list:
         """
-        Migrate Page Object classes and locator files to Robot Framework resources.
+        Migrate Page Object classes, Step Definitions, and locator files to Robot Framework resources.
         Maintains original folder structure under robot base folder.
         
         Args:
-            request: Migration request with framework_config containing page_objects_path and locators_path
+            request: Migration request with framework_config containing page_objects_path, step_definitions_path, and locators_path
             connector: Repository connector
             progress_callback: Progress update callback
             
@@ -1083,10 +1181,11 @@ Samples: {', '.join(file_info['sample_files'])}
         framework_config = request.framework_config or {}
         
         page_objects_path = framework_config.get('page_objects_path')
+        step_definitions_path = framework_config.get('step_definitions_path')
         locators_path = framework_config.get('locators_path')
         
-        if not page_objects_path and not locators_path:
-            logger.info("No page objects or locators configured for migration")
+        if not page_objects_path and not step_definitions_path and not locators_path:
+            logger.info("No page objects, step definitions, or locators configured for migration")
             return results
         
         # Migrate Page Objects
@@ -1120,11 +1219,18 @@ Samples: {', '.join(file_info['sample_files'])}
                             
                             # Convert Java Page Object to Robot Framework resource
                             # Use AI-enhanced conversion if AI is enabled
-                            if request.use_ai:
+                            if request.use_ai and request.ai_config:
+                                # Convert AIConfig object to dict for AI methods
+                                ai_config_dict = {
+                                    'provider': request.ai_config.provider or 'openai',
+                                    'api_key': request.ai_config.api_key,
+                                    'model': request.ai_config.model,
+                                    'region': request.ai_config.region or 'US'
+                                }
                                 robot_content = self._convert_page_object_with_ai(
                                     content, 
                                     page_file.path,
-                                    request.ai_config
+                                    ai_config_dict
                                 )
                             else:
                                 robot_content = self._convert_page_object_to_robot(content, page_file.path)
@@ -1168,6 +1274,80 @@ Samples: {', '.join(file_info['sample_files'])}
             except Exception as e:
                 logger.error(f"Failed to list page objects in {page_objects_path}: {e}")
         
+        # Migrate Step Definitions
+        if step_definitions_path:
+            if progress_callback:
+                progress_callback(
+                    f"📋 Discovering Step Definition files in {step_definitions_path}",
+                    MigrationStatus.ANALYZING
+                )
+            
+            try:
+                # List all Java files in the step definitions directory
+                step_files = connector.list_files_in_directory(step_definitions_path, pattern="*.java")
+                logger.info(f"Found {len(step_files)} step definition files in {step_definitions_path}")
+                
+                if step_files:
+                    if progress_callback:
+                        progress_callback(
+                            f"📋 Migrating {len(step_files)} Step Definition files to Robot Framework resources",
+                            MigrationStatus.TRANSFORMING
+                        )
+                    
+                    folder_name = Path(step_definitions_path).name
+                    
+                    # Process each step definition file
+                    for idx, step_file in enumerate(step_files, 1):
+                        try:
+                            # Read the Java step definition file
+                            content = connector.read_file(step_file.path)
+                            
+                            # Transform to Robot Framework keywords
+                            # This uses the same transformation logic as main migration
+                            robot_content = self._transform_java_to_robot_keywords(
+                                content, 
+                                step_file.path, 
+                                with_review_markers=False, 
+                                request=request
+                            )
+                            
+                            # Preserve folder structure: place in robot/{folder_name}/
+                            relative_path = Path(step_file.path).relative_to(step_definitions_path)
+                            target_path = f"robot/{folder_name}/{relative_path}".replace('.java', '.robot')
+                            target_path = self.sanitize_filename(target_path)
+                            
+                            if progress_callback:
+                                progress_callback(
+                                    f"  → Migrating Step Definition {idx}/{len(step_files)}: {Path(step_file.path).name}",
+                                    MigrationStatus.TRANSFORMING
+                                )
+                            
+                            # Commit the file
+                            connector.write_file(
+                                path=target_path,
+                                content=robot_content,
+                                message=f"📋 Migrate Step Definitions: {Path(step_file.path).name} → Robot Framework resource\n\nPreserved folder structure: {folder_name}/",
+                                branch=request.target_branch
+                            )
+                            
+                            results.append(MigrationResult(
+                                source_file=step_file.path,
+                                target_file=target_path,
+                                status="success"
+                            ))
+                            
+                        except Exception as e:
+                            logger.error(f"Failed to migrate step definition {step_file.path}: {e}")
+                            results.append(MigrationResult(
+                                source_file=step_file.path,
+                                target_file="",
+                                status="failed",
+                                error=str(e)
+                            ))
+                            
+            except Exception as e:
+                logger.error(f"Failed to list step definitions in {step_definitions_path}: {e}")
+        
         # Migrate Locators
         if locators_path:
             if progress_callback:
@@ -1196,11 +1376,18 @@ Samples: {', '.join(file_info['sample_files'])}
                             
                             # Convert locators to Robot Framework variables
                             # Use AI-enhanced conversion if AI is enabled
-                            if request.use_ai:
+                            if request.use_ai and request.ai_config:
+                                # Convert AIConfig object to dict for AI methods
+                                ai_config_dict = {
+                                    'provider': request.ai_config.provider or 'openai',
+                                    'api_key': request.ai_config.api_key,
+                                    'model': request.ai_config.model,
+                                    'region': request.ai_config.region or 'US'
+                                }
                                 robot_content = self._convert_locators_with_ai(
                                     content,
                                     locator_file.path,
-                                    request.ai_config
+                                    ai_config_dict
                                 )
                             else:
                                 robot_content = self._convert_locators_to_robot(content, locator_file.path)
@@ -1366,45 +1553,157 @@ Samples: {', '.join(file_info['sample_files'])}
             Robot Framework resource file content
         """
         from datetime import datetime
+        from core.ai.providers import OpenAIProvider, AnthropicProvider
+        from core.ai.models import AIMessage, ModelConfig, AIExecutionContext
         
         class_name = Path(file_path).stem
         
-        # Try AI conversion first
+        logger.info(f"🤖 Using AI to transform page object: {file_path}")
+        
         try:
             # Build AI prompt for page object conversion
-            prompt = f"""Convert this Java Selenium Page Object to Robot Framework resource file.
+            prompt = f"""You are an expert in test automation framework migration. Convert this Java Selenium Page Object to Robot Framework resource file with Playwright.
 
-Source File: {file_path}
-Class: {class_name}
+**Source File:** {file_path}
+**Class:** {class_name}
 
-Requirements:
+**Requirements:**
 1. Extract all WebElement locators and convert to Robot Framework variables
-2. Prefer modern locator strategies (CSS, data-testid) over XPath when possible
-3. Convert all public methods to Robot Framework keywords
-4. Use proper keyword naming conventions (Title Case With Spaces)
-5. Add appropriate documentation from JavaDoc comments
-6. Include proper waits and error handling
-7. Use SeleniumLibrary keywords
+2. Prefer modern Playwright locator strategies:
+   - data-testid > id > CSS > XPath
+   - Use text= for visible text matching
+   - Avoid brittle positional XPath
+3. Convert all public methods to Robot Framework keywords:
+   - Use descriptive names (Title Case With Spaces)
+   - Add [Arguments] for parameters
+   - Add [Documentation] from JavaDoc
+   - Add [Tags] for categorization
+4. Use Playwright Browser library (NOT SeleniumLibrary):
+   - Click    locator
+   - Fill Text    locator    text
+   - Get Text    locator
+   - Wait For Elements State    locator    visible
+5. Add proper error handling and waits
+6. Keep code clean and maintainable
 
-Java Page Object:
+**Java Page Object:**
 ```java
 {java_content}
 ```
 
-Generate a complete Robot Framework resource file with:
-- Settings section (Documentation, Library imports)
-- Variables section (all locators as variables)
-- Keywords section (all methods as keywords)
+**Expected Output Format:**
+```robotframework
+*** Settings ***
+Documentation    {class_name} - Page Object
+...              Migrated from Java Selenium Page Object
+...              AI-powered transformation
+Library          Browser
+
+*** Variables ***
+${{LOCATOR_NAME}}    css=selector
+
+*** Keywords ***
+Keyword Name
+    [Arguments]    ${{param}}
+    [Documentation]    Description
+    [Tags]    page-object
+    Click    ${{LOCATOR_NAME}}
+```
+
+Generate ONLY the Robot Framework code. Do not include explanations or markdown.
 """
             
-            # Call AI service (placeholder - would integrate with actual AI service)
-            # For now, fall back to regex-based conversion
-            logger.info(f"AI-enhanced page object conversion for {class_name} (fallback to standard)")
-            return self._convert_page_object_to_robot(java_content, file_path)
+            # Create AI provider based on config
+            # Handle both dict and AIConfig object
+            if hasattr(ai_config, 'provider'):
+                # AIConfig Pydantic object
+                provider_type = (ai_config.provider or 'openai').lower()
+                api_key = ai_config.api_key
+                model = ai_config.model or 'gpt-3.5-turbo'
+                region = ai_config.region or 'US'
+            else:
+                # Dict config
+                provider_type = ai_config.get('provider', 'openai').lower()
+                api_key = ai_config.get('api_key')
+                model = ai_config.get('model', 'gpt-3.5-turbo')
+                region = ai_config.get('region', 'US')
+            
+            if not api_key:
+                logger.warning("No AI API key provided for page object transformation, falling back")
+                return self._convert_page_object_to_robot(java_content, file_path)
+            
+            if provider_type == 'openai':
+                provider = OpenAIProvider({'api_key': api_key})
+            elif provider_type == 'anthropic':
+                provider = AnthropicProvider({'api_key': api_key})
+            else:
+                logger.error(f"Unsupported AI provider: {provider_type}")
+                return self._convert_page_object_to_robot(java_content, file_path)
+            
+            # Prepare AI request
+            messages = [AIMessage(role='user', content=prompt)]
+            model_config = ModelConfig(
+                model=model,
+                temperature=0.3,
+                max_tokens=2500
+            )
+            
+            # Create AI execution context with governance settings
+            context = AIExecutionContext(
+                allow_external_ai=True,
+                max_tokens=2500,
+                metadata={'data_region': region}
+            )
+            
+            # Call AI provider
+            logger.info(f"Calling {provider_type} with model {model}...")
+            response = provider.complete(
+                messages=messages,
+                model_config=model_config,
+                context=context
+            )
+            
+            robot_content = response.content.strip()
+            
+            # Clean up response (remove markdown code blocks if present)
+            if robot_content.startswith('```'):
+                robot_content = '\n'.join(robot_content.split('\n')[1:-1])
+            
+            # Track AI metrics
+            self.ai_metrics['enabled'] = True
+            self.ai_metrics['provider'] = provider_type
+            self.ai_metrics['model'] = model
+            self.ai_metrics['total_tokens'] += response.token_usage.total_tokens
+            self.ai_metrics['total_cost'] += response.cost
+            self.ai_metrics['files_transformed'] += 1
+            self.ai_metrics['page_objects_transformed'] += 1
+            
+            # Count locators extracted (look for *** Variables *** section)
+            if '*** Variables ***' in robot_content:
+                locator_count = robot_content.count('${') - robot_content.count('${{')
+                self.ai_metrics['locators_extracted_count'] += locator_count
+                logger.debug(f"Extracted {locator_count} locators from page object")
+            
+            self.ai_metrics['transformations'].append({
+                'file': file_path,
+                'type': 'page_object',
+                'tokens': response.token_usage.total_tokens,
+                'cost': response.cost
+            })
+            
+            logger.info(f"✅ AI page object transformation successful! Tokens: {response.token_usage.total_tokens}, Cost: ${response.cost:.4f}")
+            return robot_content
             
         except Exception as e:
-            logger.warning(f"AI conversion failed for {file_path}, using standard conversion: {e}")
-            return self._convert_page_object_to_robot(java_content, file_path)
+            logger.error(f"AI page object transformation failed: {e}")
+            logger.debug(f"Error details: {type(e).__name__}: {str(e)}")
+            # Check for common API errors
+            if '400' in str(e) or 'Bad Request' in str(e):
+                logger.error("⚠️  OpenAI API 400 Error - Request is malformed")
+                logger.debug(f"Model: {model}, Provider: {provider_type}")
+                logger.debug(f"Prompt length: {len(prompt)} chars")
+            logger.info("Falling back to pattern-based transformation")
+            return None  # Return None so caller knows AI failed
     
     def _convert_locators_with_ai(self, java_content: str, file_path: str, ai_config: dict) -> str:
         """
@@ -1413,6 +1712,7 @@ Generate a complete Robot Framework resource file with:
         AI-enhanced conversion provides:
         - Locator quality analysis (detects brittle XPath, suggests improvements)
         - Strategy recommendations (CSS vs XPath vs data-testid)
+        - Self-healing capability recommendations
         - Accessibility improvements
         - Naming convention standardization
         
@@ -1425,39 +1725,160 @@ Generate a complete Robot Framework resource file with:
             Robot Framework variables file content
         """
         from datetime import datetime
+        from core.ai.providers import OpenAIProvider, AnthropicProvider
+        from core.ai.models import AIMessage, ModelConfig, AIExecutionContext
         
         class_name = Path(file_path).stem
         
+        logger.info(f"🤖 Using AI to transform locators: {file_path}")
+        
         try:
             # Build AI prompt for locator conversion
-            prompt = f"""Convert these Java locator definitions to Robot Framework variables.
+            prompt = f"""You are an expert in test automation and web locator strategies. Convert these Java locator definitions to Robot Framework variables with modern, resilient strategies.
 
-Source File: {file_path}
-Class: {class_name}
+**Source File:** {file_path}
+**Class:** {class_name}
 
-Requirements:
-1. Extract all locator constants
-2. Analyze locator quality and suggest improvements for brittle selectors
-3. Prefer stable locator strategies (data-testid, id, unique CSS)
-4. Detect and flag problematic XPath patterns (text-based, positional, brittle)
-5. Use proper Robot Framework variable syntax
-6. Add comments for locators that may need improvement
+**Requirements:**
+1. Extract all locator constants (String, By, WebElement annotations)
+2. Analyze each locator for quality and resilience:
+   - ✅ GOOD: data-testid, id, unique CSS, ARIA labels
+   - ⚠️  MODERATE: class names, tag+attribute combos
+   - ❌ POOR: absolute XPath, text-based, positional (nth-child)
+3. Suggest improvements for brittle locators:
+   - Replace absolute XPath with relative
+   - Replace text-based with data-testid
+   - Add fallback strategies for self-healing
+4. Use Playwright-compatible locator syntax:
+   - id=elementId
+   - css=.class-name
+   - xpath=//relative/path
+   - text=Visible Text
+   - data-testid=test-id
+5. Add comments explaining quality issues and recommendations
+6. For POOR locators, suggest 2-3 alternative strategies
 
-Java Locators:
+**Java Locators:**
 ```java
 {java_content}
 ```
 
-Generate Robot Framework variables file with improved locators.
+**Expected Output Format:**
+```robotframework
+*** Settings ***
+Documentation    Locators: {class_name}
+...              AI-enhanced with quality analysis
+...              Includes self-healing recommendations
+Library          Browser
+
+*** Variables ***
+# HIGH QUALITY: Stable data-testid locator
+${{LOGIN_BUTTON}}    data-testid=login-btn
+
+# MODERATE QUALITY: Class-based, may break with style changes
+# RECOMMENDATION: Add data-testid attribute to source HTML
+${{USERNAME_FIELD}}    css=.username-input
+
+# POOR QUALITY: Positional XPath (BRITTLE!)
+# ALTERNATIVES:
+#   1. css=[name="password"]
+#   2. data-testid=password-field (ADD THIS!)
+#   3. id=passwordInput
+${{PASSWORD_FIELD}}    xpath=//form/div[2]/input
+```
+
+Generate ONLY the Robot Framework variables file. Do not include explanations outside the comments.
 """
             
-            # Call AI service (placeholder)
-            logger.info(f"AI-enhanced locator conversion for {class_name} (fallback to standard)")
-            return self._convert_locators_to_robot(java_content, file_path)
+            # Create AI provider based on config
+            # Handle both dict and AIConfig object
+            if hasattr(ai_config, 'provider'):
+                # AIConfig Pydantic object
+                provider_type = (ai_config.provider or 'openai').lower()
+                api_key = ai_config.api_key
+                model = ai_config.model or 'gpt-3.5-turbo'
+                region = ai_config.region or 'US'
+            else:
+                # Dict config
+                provider_type = ai_config.get('provider', 'openai').lower()
+                api_key = ai_config.get('api_key')
+                model = ai_config.get('model', 'gpt-3.5-turbo')
+                region = ai_config.get('region', 'US')
+            
+            if not api_key:
+                logger.warning("No AI API key provided for locator transformation, falling back")
+                return self._convert_locators_to_robot(java_content, file_path)
+            
+            if provider_type == 'openai':
+                provider = OpenAIProvider({'api_key': api_key})
+            elif provider_type == 'anthropic':
+                provider = AnthropicProvider({'api_key': api_key})
+            else:
+                logger.error(f"Unsupported AI provider: {provider_type}")
+                return self._convert_locators_to_robot(java_content, file_path)
+            
+            # Prepare AI request
+            messages = [AIMessage(role='user', content=prompt)]
+            model_config = ModelConfig(
+                model=model,
+                temperature=0.2,  # Lower for more consistent analysis
+                max_tokens=2000
+            )
+            
+            # Create AI execution context with governance settings
+            context = AIExecutionContext(
+                allow_external_ai=True,
+                max_tokens=2000,
+                metadata={'data_region': region}
+            )
+            
+            # Call AI provider
+            logger.info(f"Calling {provider_type} with model {model}...")
+            response = provider.complete(
+                messages=messages,
+                model_config=model_config,
+                context=context
+            )
+            
+            robot_content = response.content.strip()
+            
+            # Clean up response (remove markdown code blocks if present)
+            if robot_content.startswith('```'):
+                robot_content = '\n'.join(robot_content.split('\n')[1:-1])
+            
+            # Track AI metrics
+            self.ai_metrics['enabled'] = True
+            self.ai_metrics['provider'] = provider_type
+            self.ai_metrics['model'] = model
+            self.ai_metrics['total_tokens'] += response.token_usage.total_tokens
+            self.ai_metrics['total_cost'] += response.cost
+            self.ai_metrics['files_transformed'] += 1
+            self.ai_metrics['locators_transformed'] += 1
+            
+            # Count locators extracted (look for *** Variables *** section)
+            if '*** Variables ***' in robot_content:
+                locator_count = robot_content.count('${') - robot_content.count('${{')
+                self.ai_metrics['locators_extracted_count'] += locator_count
+                logger.debug(f"Extracted {locator_count} locators from locator file")
+            
+            self.ai_metrics['transformations'].append({
+                'file': file_path,
+                'type': 'locator',
+                'tokens': response.token_usage.total_tokens,
+                'cost': response.cost
+            })
+            
+            logger.info(f"✅ AI locator transformation successful! Tokens: {response.token_usage.total_tokens}, Cost: ${response.cost:.4f}")
+            return robot_content
             
         except Exception as e:
-            logger.warning(f"AI conversion failed for {file_path}, using standard conversion: {e}")
-            return self._convert_locators_to_robot(java_content, file_path)
+            logger.error(f"AI locator transformation failed: {e}")
+            logger.debug(f"Error details: {type(e).__name__}: {str(e)}")
+            if '400' in str(e) or 'Bad Request' in str(e):
+                logger.error("⚠️  OpenAI API 400 Error - Check model name, prompt length, or API parameters")
+                logger.debug(f"Model: {model}, Provider: {provider_type}")
+            logger.info("Falling back to pattern-based transformation")
+            return None
     
     def _convert_locators_to_robot(self, java_content: str, file_path: str) -> str:
         """
@@ -1504,6 +1925,189 @@ Generate Robot Framework variables file with improved locators.
             robot_lines.append(f"${{LOCATOR_{var_name}}}    {strategy}={locator_value}")
         
         return "\n".join(robot_lines)
+    
+    def _transform_step_definitions_with_ai(
+        self,
+        content: str,
+        source_path: str,
+        ai_config: dict,
+        with_review_markers: bool = False
+    ) -> str:
+        """
+        Transform Java Cucumber step definitions to Robot Framework using AI.
+        
+        AI-enhanced transformation provides:
+        - Intelligent Gherkin pattern to Robot keyword conversion
+        - Context-aware Playwright action generation
+        - Better parameter handling and naming
+        - Natural language documentation
+        - Smart wait strategies and error handling
+        - Best practice implementations
+        
+        Args:
+            content: Java step definition source code
+            source_path: Source file path
+            ai_config: AI configuration with provider and model info
+            with_review_markers: Whether to add review markers
+            
+        Returns:
+            Robot Framework keyword file content
+        """
+        from datetime import datetime
+        from core.ai.providers import OpenAIProvider, AnthropicProvider
+        from core.ai.models import AIMessage, ModelConfig, AIExecutionContext
+        
+        class_name = Path(source_path).stem
+        
+        logger.info(f"🤖 Using AI to transform step definitions: {source_path}")
+        
+        try:
+            # Build AI prompt for step definition conversion
+            prompt = f"""You are an expert in test automation framework migration. Convert this Java Cucumber step definition file to Robot Framework with Playwright.
+
+**Source File:** {source_path}
+**Class:** {class_name}
+
+**Requirements:**
+1. Extract ALL @Given, @When, @Then, @And, @But annotations and their patterns
+2. Convert each step to a proper Robot Framework keyword:
+   - Use descriptive keyword names (Title Case)
+   - Include [Arguments] for parameterized steps
+   - Add [Documentation] with original Cucumber pattern
+   - Add [Tags] for step type (given/when/then)
+3. Convert Selenium actions to Playwright Browser library calls:
+   - click() → Click    locator
+   - sendKeys() → Fill Text    locator    text
+   - getText() → Get Text    locator
+   - isDisplayed() → Get Element State    locator    visible
+4. Use modern Playwright best practices:
+   - Prefer data-testid, id, or stable CSS selectors
+   - Add appropriate wait strategies
+   - Include error handling where needed
+5. Keep the code clean, maintainable, and well-documented
+
+**Java Step Definitions:**
+```java
+{content}
+```
+
+**Expected Output Format:**
+```robotframework
+*** Settings ***
+Documentation    {class_name} - Step Definitions
+...              Migrated from Java Cucumber step definitions
+...              AI-powered transformation
+Library          Browser
+
+*** Keywords ***
+[Keyword Name]
+    [Arguments]    ${{parameter1}}    ${{parameter2}}
+    [Documentation]    Original pattern: ^step pattern with (.+) parameters$
+    [Tags]    given    
+    # Playwright implementation here
+    Click    id=elementId
+```
+
+Generate ONLY the Robot Framework code. Do not include explanations or markdown.
+"""
+            
+            # Create AI provider based on config
+            # Handle both dict and AIConfig Pydantic object
+            if hasattr(ai_config, 'provider'):
+                # AIConfig Pydantic object
+                provider_type = (ai_config.provider or 'openai').lower()
+                api_key = ai_config.api_key
+                model = ai_config.model or 'gpt-3.5-turbo'
+                region = ai_config.region or 'US'
+            else:
+                # Dict config
+                provider_type = ai_config.get('provider', 'openai').lower()
+                api_key = ai_config.get('api_key')
+            
+            if not api_key:
+                logger.warning("No AI API key provided, falling back to pattern-based transformation")
+                return None
+            
+            if provider_type == 'openai':
+                provider = OpenAIProvider({'api_key': api_key})
+                if hasattr(ai_config, 'model'):
+                    model = ai_config.model or 'gpt-3.5-turbo'
+                else:
+                    model = ai_config.get('model', 'gpt-3.5-turbo')
+            elif provider_type == 'anthropic':
+                provider = AnthropicProvider({'api_key': api_key})
+                if hasattr(ai_config, 'model'):
+                    model = ai_config.model or 'claude-3-sonnet-20240229'
+                else:
+                    model = ai_config.get('model', 'claude-3-sonnet-20240229')
+            else:
+                logger.error(f"Unsupported AI provider: {provider_type}")
+                return None
+            
+            # Prepare AI request
+            messages = [AIMessage(role='user', content=prompt)]
+            model_config = ModelConfig(
+                model=model,
+                temperature=0.3,  # Lower for more consistent code generation
+                max_tokens=2000
+            )
+            
+            # Create AI execution context with governance settings
+            if hasattr(ai_config, 'region'):
+                region = ai_config.region or 'US'
+            else:
+                region = ai_config.get('region', 'US')
+            
+            context = AIExecutionContext(
+                allow_external_ai=True,
+                max_tokens=2000,
+                metadata={'data_region': region}
+            )
+            
+            # Call AI provider
+            logger.info(f"Calling {provider_type} with model {model}...")
+            response = provider.complete(
+                messages=messages,
+                model_config=model_config,
+                context=context
+            )
+            
+            robot_content = response.content.strip()
+            
+            # Clean up response (remove markdown code blocks if present)
+            if robot_content.startswith('```'):
+                robot_content = '\n'.join(robot_content.split('\n')[1:-1])
+            
+            # Track AI metrics
+            self.ai_metrics['enabled'] = True
+            self.ai_metrics['provider'] = provider_type
+            self.ai_metrics['model'] = model
+            self.ai_metrics['total_tokens'] += response.token_usage.total_tokens
+            self.ai_metrics['total_cost'] += response.cost
+            self.ai_metrics['files_transformed'] += 1
+            self.ai_metrics['step_definitions_transformed'] += 1
+            self.ai_metrics['transformations'].append({
+                'file': source_path,
+                'type': 'step_definition',
+                'tokens': response.token_usage.total_tokens,
+                'cost': response.cost
+            })
+            
+            logger.info(f"✅ AI transformation successful! Tokens used: {response.token_usage.total_tokens}, Cost: ${response.cost:.4f}")
+            
+            if with_review_markers:
+                robot_content = f"# AI-GENERATED: Review required\n# Model: {model}\n# Tokens: {response.token_usage.total_tokens}\n\n{robot_content}"
+            
+            return robot_content
+            
+        except Exception as e:
+            logger.error(f"AI transformation failed: {e}")
+            logger.debug(f"Error details: {type(e).__name__}: {str(e)}")
+            if '400' in str(e) or 'Bad Request' in str(e):
+                logger.error("⚠️  OpenAI API 400 Error - Check model name, prompt length, or API parameters")
+                logger.debug(f"Model: {model}, Provider: {provider_type}")
+            logger.info("Falling back to pattern-based transformation")
+            return None
     
     def _categorize_files(self, file_paths: list) -> dict:
         """
@@ -1693,44 +2297,56 @@ Generate Robot Framework variables file with improved locators.
         transform_count = [0]
         transformed_files = []
         
+        # Track failures by type for better diagnostics
+        transformation_failures = []
+        
         for file_data in successful_reads:
             file = file_data["file"]
             current_content = file_data["content"]
             
-            # Determine if this was originally a feature or java file
-            # For simplicity, if path contains "features", treat as feature file
-            if "features" in file.path or "feature" in file.path.lower():
-                # Re-transform as feature file
-                mode = request.transformation_mode
-                if mode == TransformationMode.MANUAL:
-                    transformed_content = self._create_manual_placeholder(file.path, 'feature', current_content)
-                elif mode == TransformationMode.ENHANCED or mode == TransformationMode.HYBRID:
-                    # Apply enhanced formatting with force flag and tier
-                    transformed_content = self._apply_enhanced_formatting(
-                        current_content, 
-                        file.path,
-                        force=request.force_retransform,
-                        tier=tier_num
-                    )
-                    if mode == TransformationMode.HYBRID:
-                        transformed_content = self._add_review_markers(transformed_content)
+            try:
+                # Determine if this was originally a feature or java file
+                # For simplicity, if path contains "features", treat as feature file
+                if "features" in file.path or "feature" in file.path.lower():
+                    # Re-transform as feature file
+                    mode = request.transformation_mode
+                    if mode == TransformationMode.MANUAL:
+                        transformed_content = self._create_manual_placeholder(file.path, 'feature', current_content)
+                    elif mode == TransformationMode.ENHANCED or mode == TransformationMode.HYBRID:
+                        # Apply enhanced formatting with force flag and tier
+                        transformed_content = self._apply_enhanced_formatting(
+                            current_content, 
+                            file.path,
+                            force=request.force_retransform,
+                            tier=tier_num
+                        )
+                        if mode == TransformationMode.HYBRID:
+                            transformed_content = self._add_review_markers(transformed_content)
+                    else:
+                        transformed_content = current_content
                 else:
-                    transformed_content = current_content
-            else:
-                # Treat as java/keyword file
-                mode = request.transformation_mode
-                if mode == TransformationMode.MANUAL:
-                    transformed_content = self._create_manual_placeholder(file.path, 'java', current_content)
-                elif mode == TransformationMode.HYBRID:
-                    transformed_content = self._add_review_markers(current_content)
-                else:
-                    # Apply formatting with force flag
-                    transformed_content = self._apply_enhanced_formatting(
-                        current_content,
-                        file.path,
-                        force=request.force_retransform,
-                        tier=tier_num
-                    )
+                    # Treat as java/keyword file
+                    mode = request.transformation_mode
+                    if mode == TransformationMode.MANUAL:
+                        transformed_content = self._create_manual_placeholder(file.path, 'java', current_content)
+                    elif mode == TransformationMode.HYBRID:
+                        transformed_content = self._add_review_markers(current_content)
+                    else:
+                        # Apply formatting with force flag
+                        transformed_content = self._apply_enhanced_formatting(
+                            current_content,
+                            file.path,
+                            force=request.force_retransform,
+                            tier=tier_num
+                        )
+            except Exception as transform_error:
+                logger.error(f"Transformation failed for {file.path}: {str(transform_error)}")
+                transformation_failures.append({
+                    "file": file.path,
+                    "error": str(transform_error),
+                    "type": "transformation"
+                })
+                continue
             
             with progress_lock:
                 transform_count[0] += 1
@@ -1766,6 +2382,15 @@ Generate Robot Framework variables file with improved locators.
             logger.info(f"FORCE MODE: Transformation complete - {len(transformed_files)} files processed (all files included)")
         else:
             logger.info(f"Transformation complete: {len(transformed_files)} files changed from {len(successful_reads)} total")
+        
+        # Log transformation failures if any
+        if transformation_failures:
+            logger.warning(f"⚠️  {len(transformation_failures)} files failed during transformation:")
+            for failure in transformation_failures[:5]:  # Show first 5
+                logger.warning(f"  - {Path(failure['file']).name}: {failure['error'][:100]}")
+            if len(transformation_failures) > 5:
+                logger.warning(f"  ... and {len(transformation_failures) - 5} more failures")
+        
         if progress_callback:
             force_msg = " (FORCE MODE: all files included)" if request.force_retransform else ""
             progress_callback(
@@ -2017,8 +2642,31 @@ Samples: {', '.join(file_info['sample_files'])}
                 
                 # Determine target path and transform based on file type and mode
                 if file.path.endswith('.feature'):
+                    # Preserve original directory structure
+                    # Example: src/main/resources/UIFeature/login/LoginTest.feature
+                    # Becomes: src/main/robot/UIFeature/login/LoginTest.robot
                     target_path = file.path.replace('.feature', '.robot')
-                    target_path = target_path.replace('/UIFeature/', '/robot/features/')
+                    
+                    # Replace common Java paths with robot path while preserving subdirectories
+                    if '/resources/' in target_path:
+                        # src/main/resources/... → src/main/robot/...
+                        target_path = target_path.replace('/resources/', '/robot/')
+                    elif '/java/' in target_path:
+                        # src/main/java/... → src/main/robot/...
+                        target_path = target_path.replace('/java/', '/robot/')
+                    else:
+                        # Fallback: insert /robot/ before the feature directory
+                        # Find the base directory (e.g., src/main or src/test)
+                        if '/src/main/' in target_path:
+                            target_path = target_path.replace('/src/main/', '/src/main/robot/', 1)
+                        elif '/src/test/' in target_path:
+                            target_path = target_path.replace('/src/test/', '/src/test/robot/', 1)
+                        else:
+                            # If no standard pattern, just prepend robot/
+                            parts = target_path.split('/')
+                            if len(parts) > 1:
+                                target_path = parts[0] + '/robot/' + '/'.join(parts[1:])
+                    
                     # Sanitize filename (replace spaces with underscores for Robot Framework compatibility)
                     target_path = self.sanitize_filename(target_path)
                     
@@ -2037,21 +2685,50 @@ Samples: {', '.join(file_info['sample_files'])}
                         transformed_content = self._create_manual_placeholder(file.path, 'feature', source_content)
                     
                 elif file.path.endswith('.java'):
+                    # Preserve original directory structure
+                    # Example: src/main/java/com/company/pagefactory/LoginPage.java
+                    # Becomes: src/main/robot/com/company/pagefactory/LoginPage.robot
                     target_path = file.path.replace('.java', '.robot')
-                    target_path = target_path.replace('/java/', '/robot/')
+                    
+                    # Replace /java/ with /robot/ to maintain package structure (including pagefactory, stepdefinition, etc.)
+                    if '/java/' in target_path:
+                        target_path = target_path.replace('/java/', '/robot/')
+                    elif '/src/main/' in target_path and '/java/' not in target_path:
+                        # Handle cases where java is not in path but it's a main source
+                        target_path = target_path.replace('/src/main/', '/src/main/robot/', 1)
+                    elif '/src/test/' in target_path and '/java/' not in target_path:
+                        # Handle test sources
+                        target_path = target_path.replace('/src/test/', '/src/test/robot/', 1)
+                    else:
+                        # Fallback: ensure robot directory exists in path
+                        parts = target_path.split('/')
+                        if 'robot' not in parts and len(parts) > 2:
+                            # Insert robot after project root
+                            target_path = parts[0] + '/robot/' + '/'.join(parts[1:])
+                    
                     # Sanitize filename (replace spaces with underscores for Robot Framework compatibility)
                     target_path = self.sanitize_filename(target_path)
                     
-                    # Java files: Create keyword resource files
-                    logger.info(f"📄 Processing Java file: {file.path}, mode: {mode}")
+                    # Detect file type for logging
+                    file_type = "Java file"
+                    if 'pagefactory' in file.path.lower() or 'pageobject' in file.path.lower():
+                        file_type = "Page Object"
+                    elif 'stepdefinition' in file.path.lower() or 'stepdef' in file.path.lower():
+                        file_type = "Step Definition"
+                    
+                    # Java files: Transform to Robot Framework keywords with AI (if enabled)
+                    logger.info(f"📄 Processing {file_type}: {Path(file.path).name}, mode: {mode.value}")
                     if mode == TransformationMode.MANUAL:
-                        logger.info(f"   Using MANUAL mode transformation")
+                        logger.info(f"   Using MANUAL mode transformation (placeholders)")
                         transformed_content = self._create_manual_placeholder(file.path, 'java', source_content)
                     elif mode == TransformationMode.ENHANCED or mode == TransformationMode.HYBRID:
+                        ai_indicator = " with AI" if request.use_ai else ""
+                        logger.info(f"   Transforming {file_type} → Robot Framework{ai_indicator}")
                         transformed_content = self._transform_java_to_robot_keywords(
                             source_content,
                             file.path,
-                            mode == TransformationMode.HYBRID
+                            mode == TransformationMode.HYBRID,
+                            request  # Pass request for AI configuration
                         )
                     else:
                         transformed_content = self._create_manual_placeholder(file.path, 'java', source_content)
@@ -2080,6 +2757,7 @@ Samples: {', '.join(file_info['sample_files'])}
                 }
             except Exception as e:
                 logger.error(f"Failed to transform {file_data['file'].path}: {e}")
+                logger.error(f"  File type: {file_data['file'].path.split('.')[-1]}, Mode: {mode.value}")
                 return {
                     "source_file": file_data["file"].path,
                     "target_path": "",
@@ -2096,10 +2774,21 @@ Samples: {', '.join(file_info['sample_files'])}
             if result:
                 transformed_files.append(result)
         
-        logger.info(f"Phase 2 complete: {len(transformed_files)} files transformed locally using {request.transformation_mode.value} mode")
+        # Calculate and log transformation statistics
+        successful_transforms = [f for f in transformed_files if f["status"] == "success"]
+        failed_transforms = [f for f in transformed_files if f["status"] == "failed"]
+        
+        logger.info(f"Phase 2 complete: {len(successful_transforms)} files transformed successfully, {len(failed_transforms)} failed")
+        if failed_transforms:
+            logger.warning(f"Failed transformations: {', '.join([Path(f['source_file']).name for f in failed_transforms[:5]])}")
+            if len(failed_transforms) > 5:
+                logger.warning(f"  ... and {len(failed_transforms) - 5} more")
+        
         if progress_callback:
+            success_count = len(successful_transforms)
+            total_attempted = len(successful_reads)
             progress_callback(
-                f"✓ Transformation complete: {len(transformed_files)} files transformed using {request.transformation_mode.value} mode",
+                f"✓ Transformation complete: {success_count}/{total_attempted} files transformed successfully using {request.transformation_mode.value} mode",
                 MigrationStatus.TRANSFORMING,
                 completed_percent=85
             )
@@ -2252,14 +2941,45 @@ Samples: {', '.join(file_info['sample_files'])}
                     progress_callback(commit_msg, MigrationStatus.COMMITTING)
                 
             except Exception as e:
-                logger.error(f"Failed to commit batch {batch_num}: {e}")
+                error_msg = str(e)
+                logger.error(f"Failed to commit batch {batch_num}/{total_batches}: {error_msg}")
+                logger.error(f"Batch details: {len(batch)} files, first file: {Path(batch[0]['source_file']).name}")
+                
+                # Retry logic for transient errors
+                retry_needed = any(keyword in error_msg.lower() for keyword in ['timeout', 'rate limit', 'network', 'connection'])
+                if retry_needed and batch_num <= total_batches:
+                    logger.info(f"Detected transient error, retrying batch {batch_num} after 5 seconds...")
+                    time.sleep(5)
+                    try:
+                        # Retry the batch
+                        if hasattr(connector, 'write_files'):
+                            files_to_commit = [
+                                {'path': file_data["target_path"], 'content': file_data["content"]}
+                                for file_data in batch
+                            ]
+                            commit_id = connector.write_files(
+                                files=files_to_commit,
+                                message=commit_title + commit_details,
+                                branch=request.target_branch
+                            )
+                            logger.info(f"✓ Batch {batch_num} committed successfully on retry")
+                            for file_data in batch:
+                                results.append(MigrationResult(
+                                    source_file=file_data["source_file"],
+                                    target_file=file_data["target_path"],
+                                    status="success"
+                                ))
+                            continue  # Skip marking as failed
+                    except Exception as retry_error:
+                        logger.error(f"Retry failed for batch {batch_num}: {retry_error}")
+                
                 # Mark all files in failed batch as failed
                 for file_data in batch:
                     results.append(MigrationResult(
                         source_file=file_data["source_file"],
                         target_file=file_data["target_path"],
                         status="failed",
-                        error=str(e)
+                        error=f"Batch commit failed: {error_msg}"
                     ))
         
         # Add failed transformations to results
@@ -2530,10 +3250,10 @@ Placeholder Test
                 is_step_def = any(pattern in source_path.lower() for pattern in ['stepdefinition', 'stepdefs', 'steps'])
                 logger.debug(f"Is step definition file: {is_step_def}")
                 if is_step_def:
-                    logger.info(f"🔧 Using enhanced fallback extraction for step definition: {source_path}")
+                    logger.debug(f"Using enhanced fallback for step definition: {Path(source_path).name}")
                     return self._create_step_definition_fallback(content, source_path, with_review_markers=False)
             else:
-                logger.warning(f"⚠️  No content provided for {source_path}, using simple placeholder")
+                logger.warning(f"⚠️  No content for {Path(source_path).name}, using placeholder")
             
             # Default placeholder for non-step-definition files or if no content
             return f"""*** Settings ***
@@ -2800,10 +3520,25 @@ Placeholder Keyword
         self,
         content: str,
         source_path: str,
-        with_review_markers: bool = False
+        with_review_markers: bool = False,
+        request: 'MigrationRequest' = None
     ) -> str:
         """
         Transform Java Page Object or Step Definition to Robot Framework keywords.
+        
+        TRANSFORMATION MODES:
+        ====================
+        
+        1. AI-POWERED (when request.use_ai=True and AI config provided):
+           - Intelligent context-aware conversion using LLM
+           - Better pattern recognition and Playwright action generation
+           - Natural language documentation and best practices
+           - Fallback to pattern-based if AI fails
+        
+        2. PATTERN-BASED (default or when AI unavailable):
+           - AST parsing and semantic analysis
+           - Regex-based pattern extraction
+           - Hardcoded Selenium → Playwright mapping
         
         ADVANCED JAVA → ROBOT TRANSFORMATION ALGORITHM:
         ===============================================
@@ -2868,11 +3603,142 @@ Placeholder Keyword
             content: Java file content
             source_path: Original Java file path
             with_review_markers: If True (Hybrid mode), add review markers
+            request: Migration request object (optional, for AI configuration)
             
         Returns:
             Robot Framework keyword resource content with proper Playwright syntax
         """
+        
+        # CHECK FOR AI-POWERED TRANSFORMATION
+        # ===================================
+        # If AI is enabled and configured, attempt AI-powered transformation first
+        # This provides superior results compared to pattern-based transformation
+        
+        if request and hasattr(request, 'use_ai') and request.use_ai and hasattr(request, 'ai_config') and request.ai_config:
+            logger.info(f"🤖 AI-Powered transformation enabled for {Path(source_path).name}")
+            
+            # Detect file type by BOTH filename patterns AND content analysis
+            # This ensures maximum coverage - files are analyzed by content even if filename doesn't match
+            
+            # Check filename patterns
+            is_step_def_file = any(indicator in source_path.lower() for indicator in 
+                                  ['stepdefinition', 'stepdef', 'steps.java', 'step_def', 'steps'])
+            
+            is_page_object_file = any(indicator in source_path.lower() for indicator in
+                                     ['page', 'pagefactory', 'pageobject', 'page_object'])
+            
+            is_locator_file = any(indicator in source_path.lower() for indicator in
+                                ['locator', 'element', 'selector', 'xpath'])
+            
+            # Check for utility/helper files that should skip AI transformation
+            # Check if this is a utility/helper file (should skip AI transformation)
+            is_utility_file = any(indicator in source_path.lower() for indicator in
+                                 ['/utilities/', '/helpers/', '/utils/', '/common/', '/base/',
+                                  'helper', 'util', 'constant', 'config',
+                                  'baseclass', 'context', 'listener',
+                                  'screenshot', 'wait', 'logger'])
+            
+            logger.debug(f"File type detection for {Path(source_path).name}: is_utility={is_utility_file}")
+            
+            # Check content markers (more reliable than filename)
+            has_cucumber_annotations = '@Given' in content or '@When' in content or '@Then' in content
+            has_page_object_markers = '@FindBy' in content or 'WebElement' in content
+            has_test_methods = '@Test' in content or 'public void test' in content.lower()
+            
+            # Determine file type with utility files taking highest priority
+            detected_type = None
+            
+            # Utility files ALWAYS skip AI, even if they have other markers
+            if is_utility_file:
+                detected_type = 'utility'
+                logger.info(f"   🔧 Utility/Helper file - skipping AI transformation")
+            elif has_cucumber_annotations:
+                detected_type = 'step_definition'
+                logger.info(f"   📋 Detected: Step Definition (found @Given/@When/@Then annotations)")
+            elif has_page_object_markers:
+                detected_type = 'page_object'
+                logger.info(f"   📄 Detected: Page Object (found @FindBy/WebElement)")
+            elif is_step_def_file:
+                detected_type = 'step_definition'
+                logger.info(f"   📋 Detected: Step Definition (by filename pattern)")
+            elif is_page_object_file:
+                detected_type = 'page_object'
+                logger.info(f"   📄 Detected: Page Object (by filename pattern)")
+            elif is_locator_file:
+                detected_type = 'locator'
+                logger.info(f"   🎯 Detected: Locator File (by filename pattern)")
+            elif has_test_methods:
+                # Generic test file with @Test methods - treat as keywords
+                detected_type = 'generic_test'
+                logger.info(f"   🧪 Detected: Generic Test File (found @Test methods)")
+            else:
+                # Unknown type - skip AI and go to pattern-based
+                detected_type = 'unknown'
+                logger.info(f"   ❓ Unknown file type - skipping AI, will use pattern-based transformation")
+            
+            # Route to appropriate AI method based on detected type
+            ai_result = None
+            
+            # Skip AI transformation for utility files and unknown types
+            if detected_type in ['utility', 'unknown']:
+                logger.info(f"   ⏭️  Skipping AI transformation, using pattern-based approach")
+                ai_result = None
+            
+            elif detected_type in ['step_definition', 'generic_test']:
+                logger.info(f"   🔄 Attempting AI Step Definition transformation...")
+                ai_result = self._transform_step_definitions_with_ai(
+                    content=content,
+                    source_path=source_path,
+                    ai_config=request.ai_config,
+                    with_review_markers=with_review_markers
+                )
+                    
+            elif detected_type == 'page_object':
+                logger.info(f"   🔄 Attempting AI Page Object transformation...")
+                ai_result = self._convert_page_object_with_ai(
+                    java_content=content,
+                    file_path=source_path,
+                    ai_config=request.ai_config
+                )
+                    
+            elif detected_type == 'locator':
+                logger.info(f"   🔄 Attempting AI Locator transformation...")
+                ai_result = self._convert_locators_with_ai(
+                    java_content=content,
+                    file_path=source_path,
+                    ai_config=request.ai_config
+                )
+            
+            # Check AI result
+            if ai_result:
+                logger.info(f"✅ AI transformation successful for {Path(source_path).name}")
+                return ai_result
+            else:
+                logger.warning(f"⚠️  AI transformation returned None for {Path(source_path).name}")
+                logger.warning(f"    Falling back to pattern-based transformation")
+        
+        # PATTERN-BASED TRANSFORMATION (fallback or default)
+        # ==================================================
+        
         try:
+            # Early exit for utility files - use minimal transformation
+            is_utility = any(indicator in source_path.lower() for indicator in
+                           ['/utilities/', '/helpers/', '/utils/', '/common/', '/base/',
+                            'helper', 'util', 'baseclass', 'context'])
+            
+            if is_utility:
+                logger.info(f"   🔧 Utility file - using minimal transformation")
+                # Return minimal resource file for utility classes
+                return f"""*** Settings ***
+Documentation    Utility/Helper class from: {source_path}
+...              Utility files typically contain helper methods
+...              Import as needed in test files
+
+*** Keywords ***
+# Import this resource file and call methods as needed
+# Example: Import Resource    {Path(source_path).stem}.robot
+"""
+            
             # Check if this is likely a step definition file first
             is_step_def_file = any(indicator in source_path.lower() for indicator in 
                                   ['stepdefinition', 'stepdef', 'steps.java', 'step_def'])
@@ -2881,13 +3747,13 @@ Placeholder Keyword
                 # STEP 1: Parse Java step definitions using advanced AST parser
                 parser = JavaStepDefinitionParser()
                 
-                logger.info(f"Attempting to parse {source_path} (is_step_def={is_step_def_file})")
+                logger.debug(f"Parsing {Path(source_path).name} (is_step_def={is_step_def_file})")
                 
                 try:
                     step_file = parser.parse_content(content, source_path)
                     
                     if step_file and step_file.step_definitions:
-                        logger.info(f"✓ Successfully parsed {len(step_file.step_definitions)} step definitions from {source_path}")
+                        logger.info(f"✓ Parsed {len(step_file.step_definitions)} step definitions from {Path(source_path).name}")
                 except Exception as parse_error:
                     logger.error(f"Parser error for {source_path}: {parse_error}")
                     step_file = None
@@ -2938,6 +3804,8 @@ Placeholder Keyword
                         lines.append(f"    [Documentation]    {doc}")
                         
                         # Convert Selenium actions to Playwright
+                        actions_generated = False
+                        
                         if step_def.selenium_actions:
                             for action in step_def.selenium_actions:
                                 playwright_action = self._selenium_to_playwright(action)
@@ -2947,6 +3815,7 @@ Placeholder Keyword
                                         lines.append(f"    {line}" if not line.startswith('    #') else line)
                                 else:
                                     lines.append(f"    {playwright_action}")
+                            actions_generated = True
                         elif step_def.page_object_calls:
                             # Use Page Object method calls
                             for po_call in step_def.page_object_calls:
@@ -2968,20 +3837,46 @@ Placeholder Keyword
                                 if po_call.parameters:
                                     params_str = "    ".join(po_call.parameters)
                                     lines.append(f"    # Parameters: {params_str}")
+                            actions_generated = True
                         elif step_def.assertions:
                             # Convert assertions to Robot Framework verifications
                             for assertion in step_def.assertions:
                                 robot_assertion = self._convert_assertion_to_robot(assertion)
                                 lines.append(f"    {robot_assertion}")
-                        else:
-                            # No implementation details found - generate action from step pattern
-                            lines.append(f"    # Original Java method body not parsed - add implementation")
-                            lines.append(f"    # Step pattern: {step_def.pattern_text}")
-                            lines.append(f"    Log    TODO: Implement step '{keyword_name.strip()}'")
+                            actions_generated = True
+                        
+                        # ENHANCED: If no actions extracted by parser, use aggressive regex-based extraction
+                        if not actions_generated and hasattr(step_def, 'method_body') and step_def.method_body:
+                            extracted_actions = self._extract_selenium_actions_from_java(step_def.method_body)
+                            if extracted_actions:
+                                lines.append(f"    # Auto-extracted from Java method body")
+                                for playwright_action in extracted_actions:
+                                    lines.append(f"    {playwright_action}")
+                                actions_generated = True
+                        
+                        # Last resort: Generate smart placeholder based on step pattern keywords
+                        if not actions_generated:
+                            smart_actions = self._generate_smart_actions_from_pattern(step_def.pattern_text, step_def.parameters or [])
+                            if smart_actions:
+                                lines.append(f"    # Generated from step pattern (review and adjust locators)")
+                                for action in smart_actions:
+                                    lines.append(f"    {action}")
+                            else:
+                                # Absolute fallback
+                                lines.append(f"    # Step pattern: {step_def.pattern_text}")
+                                lines.append(f"    Log    TODO: Implement step '{keyword_name.strip()}'")
                         
                         lines.append("")  # Blank line between keywords
                     
                     robot_content = '\n'.join(lines)
+                    
+                    # Validate content was generated
+                    if not robot_content or len(robot_content.strip()) < 100:
+                        logger.warning(f"⚠️  Generated content is unexpectedly short for {Path(source_path).name}")
+                        logger.debug(f"Content validation failed - Lines: {len(lines)}, Steps: {len(step_file.step_definitions)}")
+                        logger.debug(f"Content preview: {robot_content[:200] if robot_content else 'NONE'}")
+                    else:
+                        logger.debug(f"Generated {len(robot_content)} characters for {Path(source_path).name}")
                     
                     # Add review markers for Hybrid mode
                     if with_review_markers:
@@ -3004,7 +3899,7 @@ Placeholder Keyword
                         # Try to extract method names at least
                         return self._create_step_definition_fallback(content, source_path, with_review_markers)
                     else:
-                        logger.info(f"No step definitions found in {source_path} - treating as Page Object")
+                        logger.debug(f"No steps in {Path(source_path).name} - treating as Page Object")
             else:
                 # ADVANCED_TRANSFORMATION_AVAILABLE is False
                 if is_step_def_file:
@@ -3013,14 +3908,14 @@ Placeholder Keyword
                     return self._create_step_definition_fallback(content, source_path, with_review_markers)
             
             # Fallback to Page Object transformation if not a step definition file or parsing failed
-            logger.info(f"Using enhanced Java Page Object transformation for {source_path}")
+            logger.debug(f"Using Page Object transformation for {Path(source_path).name}")
             
             # ENHANCED: Parse Java Page Object file
             try:
                 parsed_data = self._parse_java_page_object(content or '')
                 
                 if not parsed_data['locators'] and not parsed_data['methods']:
-                    logger.warning(f"No locators or methods found in {source_path}, using basic extraction")
+                    logger.debug(f"No locators/methods in {Path(source_path).name}, using basic extraction")
                     # Fallback to basic method extraction
                     import re
                     method_pattern = r'public\s+(?:static\s+)?(?:void|[\w<>]+)\s+(\w+)\s*\([^)]*\)\s*\{'
@@ -3076,9 +3971,10 @@ Placeholder Keyword
                     lines.append("")
                 
                 robot_content = '\n'.join(lines)
-                logger.info(f"Successfully converted {source_path}: {len(parsed_data['locators'])} locators, {len(parsed_data['methods'])} methods")
+                logger.debug(f"Converted {Path(source_path).name}: {len(parsed_data['locators'])} locators, {len(parsed_data['methods'])} methods")
             except Exception as parse_error:
-                logger.warning(f"Failed to parse methods from {source_path}: {parse_error}")
+                logger.warning(f"⚠️  Failed to parse {Path(source_path).name}: {parse_error}")
+                logger.debug(f"Parse error details: {parse_error}")
                 # Final fallback: minimal placeholder
                 lines = []
                 lines.append("*** Settings ***")
@@ -3097,8 +3993,11 @@ Placeholder Keyword
             return robot_content
             
         except Exception as e:
-            logger.error(f"Error transforming Java {source_path}: {e}")
-            return self._create_manual_placeholder(source_path, 'java')
+            import traceback
+            logger.error(f"Error transforming Java {Path(source_path).name}: {e}")
+            logger.debug(f"Full traceback for {source_path}:\n{traceback.format_exc()}")
+            # Pass content so enhanced fallback can still extract methods
+            return self._create_manual_placeholder(source_path, 'java', content)
     
     def _step_pattern_to_keyword_name(self, pattern_text: str) -> str:
         """
@@ -3161,10 +4060,21 @@ Placeholder Keyword
         if annotations_found:
             logger.info(f"Found {len(annotations_found)} Cucumber annotations in {source_path} using fallback regex")
             
-            # Create a mapping of annotations
-            for step_type, pattern in annotations_found:
+            # Create a mapping of annotations with extracted method bodies
+            # First, extract method bodies to get implementation details
+            method_bodies = {}
+            method_body_pattern = r'@(?:Given|When|Then|And|But)\s*\([^)]+\)\s*public\s+(?:void|[\w<>]+)\s+\w+\s*\([^)]*\)\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}'
+            for match in re.finditer(method_body_pattern, content, re.DOTALL):
+                method_bodies[len(method_bodies)] = match.group(1)
+            
+            # Create keywords from annotations
+            for idx, (step_type, pattern) in enumerate(annotations_found):
                 # Clean up the pattern
                 pattern_clean = pattern.strip('^$')
+                
+                # Extract parameters from pattern
+                param_pattern = r'\{(string|int|double|float|word)\}'
+                parameters = re.findall(param_pattern, pattern)
                 
                 # Convert pattern to keyword name
                 keyword_name = pattern_clean
@@ -3179,16 +4089,51 @@ Placeholder Keyword
                 keyword_name = ' '.join(word.capitalize() for word in keyword_name.split())
                 
                 lines.append(keyword_name)
+                
+                # Add arguments if parameters found
+                if parameters:
+                    args = "    ".join([f"${{{p}}}" for p in parameters])
+                    lines.append(f"    [Arguments]    {args}")
+                
                 lines.append(f"    [Documentation]    {step_type}: {pattern}")
-                lines.append(f"    ...                ⚠️  Fallback extraction - implement Playwright actions")
-                lines.append(f"    [Tags]    {step_type.lower()}    needs-implementation")
-                lines.append(f"    Log    TODO: Implement '{keyword_name}'")
-                lines.append(f"    # Original pattern: {pattern}")
+                lines.append(f"    [Tags]    {step_type.lower()}")
+                
+                # ENHANCED: Try to extract Selenium actions from method body
+                actions_generated = False
+                if idx < len(method_bodies) and method_bodies.get(idx):
+                    method_body = method_bodies[idx]
+                    extracted_actions = self._extract_selenium_actions_from_java(method_body)
+                    if extracted_actions:
+                        lines.append(f"    # Extracted from Java method body")
+                        for action in extracted_actions:
+                            lines.append(f"    {action}")
+                        actions_generated = True
+                
+                # If no actions extracted, try smart generation from pattern
+                if not actions_generated:
+                    smart_actions = self._generate_smart_actions_from_pattern(pattern_clean, parameters)
+                    if smart_actions:
+                        lines.append(f"    # Generated from step pattern (review and adjust)")
+                        for action in smart_actions:
+                            lines.append(f"    {action}")
+                        actions_generated = True
+                
+                # Fallback to placeholder
+                if not actions_generated:
+                    lines.append(f"    Log    TODO: Implement '{keyword_name}'")
+                    lines.append(f"    # Original pattern: {pattern}")
+                
                 lines.append("")
                 keywords_created += 1
         
         elif methods:
-            logger.info(f"Extracted {len(methods)} methods from {source_path} for fallback transformation")
+            logger.debug(f"Extracted {len(methods)} methods from {Path(source_path).name} for fallback transformation")
+            
+            # Extract method bodies for action extraction
+            method_body_pattern = r'public\s+(?:static\s+)?(?:void|[\w<>]+)\s+(\w+)\s*\([^)]*\)\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}'
+            method_details = {}
+            for match in re.finditer(method_body_pattern, content, re.DOTALL):
+                method_details[match.group(1)] = match.group(2)
             
             for method_name in methods:
                 # Skip common non-step methods
@@ -3209,16 +4154,41 @@ Placeholder Keyword
                 
                 lines.append(keyword_name)
                 lines.append(f"    [Documentation]    Extracted from method: {method_name}")
-                lines.append(f"    ...                ⚠️  No Cucumber annotation found - implement manually")
-                lines.append(f"    [Tags]    {step_tag}    needs-implementation")
-                lines.append(f"    Log    TODO: Implement '{keyword_name}' keyword")
-                lines.append(f"    # Original Java method: {method_name}()")
+                lines.append(f"    [Tags]    {step_tag}")
+                
+                # ENHANCED: Try to extract Selenium actions from method body
+                actions_generated = False
+                if method_name in method_details:
+                    method_body = method_details[method_name]
+                    extracted_actions = self._extract_selenium_actions_from_java(method_body)
+                    if extracted_actions:
+                        lines.append(f"    # Extracted from Java method body")
+                        for action in extracted_actions:
+                            lines.append(f"    {action}")
+                        actions_generated = True
+                
+                # If no actions extracted, try smart generation from method name
+                if not actions_generated:
+                    # Use method name as a pseudo-pattern
+                    smart_actions = self._generate_smart_actions_from_pattern(method_name, [])
+                    if smart_actions and not any('Log    Implement:' in action for action in smart_actions):
+                        lines.append(f"    # Generated from method name (review and adjust)")
+                        for action in smart_actions:
+                            lines.append(f"    {action}")
+                        actions_generated = True
+                
+                # Fallback to placeholder
+                if not actions_generated:
+                    lines.append(f"    Log    TODO: Implement '{keyword_name}' keyword")
+                    lines.append(f"    # Original Java method: {method_name}()")
+                
                 lines.append("")
                 keywords_created += 1
         
         if keywords_created == 0:
             # No methods or annotations found at all
-            logger.warning(f"No methods or annotations could be extracted from {source_path}")
+            logger.warning(f"⚠️  No methods extracted from {Path(source_path).name} - manual conversion required")
+            logger.debug(f"Check file encoding, syntax, or Java version for: {source_path}")
             lines.append("TODO Implement Keywords")
             lines.append(f"    [Documentation]    ⚠️  CRITICAL: No methods could be parsed from {class_name}")
             lines.append(f"    ...                Source file requires complete manual conversion")
@@ -3228,7 +4198,7 @@ Placeholder Keyword
             lines.append(f"    # Source: {source_path}")
             lines.append("")
         else:
-            logger.info(f"Created {keywords_created} keywords for {source_path} using fallback transformation")
+            logger.debug(f"Created {keywords_created} keywords for {Path(source_path).name} using fallback")
         
         robot_content = '\n'.join(lines)
         
@@ -3238,6 +4208,288 @@ Placeholder Keyword
         return robot_content
     
     def _selenium_to_playwright(self, action: SeleniumAction) -> str:
+        """
+        Convert Selenium WebDriver action to Playwright Browser library call.
+        
+        Selenium → Playwright Mappings:
+        - click() → Click
+        - sendKeys() → Fill Text
+        - getText() → Get Text
+        - isDisplayed() → Get Element State
+        - etc.
+        """
+        import re
+        
+        action_type = action.action_type.lower()
+        target = action.target or "selector"
+        value = action.value
+        
+        # Handle different locator strategies
+        locator_strategy = action.locator_strategy or "xpath"
+        
+        # Convert to Playwright locator format
+        if locator_strategy == "id":
+            locator = f"id={target}"
+        elif locator_strategy == "name":
+            locator = f"[name='{target}']"
+        elif locator_strategy == "xpath":
+            locator = target if target.startswith("//") or target.startswith("(//") else f"//*[@id='{target}']"
+        elif locator_strategy == "css":
+            locator = target
+        elif locator_strategy == "class":
+            locator = f".{target}"
+        elif locator_strategy == "tag":
+            locator = target
+        else:
+            locator = target
+        
+        # Convert actions
+        if action_type in ['click', 'clickelement']:
+            return f"Click    {locator}"
+        elif action_type in ['sendkeys', 'type', 'input', 'fill']:
+            if value:
+                return f"Fill Text    {locator}    {value}"
+            else:
+                return f"Fill Text    {locator}    ${{text}}"
+        elif action_type in ['gettext', 'text']:
+            return f"${{text}}=    Get Text    {locator}"
+        elif action_type in ['isdisplayed', 'isvisible', 'displayed']:
+            return f"Get Element State    {locator}    visible"
+        elif action_type in ['isenabled', 'enabled']:
+            return f"Get Element State    {locator}    enabled"
+        elif action_type in ['clear']:
+            return f"Clear Text    {locator}"
+        elif action_type in ['submit']:
+            return f"Click    {locator}\\n    # Note: submit() converted to click"
+        elif action_type in ['select', 'selectbyvisibletext']:
+            return f"Select Options By    {locator}    label    {value or '${{option}}'}"
+        elif action_type in ['selectbyvalue']:
+            return f"Select Options By    {locator}    value    {value or '${{value}}'}"
+        elif action_type in ['navigate', 'get', 'goto']:
+            url = value or target
+            return f"Go To    {url}"
+        elif action_type in ['wait', 'sleep']:
+            seconds = value or "2s"
+            return f"Sleep    {seconds}"
+        elif action_type == 'screenshot':
+            return f"Take Screenshot"
+        else:
+            # Unknown action - generate TODO
+            return f"# TODO: Convert Selenium action '{action_type}' to Playwright\\n    Log    Unknown action: {action_type}"
+    
+    def _extract_selenium_actions_from_java(self, java_code: str) -> list:
+        """
+        Extract Selenium actions from Java method body using aggressive regex patterns.
+        This is a fallback when the AST parser doesn't extract actions.
+        
+        Args:
+            java_code: Java method body
+            
+        Returns:
+            List of Playwright action strings
+        """
+        import re
+        
+        actions = []
+        
+        # Pattern 1: driver.findElement(By.XXX("locator")).action()
+        # Example: driver.findElement(By.id("username")).sendKeys("admin")
+        pattern1 = r'driver\.findElement\(By\.(id|name|xpath|cssSelector|className|tagName)\(["\']([^"\']+)["\']\)\)\.(click|sendKeys|clear|submit|getText|isDisplayed|isEnabled)\((?:["\']([^"\']+)["\']\))?'
+        matches1 = re.findall(pattern1, java_code, re.IGNORECASE)
+        
+        for by_type, locator, action, value in matches1:
+            locator_map = {
+                'id': f'id={locator}',
+                'name': f'[name="{locator}"]',
+                'xpath': locator,
+                'cssselector': locator,
+                'classname': f'.{locator}',
+                'tagname': locator
+            }
+            pw_locator = locator_map.get(by_type.lower(), locator)
+            
+            if action.lower() == 'click':
+                actions.append(f"Click    {pw_locator}")
+            elif action.lower() == 'sendkeys':
+                actions.append(f"Fill Text    {pw_locator}    {value or '${{text}}'}")
+            elif action.lower() == 'clear':
+                actions.append(f"Clear Text    {pw_locator}")
+            elif action.lower() == 'gettext':
+                actions.append(f"${{text}}=    Get Text    {pw_locator}")
+            elif action.lower() == 'isdisplayed':
+                actions.append(f"Get Element State    {pw_locator}    visible")
+            elif action.lower() == 'isenabled':
+                actions.append(f"Get Element State    {pw_locator}    enabled")
+        
+        # Pattern 2: element = driver.findElement(...); element.action()
+        pattern2 = r'(\w+)\s*=\s*driver\.findElement\(By\.(id|name|xpath|cssSelector|className|tagName)\(["\']([^"\']+)["\']\)\)'
+        element_vars = {}
+        for var_name, by_type, locator in re.findall(pattern2, java_code):
+            locator_map = {
+                'id': f'id={locator}',
+                'name': f'[name="{locator}"]',
+                'xpath': locator,
+                'cssselector': locator,
+                'classname': f'.{locator}',
+                'tagname': locator
+            }
+            element_vars[var_name] = locator_map.get(by_type.lower(), locator)
+        
+        # Now find actions on these element variables
+        for var_name, pw_locator in element_vars.items():
+            pattern3 = rf'{var_name}\.(click|sendKeys|clear|getText|isDisplayed)\((?:["\']([^"\']+)["\']\))?'
+            for action, value in re.findall(pattern3, java_code):
+                if action.lower() == 'click':
+                    actions.append(f"Click    {pw_locator}")
+                elif action.lower() == 'sendkeys':
+                    actions.append(f"Fill Text    {pw_locator}    {value or '${{text}}'}")
+                elif action.lower() == 'clear':
+                    actions.append(f"Clear Text    {pw_locator}")
+                elif action.lower() == 'gettext':
+                    actions.append(f"${{text}}=    Get Text    {pw_locator}")
+                elif action.lower() == 'isdisplayed':
+                    actions.append(f"Get Element State    {pw_locator}    visible")
+        
+        # Pattern 3: driver.get(url)
+        pattern_navigate = r'driver\.get\(["\']([^"\']+)["\']\)'
+        for url in re.findall(pattern_navigate, java_code):
+            actions.append(f"Go To    {url}")
+        
+        # Pattern 4: Thread.sleep() or wait commands
+        pattern_wait = r'Thread\.sleep\((\d+)\)'
+        for milliseconds in re.findall(pattern_wait, java_code):
+            seconds = int(milliseconds) / 1000
+            actions.append(f"Sleep    {seconds}s")
+        
+        # Pattern 5: Assertions
+        pattern_assert = r'assert(True|False|Equals|NotEquals|Contains)\(([^)]+)\)'
+        for assert_type, condition in re.findall(pattern_assert, java_code, re.IGNORECASE):
+            if assert_type.lower() == 'true':
+                actions.append(f"Should Be True    {condition.strip()}")
+            elif assert_type.lower() == 'false':
+                actions.append(f"Should Not Be True    {condition.strip()}")
+            elif assert_type.lower() == 'equals':
+                parts = condition.split(',')
+                if len(parts) >= 2:
+                    actions.append(f"Should Be Equal    {parts[0].strip()}    {parts[1].strip()}")
+            elif assert_type.lower() == 'contains':
+                parts = condition.split(',')
+                if len(parts) >= 2:
+                    actions.append(f"Should Contain    {parts[0].strip()}    {parts[1].strip()}")
+        
+        return actions
+    
+    def _generate_smart_actions_from_pattern(self, pattern_text: str, parameters: list) -> list:
+        """
+        Generate intelligent Playwright actions based on step pattern keywords.
+        Uses NLP-style keyword analysis to infer likely actions.
+        
+        Args:
+            pattern_text: Cucumber step pattern (e.g., "I click on the login button")
+            parameters: List of parameter names
+            
+        Returns:
+            List of Playwright action strings
+        """
+        import re
+        
+        actions = []
+        pattern_lower = pattern_text.lower()
+        
+        # Remove regex patterns for analysis
+        pattern_clean = re.sub(r'\([^)]+\)', '{param}', pattern_text)
+        pattern_clean = re.sub(r'\{[^}]+\}', '{param}', pattern_clean)
+        pattern_clean = pattern_clean.strip('^$')
+        
+        # Detect action type from keywords
+        
+        # Click actions
+        if any(word in pattern_lower for word in ['click', 'press', 'tap', 'select', 'choose']):
+            # Extract element identifier if present
+            element_match = re.search(r'(?:on |the |button |link |checkbox |radio )(["\']?[\w\s]+["\']?)', pattern_clean, re.IGNORECASE)
+            if element_match:
+                element = element_match.group(1).strip('"\'')
+                element_id = element.lower().replace(' ', '_')
+                actions.append(f"Click    id={element_id}    # Review: Update with actual locator")
+            elif parameters:
+                actions.append(f"Click    id=${{{{{parameters[0]}}}}}    # Parameter-based locator")
+            else:
+                actions.append(f"Click    id=element    # TODO: Update with actual locator")
+        
+        # Input/Fill actions
+        elif any(word in pattern_lower for word in ['enter', 'input', 'type', 'fill', 'provide']):
+            field_match = re.search(r'(?:in |into |field |box )(["\']?[\w\s]+["\']?)', pattern_clean, re.IGNORECASE)
+            if field_match:
+                field = field_match.group(1).strip('"\'')
+                field_id = field.lower().replace(' ', '_')
+                value_param = parameters[0] if parameters else 'text'
+                actions.append(f"Fill Text    id={field_id}    ${{{{{value_param}}}}}    # Review: Update locator")
+            elif len(parameters) >= 2:
+                actions.append(f"Fill Text    id=${{{{{parameters[0]}}}}}    ${{{{{parameters[1]}}}}}")
+            else:
+                value_param = parameters[0] if parameters else 'text'
+                actions.append(f"Fill Text    id=input_field    ${{{{{value_param}}}}}    # TODO: Update locator")
+        
+        # Navigation actions
+        elif any(word in pattern_lower for word in ['navigate', 'goto', 'open', 'visit', 'access']):
+            if 'url' in pattern_lower or 'page' in pattern_lower or 'site' in pattern_lower:
+                url_param = parameters[0] if parameters else 'url'
+                if url_param in parameters:
+                    actions.append(f"Go To    ${{{{{url_param}}}}}")
+                else:
+                    actions.append(f"Go To    https://example.com    # TODO: Update with actual URL")
+            else:
+                actions.append(f"Go To    https://example.com/{pattern_clean.split()[-1].lower()}    # Review URL")
+        
+        # Verification/Assert actions
+        elif any(word in pattern_lower for word in ['should', 'verify', 'check', 'see', 'expect', 'assert']):
+            if 'visible' in pattern_lower or 'displayed' in pattern_lower or 'see' in pattern_lower:
+                element_match = re.search(r'(?:see |visible |displayed |shown )(["\']?[\w\s]+["\']?)', pattern_clean, re.IGNORECASE)
+                if element_match:
+                    element = element_match.group(1).strip('"\'')
+                    element_id = element.lower().replace(' ', '_')
+                    actions.append(f"Get Element State    id={element_id}    visible    # Review locator")
+                else:
+                    actions.append(f"Get Element State    id=element    visible    # TODO: Update locator")
+            elif 'text' in pattern_lower or 'contain' in pattern_lower or 'message' in pattern_lower:
+                if parameters:
+                    actions.append(f"Get Text    id=element    # TODO: Update locator")
+                    actions.append(f"Should Contain    ${{text}}    ${{{{{parameters[0]}}}}}")
+                else:
+                    actions.append(f"${{text}}=    Get Text    id=element    # TODO: Update locator")
+                    actions.append(f"Should Contain    ${{text}}    expected_value")
+            else:
+                # Generic verification
+                actions.append(f"# Verification step - implement based on requirements")
+                actions.append(f"Log    Verify: {pattern_clean}")
+        
+        # Wait actions
+        elif any(word in pattern_lower for word in ['wait', 'pause', 'delay']):
+            if any(char.isdigit() for char in pattern_text):
+                # Extract number
+                num_match = re.search(r'(\d+)', pattern_text)
+                if num_match:
+                    actions.append(f"Sleep    {num_match.group(1)}s")
+            else:
+                actions.append(f"Sleep    2s    # Review wait duration")
+        
+        # Select dropdown actions
+        elif any(word in pattern_lower for word in ['select', 'choose']) and ('dropdown' in pattern_lower or 'option' in pattern_lower or 'from' in pattern_lower):
+            if len(parameters) >= 2:
+                actions.append(f"Select Options By    id=${{{{{parameters[0]}}}}}    label    ${{{{{parameters[1]}}}}}")
+            elif parameters:
+                actions.append(f"Select Options By    id=dropdown    label    ${{{{{parameters[0]}}}}}    # TODO: Update locator")
+            else:
+                actions.append(f"Select Options By    id=dropdown    label    option_value    # TODO: Update")
+        
+        # If no specific pattern matched, create a generic action
+        if not actions:
+            actions.append(f"# Step: {pattern_clean}")
+            actions.append(f"Log    Implement: {pattern_clean}")
+        
+        return actions
+    
+    def _convert_assertion_to_robot(self, assertion: str) -> str:
         """
         Convert Selenium WebDriver action to Playwright Browser library call.
         
@@ -4988,6 +6240,55 @@ Generated by CrossBridge AI - Bridging Legacy to AI-Powered Test Systems
         summary += f"  ✓ Total Files Transformed: {len(successful_files)}\n"
         if failed_files:
             summary += f"  ✗ Failed: {len(failed_files)}\n"
+            
+            # Analyze failure patterns
+            failure_types = {}
+            failure_errors = {}
+            for result in transformed_files:
+                if result.status == "failed":
+                    error_msg = result.error or "Unknown error"
+                    # Categorize by error type
+                    if "batch commit failed" in error_msg.lower():
+                        failure_types["Batch Commit Failures"] = failure_types.get("Batch Commit Failures", 0) + 1
+                    elif "failed to read" in error_msg.lower():
+                        failure_types["File Read Failures"] = failure_types.get("File Read Failures", 0) + 1
+                    elif "transformation failed" in error_msg.lower() or "transform" in error_msg.lower():
+                        failure_types["Transformation Failures"] = failure_types.get("Transformation Failures", 0) + 1
+                    else:
+                        failure_types["Other Failures"] = failure_types.get("Other Failures", 0) + 1
+                    
+                    # Track first occurrence of each unique error
+                    error_key = error_msg[:80]  # First 80 chars
+                    if error_key not in failure_errors:
+                        failure_errors[error_key] = {
+                            "count": 0,
+                            "example_file": Path(result.source_file).name
+                        }
+                    failure_errors[error_key]["count"] += 1
+            
+            # Display failure breakdown
+            if failure_types:
+                summary += f"\n⚠️  Failure Breakdown:\n"
+                for failure_type, count in sorted(failure_types.items(), key=lambda x: x[1], reverse=True):
+                    summary += f"  • {failure_type}: {count} files\n"
+                
+                # Show top error messages
+                summary += f"\n🔍 Top Error Messages:\n"
+                top_errors = sorted(failure_errors.items(), key=lambda x: x[1]["count"], reverse=True)[:3]
+                for i, (error_msg, info) in enumerate(top_errors, 1):
+                    summary += f"  {i}. [{info['count']} files] {error_msg}...\n"
+                    summary += f"     Example: {info['example_file']}\n"
+                
+                # Provide actionable recommendations
+                summary += f"\n💡 Recommendations:\n"
+                if "Batch Commit Failures" in failure_types and failure_types["Batch Commit Failures"] > 50:
+                    summary += f"  • High batch commit failures detected ({failure_types['Batch Commit Failures']} files)\n"
+                    summary += f"    → Try reducing commit_batch_size (currently {request.commit_batch_size or 25})\n"
+                    summary += f"    → Check network connectivity and API rate limits\n"
+                if "File Read Failures" in failure_types:
+                    summary += f"  • File read failures: Check repository permissions and file existence\n"
+                if "Transformation Failures" in failure_types:
+                    summary += f"  • Transformation failures: Review source file syntax and compatibility\n"
         summary += f"\n"
         
         # Quick File Count Summary (prominent display)
@@ -5152,6 +6453,12 @@ Generated by CrossBridge AI - Bridging Legacy to AI-Powered Test Systems
         
         summary += "\n╰─────────────────────────────────────────────────────────────╯\n"
         
+        # Add detailed failure report if there are failures
+        if failed_files:
+            failed_results = [f for f in transformed_files if f.status == "failed"]
+            failure_report = self._generate_failure_report(failed_results, len(transformed_files))
+            summary += failure_report
+        
         return summary
     
     def _generate_migration_summary(
@@ -5233,6 +6540,139 @@ Generated by CrossBridge AI - Bridging Legacy to AI-Powered Test Systems
         
         summary += f"\n🎉 Migration Type: {request.migration_type.value}\n"
         summary += f"✅ Status: Completed Successfully\n"
+        
+        summary += "\n╰─────────────────────────────────────────────────────────╯\n"
+        
+        return summary
+    
+    def _generate_ai_summary(self) -> str:
+        """
+        Generate AI-specific transformation summary with token usage and cost breakdown.
+        
+        Returns:
+            Formatted summary string with AI metrics
+        """
+        logger.info(f"Generating AI summary... enabled={self.ai_metrics['enabled']}, files_transformed={self.ai_metrics['files_transformed']}")
+        
+        # Only show summary if AI was enabled
+        if not self.ai_metrics['enabled']:
+            logger.warning("AI summary requested but AI was not enabled")
+            return ""
+        
+        from pathlib import Path
+        
+        summary = "\n\n"
+        summary += "╭─────────────────────────────────────────────────────────╮\n"
+        summary += "│           🤖 AI TRANSFORMATION SUMMARY                  │\n"
+        summary += "╰─────────────────────────────────────────────────────────╯\n\n"
+        
+        # AI Configuration
+        provider_display = (self.ai_metrics['provider'] or 'Unknown').title()
+        model_display = self.ai_metrics['model'] or 'Unknown'
+        
+        summary += "⚙️  AI Configuration:\n"
+        summary += f"  • Provider: {provider_display}\n"
+        summary += f"  • Model: {model_display}\n"
+        summary += "\n"
+        
+        # Check if any files were actually transformed with AI
+        if self.ai_metrics['files_transformed'] == 0:
+            summary += "📊 AI Transformation Statistics:\n"
+            summary += "  ℹ️  AI was enabled but no files were transformed using AI\n"
+            summary += "\n"
+            summary += "💡 Possible Reasons:\n"
+            summary += "  • No Java files were found in the migration\n"
+            summary += "  • All files are .feature files (use pattern-based transformation)\n"
+            summary += "  • AI transformations failed and fell back to pattern-based\n"
+            summary += "  • Check logs for 'AI transformation' messages\n"
+            summary += "\n"
+            summary += "ℹ️  Note: AI transformation now applies to ALL Java files:\n"
+            summary += "  • Step Definition files (.java with @Given/@When/@Then)\n"
+            summary += "  • Page Object files (.java with @FindBy/WebElement)\n"
+            summary += "  • Generic test files (.java with @Test methods)\n"
+            summary += "  • Any other .java files (attempted as step definitions)\n"
+            summary += "\n"
+            summary += "✅ Status: AI Ready (No Files Transformed)\n"
+            summary += "\n╰─────────────────────────────────────────────────────────╯\n"
+            return summary
+        
+        # Overall Statistics
+        summary += "📊 AI Transformation Statistics:\n"
+        summary += f"  ✓ Total Files Transformed: {self.ai_metrics['files_transformed']}\n"
+        summary += f"  ✓ Step Definitions: {self.ai_metrics['step_definitions_transformed']}\n"
+        summary += f"  ✓ Page Objects: {self.ai_metrics['page_objects_transformed']}\n"
+        summary += f"  ✓ Standalone Locator Files: {self.ai_metrics['locators_transformed']}\n"
+        
+        if self.ai_metrics['locators_extracted_count'] > 0:
+            summary += f"  ✓ Locators Extracted from Page Objects: {self.ai_metrics['locators_extracted_count']}\n"
+        summary += "\n"
+        
+        # Self-Healing Locator Strategy
+        if self.ai_metrics['page_objects_transformed'] > 0 or self.ai_metrics['locators_transformed'] > 0:
+            summary += "🛡️  Self-Healing Locator Strategy Applied:\n"
+            summary += "  ✓ Priority: data-testid > id > CSS > XPath\n"
+            summary += "  ✓ Text-based matching for visible elements\n"
+            summary += "  ✓ Avoided brittle positional XPath selectors\n"
+            summary += "  ✓ Modern Playwright locator best practices\n"
+            summary += "\n"
+        
+        # Token Usage and Cost
+        summary += "💰 Token Usage & Cost:\n"
+        summary += f"  • Total Tokens: {self.ai_metrics['total_tokens']:,}\n"
+        summary += f"  • Total Cost: ${self.ai_metrics['total_cost']:.4f}\n"
+        
+        if self.ai_metrics['files_transformed'] > 0:
+            avg_tokens = self.ai_metrics['total_tokens'] / self.ai_metrics['files_transformed']
+            avg_cost = self.ai_metrics['total_cost'] / self.ai_metrics['files_transformed']
+            summary += f"  • Avg Tokens/File: {avg_tokens:.0f}\n"
+            summary += f"  • Avg Cost/File: ${avg_cost:.4f}\n"
+        summary += "\n"
+        
+        # Cost Breakdown by File Type
+        step_def_cost = sum(t['cost'] for t in self.ai_metrics['transformations'] if t['type'] == 'step_definition')
+        page_obj_cost = sum(t['cost'] for t in self.ai_metrics['transformations'] if t['type'] == 'page_object')
+        locator_cost = sum(t['cost'] for t in self.ai_metrics['transformations'] if t['type'] == 'locator')
+        
+        if step_def_cost > 0 or page_obj_cost > 0 or locator_cost > 0:
+            summary += "📈 Cost Breakdown by Type:\n"
+            if step_def_cost > 0:
+                summary += f"  • Step Definitions: ${step_def_cost:.4f}\n"
+            if page_obj_cost > 0:
+                summary += f"  • Page Objects: ${page_obj_cost:.4f}\n"
+            if locator_cost > 0:
+                summary += f"  • Locators: ${locator_cost:.4f}\n"
+            summary += "\n"
+        
+        # Top 5 most expensive transformations
+        if len(self.ai_metrics['transformations']) > 0:
+            top_transformations = sorted(
+                self.ai_metrics['transformations'],
+                key=lambda x: x['cost'],
+                reverse=True
+            )[:5]
+            
+            summary += "💵 Top Cost Files:\n"
+            for i, trans in enumerate(top_transformations, 1):
+                file_name = Path(trans['file']).name
+                file_type = trans['type'].replace('_', ' ').title()
+                summary += f"  {i}. {file_name} ({file_type}): ${trans['cost']:.4f} ({trans['tokens']:,} tokens)\n"
+            summary += "\n"
+        
+        # Cost Comparison
+        model_name = self.ai_metrics['model']
+        if 'gpt-3.5-turbo' in model_name:
+            comparison_model = 'gpt-4'
+            comparison_cost = self.ai_metrics['total_cost'] * 15  # gpt-4 is ~15x more expensive
+            summary += "💡 Cost Savings:\n"
+            summary += f"  • Using {model_name}: ${self.ai_metrics['total_cost']:.4f}\n"
+            summary += f"  • Same with {comparison_model}: ~${comparison_cost:.2f}\n"
+            summary += f"  • Savings: ~${comparison_cost - self.ai_metrics['total_cost']:.2f} (93% reduction)\n"
+        elif 'gpt-4' in model_name and 'turbo' not in model_name.lower():
+            comparison_model = 'gpt-3.5-turbo'
+            comparison_cost = self.ai_metrics['total_cost'] / 15
+            summary += "💡 Alternative Options:\n"
+            summary += f"  • Current ({model_name}): ${self.ai_metrics['total_cost']:.4f}\n"
+            summary += f"  • With {comparison_model}: ~${comparison_cost:.4f} (15x cheaper)\n"
         
         summary += "\n╰─────────────────────────────────────────────────────────╯\n"
         
@@ -5328,6 +6768,134 @@ Generated by CrossBridge AI - Bridging Legacy to AI-Powered Test Systems
         
         return summary
     
+    def _generate_failure_report(self, failed_results: list, total_files: int) -> str:
+        """
+        Generate detailed failure analysis report.
+        
+        Args:
+            failed_results: List of MigrationResult objects with status='failed'
+            total_files: Total number of files attempted
+            
+        Returns:
+            Formatted failure analysis string
+        """
+        if not failed_results:
+            return ""
+        
+        from collections import defaultdict
+        
+        report = "\n\n"
+        report += "╭─────────────────────────────────────────────────────────╮\n"
+        report += "│              ⚠️  FAILURE ANALYSIS REPORT                │\n"
+        report += "╰─────────────────────────────────────────────────────────╯\n\n"
+        
+        # Categorize failures
+        batch_failures = defaultdict(list)
+        read_failures = []
+        transform_failures = []
+        other_failures = []
+        
+        for result in failed_results:
+            error_msg = result.error or "Unknown error"
+            file_name = Path(result.source_file).name
+            
+            if "batch" in error_msg.lower() and "commit" in error_msg.lower():
+                # Extract batch number if present
+                batch_match = re.search(r'batch[: ]*(\d+)', error_msg.lower())
+                batch_num = batch_match.group(1) if batch_match else "unknown"
+                batch_failures[batch_num].append((file_name, result.source_file, error_msg))
+            elif "read" in error_msg.lower():
+                read_failures.append((file_name, result.source_file, error_msg))
+            elif "transform" in error_msg.lower():
+                transform_failures.append((file_name, result.source_file, error_msg))
+            else:
+                other_failures.append((file_name, result.source_file, error_msg))
+        
+        # Summary statistics
+        report += f"📊 Failure Summary:\n"
+        report += f"  • Total Failed: {len(failed_results)} out of {total_files} files ({len(failed_results)/total_files*100:.1f}%)\n"
+        report += f"  • Batch Commit Failures: {sum(len(files) for files in batch_failures.values())} files\n"
+        report += f"  • File Read Failures: {len(read_failures)} files\n"
+        report += f"  • Transformation Failures: {len(transform_failures)} files\n"
+        report += f"  • Other Failures: {len(other_failures)} files\n\n"
+        
+        # Batch failure details (most common cause of bulk failures)
+        if batch_failures:
+            report += f"🔴 Batch Commit Failures ({sum(len(f) for f in batch_failures.values())} files):\n"
+            report += f"  These failures typically indicate network, API rate limiting, or permission issues.\n"
+            report += f"  All files in a failed batch are marked as failed together.\n\n"
+            
+            for batch_num, files in sorted(batch_failures.items())[:5]:  # Show top 5 batches
+                report += f"  Batch {batch_num}: {len(files)} files failed\n"
+                # Extract unique error message
+                unique_errors = set(error for _, _, error in files)
+                for error in list(unique_errors)[:1]:  # Show first unique error
+                    # Extract key part of error
+                    error_summary = error.split(':')[-1].strip()[:100]
+                    report += f"    Error: {error_summary}\n"
+                # Show sample files
+                report += f"    Files: {', '.join([name for name, _, _ in files[:3]])}\n"
+                if len(files) > 3:
+                    report += f"           ... and {len(files) - 3} more\n"
+            
+            if len(batch_failures) > 5:
+                remaining = len(batch_failures) - 5
+                remaining_files = sum(len(files) for batch_num, files in sorted(batch_failures.items())[5:])
+                report += f"  ... and {remaining} more batches ({remaining_files} files)\n"
+            report += "\n"
+        
+        # Read failures
+        if read_failures:
+            report += f"📖 File Read Failures ({len(read_failures)} files):\n"
+            for name, path, error in read_failures[:3]:
+                error_summary = error.split(':')[-1].strip()[:80]
+                report += f"  • {name}: {error_summary}\n"
+            if len(read_failures) > 3:
+                report += f"  ... and {len(read_failures) - 3} more\n"
+            report += "\n"
+        
+        # Transformation failures
+        if transform_failures:
+            report += f"⚙️  Transformation Failures ({len(transform_failures)} files):\n"
+            for name, path, error in transform_failures[:3]:
+                error_summary = error.split(':')[-1].strip()[:80]
+                report += f"  • {name}: {error_summary}\n"
+            if len(transform_failures) > 3:
+                report += f"  ... and {len(transform_failures) - 3} more\n"
+            report += "\n"
+        
+        # Recommendations
+        report += "💡 Recommended Actions:\n"
+        
+        if batch_failures:
+            total_batch_failures = sum(len(files) for files in batch_failures.values())
+            if total_batch_failures > 50:
+                report += f"  1. CRITICAL: {len(batch_failures)} batch commits failed ({total_batch_failures} files)\n"
+                report += f"     → Reduce commit_batch_size (try 10 instead of 25)\n"
+                report += f"     → Check API rate limits for your Git provider\n"
+                report += f"     → Verify network connectivity and repository permissions\n"
+                report += f"     → Retry the operation (retry logic is now enabled)\n"
+        
+        if read_failures:
+            report += f"  2. File Read Issues: {len(read_failures)} files couldn't be read\n"
+            report += f"     → Verify files exist on the target branch\n"
+            report += f"     → Check file permissions and repository access\n"
+        
+        if transform_failures:
+            report += f"  3. Transformation Issues: {len(transform_failures)} files failed to transform\n"
+            report += f"     → Check source file syntax (Gherkin, Java)\n"
+            report += f"     → Review error messages for specific issues\n"
+            report += f"     → Consider using a different transformation mode\n"
+        
+        report += "\n📝 Next Steps:\n"
+        report += f"  • Review detailed logs for specific error messages\n"
+        report += f"  • Run with smaller batch sizes if commit failures persist\n"
+        report += f"  • Contact support with batch numbers if issues continue\n"
+        
+        report += "\n╰─────────────────────────────────────────────────────────╯\n"
+        
+        return report
+    
     def _get_error_code(self, error: Exception) -> str:
         """Generate error code for error tracking."""
         if "auth" in str(error).lower():
@@ -5338,3 +6906,4 @@ Generated by CrossBridge AI - Bridging Legacy to AI-Powered Test Systems
             return "CS-TRANSFORM-001"
         else:
             return "CS-UNKNOWN-001"
+
