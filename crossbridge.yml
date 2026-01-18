@@ -1,0 +1,369 @@
+# ============================================================================
+# CrossBridge Unified Configuration File
+# ============================================================================
+# Single source of truth for all CrossBridge configuration
+# Supports environment variable substitution: ${VAR_NAME:-default_value}
+# ============================================================================
+
+crossbridge:
+  # ──────────────────────────────────────────────────────────────────────────
+  # CORE SETTINGS
+  # ──────────────────────────────────────────────────────────────────────────
+  
+  # Operational mode: 'migration' or 'observer'
+  # - migration: Active test discovery and framework transformation
+  # - observer: Continuous intelligence and monitoring (default)
+  mode: observer
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # APPLICATION TRACKING
+  # ──────────────────────────────────────────────────────────────────────────
+  # Used for version-based coverage analysis and test tracking
+  
+  application:
+    # Product/Application name (e.g., "PaymentAPI", "WebPortal")
+    # Override with: PRODUCT_NAME or CROSSBRIDGE_PRODUCT_NAME
+    product_name: ${PRODUCT_NAME:-CrossBridgeApp}
+    
+    # Application version being tested (e.g., "2.1.0", "v3.0.0-beta")
+    # Override with: APP_VERSION or CROSSBRIDGE_APP_VERSION
+    # CI/CD Tip: export APP_VERSION=$(git describe --tags)
+    application_version: ${APP_VERSION:-v1.0.0}
+    
+    # Environment name (e.g., "dev", "staging", "production")
+    # Override with: ENVIRONMENT or CROSSBRIDGE_ENVIRONMENT
+    environment: ${ENVIRONMENT:-test}
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # DATABASE CONFIGURATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # PostgreSQL database for test events, coverage, and intelligence
+  
+  database:
+    enabled: true
+    
+    # Database connection settings
+    # Override with CROSSBRIDGE_DB_* environment variables
+    host: ${CROSSBRIDGE_DB_HOST:-10.55.12.99}
+    port: ${CROSSBRIDGE_DB_PORT:-5432}
+    database: ${CROSSBRIDGE_DB_NAME:-udp-native-webservices-automation}
+    user: ${CROSSBRIDGE_DB_USER:-postgres}
+    password: ${CROSSBRIDGE_DB_PASSWORD:-admin}
+    
+    # Connection pool settings (advanced)
+    # pool_size: 10
+    # max_overflow: 20
+    # pool_timeout: 30
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # SIDECAR OBSERVER HOOKS
+  # ──────────────────────────────────────────────────────────────────────────
+  # Automatic hook integration during test migration
+  
+  sidecar_hooks:
+    # Enable/disable sidecar observer hooks
+    enabled: true
+    
+    # Automatically integrate hooks during migration
+    # When true: hooks are configured automatically in migrated tests
+    # When false: manual setup required
+    auto_integrate: true
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # TEST TRANSLATION/MIGRATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # Settings for framework-to-framework test transformation
+  
+  translation:
+    # Translation mode
+    # - assistive: Human reviews each translation (default, safest)
+    # - automated: Automatic with confidence checks (faster)
+    # - batch: Bulk translation for large codebases (fastest)
+    mode: assistive
+    
+    # AI-powered translation enhancement
+    use_ai: false              # Enable AI refinement (requires credits)
+    max_credits: 100           # Maximum AI credits to spend per session
+    confidence_threshold: 0.7  # Minimum confidence to auto-apply (0.0-1.0)
+    
+    # Code validation
+    validation_level: strict   # strict, lenient, skip
+    preserve_comments: true    # Keep original comments in translated code
+    inject_todos: true         # Add TODO comments for manual review items
+    
+    # Performance tuning
+    max_workers: 10            # Parallel translation threads (1-20)
+    commit_batch_size: 10      # Files per batch commit (5-20)
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # AI / LLM CONFIGURATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # AI provider settings for enhanced translation and analysis
+  
+  ai:
+    # Enable AI features
+    enabled: false
+    
+    # Provider: 'openai', 'anthropic', or 'custom'
+    provider: openai
+    
+    # API credentials (NEVER commit real keys to git!)
+    # Use environment variable: export OPENAI_API_KEY=sk-...
+    # Use environment variable: export ANTHROPIC_API_KEY=sk-ant-...
+    api_key: ${OPENAI_API_KEY}
+    
+    # Custom endpoint (for enterprise/on-prem deployments)
+    endpoint: null
+    
+    # Model selection
+    # OpenAI: gpt-3.5-turbo (fast, cheap), gpt-4 (better quality)
+    # Anthropic: claude-3-sonnet, claude-3-opus
+    model: gpt-3.5-turbo
+    
+    # Data residency region (for compliance)
+    region: US
+    
+    # Model parameters
+    temperature: 0.7           # Creativity (0.0-1.0, lower = more deterministic)
+    max_tokens: 2048           # Max response length
+    timeout: 60                # Request timeout in seconds
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # FLAKY TEST DETECTION
+  # ──────────────────────────────────────────────────────────────────────────
+  # Machine learning-based flaky test detection
+  
+  flaky_detection:
+    enabled: true
+    
+    # Isolation Forest parameters
+    n_estimators: 200          # Number of trees in forest
+    contamination: 0.1         # Expected ratio of flaky tests (10%)
+    random_state: 42           # For reproducible results
+    
+    # Confidence thresholds
+    min_executions_reliable: 15    # Minimum runs for reliable detection
+    min_executions_confident: 30   # Runs for full confidence
+    min_confidence_threshold: 0.5  # Minimum confidence to classify (0.0-1.0)
+    
+    # Feature engineering
+    execution_window_size: 50  # Number of recent runs to analyze
+    recent_window_size: 10     # For temporal pattern detection
+    
+    # Model management
+    auto_retrain: true         # Automatically retrain model
+    retrain_threshold: 100     # Retrain after N new tests
+    model_version: "1.0.0"     # Model version tracking
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # OBSERVER MODE
+  # ──────────────────────────────────────────────────────────────────────────
+  # Continuous intelligence and monitoring features
+  
+  observer:
+    # Automatically detect new test files/cases
+    auto_detect_new_tests: true
+    
+    # Update coverage graph continuously
+    update_coverage_graph: true
+    
+    # Detect test drift and behavior changes
+    detect_drift: true
+    
+    # Flaky test failure rate threshold (0.0-1.0)
+    # Tests with failure rate above this are flagged
+    flaky_threshold: 0.15      # 15% failure rate
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # INTELLIGENCE FEATURES
+  # ──────────────────────────────────────────────────────────────────────────
+  # AI-powered analysis and recommendations
+  
+  intelligence:
+    # Enable AI-powered intelligence
+    ai_enabled: true
+    
+    # Missing coverage detection
+    # Identifies code areas without test coverage
+    detect_coverage_gaps: true
+    
+    # Redundant test detection
+    # Finds tests with overlapping coverage
+    detect_redundant_tests: true
+    
+    # Risk-based execution recommendations
+    # Suggests which tests to run based on code changes
+    risk_based_recommendations: true
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # FRAMEWORK-SPECIFIC SETTINGS
+  # ──────────────────────────────────────────────────────────────────────────
+  # Configuration for each supported test framework
+  
+  frameworks:
+    
+    # ─── pytest ─────────────────────────────────────────────────────────────
+    pytest:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API/HTTP calls
+      auto_instrument_ui_interactions: false  # Track UI interactions
+      
+      # Network monitoring
+      capture_network_traffic: true       # Capture request/response data
+      
+      # Tracking options
+      track_keywords: true                # Track pytest fixtures/markers
+      track_api_calls: true               # Track API endpoint coverage
+    
+    
+    # ─── Playwright ─────────────────────────────────────────────────────────
+    playwright:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API calls
+      auto_instrument_ui_interactions: true  # Track page interactions
+      
+      # Network monitoring
+      capture_network_traffic: true       # Capture network activity
+      
+      # Tracking options
+      track_keywords: true                # Track test annotations
+      track_api_calls: true               # Track route handlers
+    
+    
+    # ─── Robot Framework ────────────────────────────────────────────────────
+    robot:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track RequestsLibrary calls
+      auto_instrument_ui_interactions: true  # Track SeleniumLibrary actions
+      
+      # Network monitoring
+      capture_network_traffic: false      # Not supported by default
+      
+      # Tracking options
+      track_keywords: true                # Track custom keywords
+      track_api_calls: true               # Track API test cases
+    
+    
+    # ─── Cypress ────────────────────────────────────────────────────────────
+    cypress:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track cy.request() calls
+      auto_instrument_ui_interactions: true  # Track cy.get(), cy.click(), etc.
+      
+      # Network monitoring
+      capture_network_traffic: true       # Capture XHR/Fetch requests
+      
+      # Tracking options
+      track_keywords: true                # Track custom commands
+      track_api_calls: true               # Track API intercepts
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # LOGGING CONFIGURATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # Logging levels and output settings
+  
+  logging:
+    # Global log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    # DEBUG: Detailed diagnostic information (verbose)
+    # INFO: General informational messages (default)
+    # WARNING: Warning messages for potential issues
+    # ERROR: Error messages for failures
+    # CRITICAL: Critical errors requiring immediate attention
+    level: INFO
+    
+    # Log format: simple, detailed, json
+    # simple: Timestamp + level + message
+    # detailed: Adds module, function, line number (default)
+    # json: Machine-readable JSON format for log aggregation
+    format: detailed
+    
+    # File logging
+    log_to_file: true
+    log_file_path: logs/crossbridge.log  # Relative or absolute path
+    
+    # Console logging (stdout)
+    log_to_console: true
+    
+    # Log file rotation
+    max_file_size_mb: 10    # Rotate after 10MB
+    backup_count: 5         # Keep 5 backup files
+    
+    # Component-specific log levels (override global level)
+    # Useful for debugging specific modules without flooding logs
+    translation_level: null  # null = use global level
+    ai_level: null           # Set to DEBUG for AI troubleshooting
+    database_level: null     # Set to DEBUG for SQL query logging
+    observer_level: null     # Set to DEBUG for observer diagnostics
+
+
+# ============================================================================
+# ENVIRONMENT-SPECIFIC OVERRIDES (Optional)
+# ============================================================================
+# You can maintain separate config files for different environments:
+# - crossbridge.dev.yml
+# - crossbridge.staging.yml
+# - crossbridge.production.yml
+# 
+# Load with: export CROSSBRIDGE_CONFIG=crossbridge.staging.yml
+# ============================================================================
+
+
+# ============================================================================
+# COMMON CONFIGURATION EXAMPLES
+# ============================================================================
+
+# Example 1: Local Development
+# -----------------------------------------------------------------------------
+# crossbridge:
+#   mode: observer
+#   database:
+#     host: localhost
+#     password: dev_password
+#   ai:
+#     enabled: false  # Save credits during development
+#   flaky_detection:
+#     min_executions_reliable: 5  # Lower threshold for faster feedback
+
+# Example 2: CI/CD Pipeline
+# -----------------------------------------------------------------------------
+# crossbridge:
+#   mode: observer
+#   application:
+#     application_version: ${CI_COMMIT_TAG}  # From GitLab CI
+#     environment: ${CI_ENVIRONMENT_NAME}
+#   translation:
+#     mode: automated  # Faster for CI
+#     validation_level: lenient
+#   sidecar_hooks:
+#     auto_integrate: true
+
+# Example 3: Production Monitoring
+# -----------------------------------------------------------------------------
+# crossbridge:
+#   mode: observer
+#   application:
+#     environment: production
+#   observer:
+#     flaky_threshold: 0.05  # Stricter in production
+#   intelligence:
+#     risk_based_recommendations: true
+#   flaky_detection:
+#     min_executions_confident: 50  # More data for confidence

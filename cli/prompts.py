@@ -305,11 +305,12 @@ def prompt_migration_type() -> MigrationType:
     typer.echo("\n[1] Selenium Java BDD → Robot Framework + Playwright")
     typer.echo("[2] Selenium Java → Playwright")
     typer.echo("[3] Selenium Java → Robot Framework")
-    typer.echo("[4] Pytest → Robot Framework\n")
+    typer.echo("[4] RestAssured Java → Robot Framework + Python Requests")
+    typer.echo("[5] Pytest → Robot Framework\n")
     
     choice = Prompt.ask(
-        "Enter choice [1–4] (default: 1)",
-        choices=["1", "2", "3", "4"],
+        "Enter choice [1–5] (default: 1)",
+        choices=["1", "2", "3", "4", "5"],
         default="1",
         show_choices=False
     )
@@ -318,7 +319,8 @@ def prompt_migration_type() -> MigrationType:
         "1": MigrationType.SELENIUM_JAVA_BDD_TO_ROBOT_PLAYWRIGHT,
         "2": MigrationType.SELENIUM_JAVA_TO_PLAYWRIGHT,
         "3": MigrationType.SELENIUM_JAVA_TO_ROBOT,
-        "4": MigrationType.PYTEST_TO_ROBOT
+        "4": MigrationType.RESTASSURED_TO_ROBOT,
+        "5": MigrationType.PYTEST_TO_ROBOT
     }
     
     return mapping[choice]
@@ -662,6 +664,25 @@ def prompt_framework_config(migration_type: MigrationType) -> Dict:
         config["fixtures_path"] = Prompt.ask(
             "Fixtures/conftest path",
             default="tests"
+        )
+    
+    elif migration_type == MigrationType.RESTASSURED_TO_ROBOT:
+        # RestAssured API tests
+        console.print("[dim]Configure paths for RestAssured API project[/dim]")
+        
+        config["java_src_path"] = Prompt.ask(
+            "Java source path (from repository root)",
+            default="src/main/java"
+        )
+        
+        config["tests_path"] = Prompt.ask(
+            "RestAssured tests path (from repository root)",
+            default="src/test/java"
+        )
+        
+        config["base_url"] = Prompt.ask(
+            "API base URL (e.g., https://api.example.com)",
+            default="https://api.example.com"
         )
     
     # Common: Ask for Page Objects and Locators for all migration types

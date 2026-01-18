@@ -90,14 +90,26 @@ class RobotGenerator(TargetGenerator):
             has_api = any(action.action_type == ActionType.REQUEST for action in intent.steps)
             if has_api:
                 lines.append('Library    RequestsLibrary')
+                lines.append('Library    Collections')
+                lines.append('Library    String')
             else:
                 lines.append('Library    Browser    timeout=10s')
         elif intent.test_type == IntentType.API:
             lines.append('Library    RequestsLibrary')
             lines.append('Library    Collections')
+            lines.append('Library    String')
         
         # Additional libraries
         lines.append('Library    BuiltIn')
+        
+        # Suite Setup/Teardown for API tests
+        if intent.test_type == IntentType.API:
+            base_url = self._extract_base_url(intent)
+            if base_url:
+                lines.append(f'Suite Setup    Create Session    api    {base_url}')
+            else:
+                lines.append('Suite Setup    Create Session    api    ${{BASE_URL}}')
+            lines.append('Suite Teardown    Delete All Sessions')
         
         return lines
     
@@ -216,19 +228,7 @@ class RobotGenerator(TargetGenerator):
         
         elif action.action_type == ActionType.REQUEST:
             # API request
-            method = action.semantics.get('method', 'GET')
-            endpoint = action.value
-            
-            if method == 'GET':
-                return f"GET    {endpoint}"
-            elif method == 'POST':
-                body = action.semantics.get('body', '{{}}')
-                return f"POST    {endpoint}    json={body}"
-            elif method == 'PUT':
-                body = action.semantics.get('body', '{{}}')
-                return f"PUT    {endpoint}    json={body}"
-            elif method == 'DELETE':
-                return f"DELETE    {endpoint}"
+            return self._generate_api_request_keyword(action)
         
         elif action.action_type == ActionType.WAIT:
             if action.wait_strategy == "explicit":
@@ -259,12 +259,16 @@ class RobotGenerator(TargetGenerator):
             return f"Get Value    {selector}    ==    {assertion.expected}"
         
         elif assertion.assertion_type == AssertionType.STATUS_CODE:
-            return f"Status Should Be    {assertion.expected}"
+            return f"Status Should Be    {assertion.expected}    ${{response}}"
         
         elif assertion.assertion_type == AssertionType.RESPONSE_BODY:
             # JSON path assertion
             json_path = assertion.target
-            return f"Should Be Equal    ${{response.json()}}.{json_path}    {assertion.expected}"
+            if '.' in json_path:
+                # Nested path like "user.name"
+                return f"${{value}}=    Get Value From Json    ${{response.json()}}    $.{json_path}\n    Should Be Equal As Strings    ${{value}}    {assertion.expected}"
+            else:
+                return f"Dictionary Should Contain Item    ${{response.json()}}    {json_path}    {assertion.expected}"
         
         elif assertion.assertion_type == AssertionType.CONTAINS:
             return f"Should Contain    ${{response.text}}    {assertion.expected}"
@@ -306,3 +310,86 @@ class RobotGenerator(TargetGenerator):
             name = name[5:]
         
         return name
+    
+    def _extract_base_url(self, intent: TestIntent) -> str:
+        """Extract base URL from intent."""
+        # Look for base URL in data or first request
+        if intent.data and 'base_url' in intent.data:
+            return intent.data['base_url']
+        
+        # Try to extract from first request
+        for action in intent.steps:
+            if action.action_type == ActionType.REQUEST:
+                endpoint = action.value
+                if endpoint and endpoint.startswith('http'):
+                    # Full URL provided
+                    parts = endpoint.split('/', 3)
+                    if len(parts) > 2:
+                        return f"{parts[0]}//{parts[2]}"
+        
+        return ""
+    
+    def _generate_api_request_keyword(self, action: ActionIntent) -> str:
+        """Generate RequestsLibrary keyword for API request."""
+        method = action.semantics.get('method', 'GET')
+        endpoint = action.value
+        headers = action.semantics.get('headers', {})
+        body = action.semantics.get('body')
+        query_params = action.semantics.get('query_params', {})
+        auth = action.semantics.get('auth')
+        
+        # Build keyword parts
+        parts = []
+        
+        # Store response
+        parts.append("${response}=")
+        
+        # Method keyword
+        if method == 'GET':
+            keyword = "GET On Session"
+        elif method == 'POST':
+            keyword = "POST On Session"
+        elif method == 'PUT':
+            keyword = "PUT On Session"
+        elif method == 'DELETE':
+            keyword = "DELETE On Session"
+        elif method == 'PATCH':
+            keyword = "PATCH On Session"
+        else:
+            keyword = "GET On Session"
+        
+        parts.append(keyword)
+        parts.append("api")  # Session alias
+        parts.append(endpoint)
+        
+        # Add optional parameters
+        optional_parts = []
+        
+        if body:
+            # Clean up body if it's a JSON string
+            if isinstance(body, str) and body.startswith('{'):
+                optional_parts.append(f"json={body}")
+            else:
+                optional_parts.append(f"data={body}")
+        
+        if headers:
+            headers_str = self._format_dict_for_robot(headers)
+            optional_parts.append(f"headers={headers_str}")
+        
+        if query_params:
+            params_str = self._format_dict_for_robot(query_params)
+            optional_parts.append(f"params={params_str}")
+        
+        if optional_parts:
+            parts.extend(optional_parts)
+        
+        return "    ".join(parts)
+    
+    def _format_dict_for_robot(self, data: dict) -> str:
+        """Format dictionary for Robot Framework."""
+        if not data:
+            return "&{EMPTY}"
+        
+        # Create inline dictionary
+        items = [f"{k}={v}" for k, v in data.items()]
+        return "&{" + "    ".join(items) + "}"

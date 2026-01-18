@@ -36,12 +36,18 @@ from cli.progress import MigrationProgressTracker
 from core.orchestration import MigrationOrchestrator, MigrationRequest
 from services.logging_service import setup_logging
 
+# Import coverage commands
+from cli.commands.coverage_commands import coverage_group
+
 app = typer.Typer(
     name="crossbridge",
     help="CrossBridge by CrossStack AI - Test Framework Migration",
     add_completion=False,
     invoke_without_command=True
 )
+
+# Add coverage commands subgroup
+app.add_typer(coverage_group, name="coverage")
 
 # Install custom exception hook to suppress tracebacks in CLI
 def _custom_exception_hook(exc_type, exc_value, exc_traceback):

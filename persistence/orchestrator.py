@@ -11,16 +11,14 @@ from typing import List, Optional
 from pathlib import Path
 import logging
 
-from persistence import (
-    DatabaseConfig,
-    create_session,
+from persistence.db import DatabaseConfig, create_session
+from persistence.repositories import (
     discovery_repo,
     test_case_repo,
     page_object_repo,
-    mapping_repo,
-    from_test_metadata,
-    from_page_object_reference
+    mapping_repo
 )
+from persistence.models import from_test_metadata, from_page_object_reference
 
 logger = logging.getLogger(__name__)
 

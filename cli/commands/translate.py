@@ -98,6 +98,21 @@ from core.translation.pipeline import TranslationPipeline, TranslationConfig, Tr
     is_flag=True,
     help='Verbose output'
 )
+@click.option(
+    '--enable-sidecar/--disable-sidecar',
+    default=True,
+    help='Enable/disable automatic sidecar observer integration (default: enabled)'
+)
+@click.option(
+    '--sidecar-db-host',
+    default='10.55.12.99',
+    help='Database host for sidecar observer'
+)
+@click.option(
+    '--sidecar-app-version',
+    default='v1.0.0',
+    help='Application version for sidecar tracking'
+)
 def translate(
     source: str,
     target: str,
@@ -110,6 +125,9 @@ def translate(
     validation: str,
     dry_run: bool,
     verbose: bool,
+    enable_sidecar: bool,
+    sidecar_db_host: str,
+    sidecar_app_version: str,
 ):
     """
     Translate test code between frameworks.
@@ -149,6 +167,7 @@ def translate(
         - Selenium Java → Playwright Python
         - Selenium Python → Playwright Python
         - RestAssured → Pytest
+        - RestAssured → Robot Framework
         - Robot Framework → Pytest
     
     Translation Modes:
@@ -180,6 +199,7 @@ def translate(
         click.echo("  • selenium-java → playwright-python")
         click.echo("  • selenium-python → playwright-python")
         click.echo("  • restassured → pytest")
+        click.echo("  • restassured → robot")
         click.echo("  • robot → pytest")
         sys.exit(1)
     
@@ -376,14 +396,30 @@ def _translate_directory(
     if not dry_run:
         click.echo()
         click.echo("💾 Writing files...")
+        migrated_files = []
         for item in results:
             if item['result'].success:
                 item['output'].parent.mkdir(parents=True, exist_ok=True)
                 item['output'].write_text(item['result'].target_code)
+                migrated_files.append(item['output'])
         click.echo(f"   ✅ Saved to: {output_dir}")
+        
+        # Auto-integrate sidecar hooks
+        if enable_sidecar:
+            click.echo()
+            click.echo("🔌 Integrating sidecar observer hooks...")
+            _integrate_sidecar_hooks(
+                target_framework=target,
+                output_dir=output_dir,
+                migrated_files=migrated_files,
+                db_host=sidecar_db_host,
+                app_version=sidecar_app_version,
+                verbose=verbose
+            )
     else:
         click.echo()
         click.echo("🔍 Dry run - no files written")
+        click.echo("   (Sidecar hooks would be auto-integrated on actual migration)")
     
     click.echo()
 
@@ -394,6 +430,7 @@ def _is_supported_path(source: str, target: str) -> bool:
         ('selenium-java', 'playwright-python'),
         ('selenium-python', 'playwright-python'),
         ('restassured', 'pytest'),
+        ('restassured', 'robot'),
         ('robot', 'pytest'),
     ]
     return (source.lower(), target.lower()) in supported_paths
@@ -410,6 +447,65 @@ def _get_file_extensions(framework: str) -> list:
         'playwright': ['.py', '.js', '.ts'],
     }
     return extensions.get(framework.lower(), ['.py'])
+
+
+def _convert_filename(path: Path, target_framework: str) -> Path:
+    """Convert filename for target framework."""
+    # Change extension
+
+
+def _integrate_sidecar_hooks(
+    target_framework: str,
+    output_dir: Path,
+    migrated_files: list,
+    db_host: str,
+    app_version: str,
+    verbose: bool
+):
+    """Integrate sidecar hooks after migration."""
+    try:
+        from core.translation.migration_hooks import (
+            integrate_hooks_after_migration,
+            MigrationHookConfig
+        )
+        
+        config = MigrationHookConfig(
+            enable_hooks=True,
+            db_host=db_host,
+            application_version=app_version
+        )
+        
+        result = integrate_hooks_after_migration(
+            target_framework=target_framework,
+            output_dir=output_dir,
+            migrated_files=migrated_files,
+            config=config
+        )
+        
+        if result.get("enabled"):
+            click.secho(f"   ✅ Sidecar hooks integrated ({result.get('type')})", fg='green')
+            click.echo(f"   📁 Config: {Path(result.get('config_file', '')).name}")
+            
+            if verbose:
+                click.echo(f"   📝 Instructions:")
+                for line in result.get('instructions', '').strip().split('\n'):
+                    click.echo(f"      {line}")
+        else:
+            reason = result.get('reason', 'unknown')
+            if reason == 'disabled_by_config':
+                click.echo(f"   ⏭️  Sidecar hooks disabled")
+            elif reason == 'unsupported_framework':
+                click.secho(f"   ⚠️  No sidecar hooks for {target_framework}", fg='yellow')
+            else:
+                click.secho(f"   ⚠️  Hook integration failed: {reason}", fg='yellow')
+    
+    except ImportError:
+        click.secho("   ⚠️  Migration hooks module not available", fg='yellow')
+    except Exception as e:
+        click.secho(f"   ⚠️  Hook integration error: {e}", fg='yellow')
+        if verbose:
+            import traceback
+            click.echo(traceback.format_exc())
 
 
 def _convert_filename(path: Path, target_framework: str) -> Path:

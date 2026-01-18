@@ -15,6 +15,7 @@ class MigrationType(str, Enum):
     SELENIUM_JAVA_BDD_TO_ROBOT_PLAYWRIGHT = "selenium_java_bdd_to_robot_playwright"
     SELENIUM_JAVA_TO_PLAYWRIGHT = "selenium_java_to_playwright"
     SELENIUM_JAVA_TO_ROBOT = "selenium_java_to_robot"
+    RESTASSURED_TO_ROBOT = "restassured_to_robot"
     PYTEST_TO_ROBOT = "pytest_to_robot"
 
 
@@ -145,6 +146,12 @@ class MigrationRequest(BaseModel):
         description="Number of files to commit in a single batch (5-20)",
         ge=5,
         le=20
+    )
+    
+    # Continuous Intelligence (Post-Migration Monitoring)
+    enable_hooks: bool = Field(
+        default=True,
+        description="Enable CrossBridge hooks for continuous intelligence and monitoring (coverage tracking, flaky detection, AI insights)"
     )
     
     # Metadata

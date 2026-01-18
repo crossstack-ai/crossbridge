@@ -13,6 +13,7 @@ typer>=0.9.0  # Modern CLI framework
 rich>=13.0.0  # Beautiful terminal output
 questionary>=2.0.0  # Interactive prompts (future use)
 click>=8.0.0  # Command-line interface creation
+tabulate>=0.9.0  # Table formatting for console output
 
 # Logging Framework (core/logging/)
 # - Uses Python standard library only (no external dependencies required)

@@ -222,6 +222,10 @@ class RestAssuredParser(SourceParser):
         method = request['method']
         endpoint = request['endpoint']
         
+        # Skip if endpoint is None (parsing error)
+        if not endpoint:
+            return
+        
         # Build semantics
         semantics = {
             'method': method,

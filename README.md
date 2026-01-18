@@ -27,9 +27,30 @@ Testing teams worldwide face a critical challenge: **legacy test automation debt
 
 ## 💡 The Solution
 
-**CrossBridge** is an open-source platform that automatically transforms legacy test automation to modern frameworks, powered by intelligent parsing and optional AI assistance.
+**CrossBridge** is an open-source platform that works in **TWO MODES**:
 
-### What CrossBridge Does
+### Mode 1: NO MIGRATION (Sidecar Observer) ⭐ NEW!
+
+Work with your **existing frameworks WITHOUT any migration**:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         
+│   Your Tests        │         │   CrossBridge    │         
+│   (NO CHANGES!)     │────────▶│   (Observer)     │────────▶ 📊 Insights
+│                     │         │                  │         
+│  • Selenium Java    │         │  • Auto-detect   │         • Coverage tracking
+│  • Cypress          │         │  • Auto-register │         • Flaky detection
+│  • pytest           │         │  • AI analysis   │         • Risk scores
+│  • Robot Framework  │         │  • Zero impact   │         • Test optimization
+└─────────────────────┘         └──────────────────┘         
+```
+
+**Supports 8+ frameworks as-is**: Selenium Java/BDD/RestAssured, .NET SpecFlow, Python pytest/Robot, Cypress
+**Zero code changes**: Add a listener/plugin and go!
+
+### Mode 2: FULL MIGRATION (Transformation)
+
+Transform legacy tests to modern frameworks:
 
 ```
 ┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
@@ -43,10 +64,12 @@ Testing teams worldwide face a critical challenge: **legacy test automation debt
 ```
 
 **Key Capabilities:**
-- ✅ **Automated Migration**: Convert entire test suites in hours, not months
+- ✅ **NO MIGRATION MODE**: Work with existing frameworks (Selenium, Cypress, pytest, Robot, etc.) as sidecar observer
+- ✅ **Automated Migration**: Or convert entire test suites in hours when you're ready
 - ✅ **Intelligent Parsing**: Extracts test intent, locators, and page objects
+- ✅ **Continuous Intelligence**: Coverage tracking, flaky detection, AI optimization recommendations
+- ✅ **AI-Enhanced** (Optional): Improves transformation quality, locator strategies, and provides self-healing
 - ✅ **Framework-Agnostic**: Plugin architecture supports multiple sources/targets
-- ✅ **AI-Enhanced** (Optional): Improves transformation quality, locator strategies, and provides self-healing recommendations
 - ✅ **Repository-Native**: Works directly with Git/Bitbucket/Azure DevOps
 - ✅ **Impact Analysis**: Understand what tests break when code changes
 - ✅ **Validation & Review**: Built-in quality checks and hybrid modes
@@ -87,15 +110,52 @@ cd crossbridge
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Run interactive CLI
-python -m cli.app
 ```
 
-### Your First Migration
+### Option 1: NO MIGRATION MODE (Recommended for new users!)
+
+**Just observe your existing tests - no changes needed:**
 
 ```bash
-# Start the interactive menu
+# Configure database (one-time)
+export CROSSBRIDGE_ENABLED=true
+export CROSSBRIDGE_DB_HOST=10.55.12.99
+export CROSSBRIDGE_APPLICATION_VERSION=v2.0.0
+
+# Add listener to your framework:
+```
+
+**For Selenium Java:**
+```xml
+<!-- testng.xml -->
+<listeners>
+  <listener class-name="com.crossbridge.CrossBridgeListener"/>
+</listeners>
+```
+
+**For Python pytest:**
+```python
+# conftest.py
+pytest_plugins = ["crossbridge.pytest_plugin"]
+```
+
+**For Cypress:**
+```javascript
+// cypress.config.js
+const crossbridge = require('crossbridge-cypress');
+crossbridge.register(on, { enabled: true });
+```
+
+**That's it!** Run your tests normally - CrossBridge observes and provides intelligence.
+
+📖 **See [NO_MIGRATION_FRAMEWORK_SUPPORT.md](docs/NO_MIGRATION_FRAMEWORK_SUPPORT.md) for all 8+ frameworks**
+
+### Option 2: FULL MIGRATION MODE
+
+**Transform tests to modern frameworks:**
+
+```bash
+# Start the interactive CLI
 python -m cli.app
 
 # Follow the prompts:
@@ -113,7 +173,34 @@ python -m cli.app
 
 ## 📋 Supported Frameworks
 
-### Source Frameworks (Input)
+### NO MIGRATION MODE (Sidecar Observer) ⭐
+| Framework | Status | Hook Type | Setup Time |
+|-----------|--------|-----------|------------|
+| **Selenium Java** | ✅ Ready | TestNG/JUnit Listener | 5 min |
+| **Selenium Java BDD** | ✅ Ready | TestNG Listener | 5 min |
+| **Selenium Java + RestAssured** | ✅ Ready | TestNG Listener | 5 min |
+| **Selenium .NET SpecFlow** | ✅ Ready | SpecFlow Plugin | 5 min |
+| **Selenium Python pytest** | ✅ Ready | pytest Plugin | 5 min |
+| **Selenium Python Robot** | ✅ Ready | Robot Listener | 5 min |
+| **Requests Python Robot (API)** | ✅ Ready | Robot Listener | 5 min |
+| **Cypress** | ✅ Ready | Cypress Plugin | 5 min |
+
+**All work with ZERO test code changes!**
+
+### MIGRATION MODE (Full Transformation)
+
+**Source Frameworks (Input):**
+| Framework | Status | Notes |
+|-----------|--------|-------|
+| Selenium Java + Cucumber | ✅ **Stable** | Primary use case, well-tested |
+| Selenium Java (no BDD) | ✅ Supported | Basic transformation |
+| Pytest + Selenium | 🟡 Beta | In active development |
+| .NET SpecFlow | 🟡 Beta | Basic support |
+| Robot Framework (existing) | ✅ Supported | For transformation/enhancement |
+| Cypress | 🔵 Planned | Roadmap Q2 2026 |
+| Playwright (Java/Python) | 🔵 Planned | Roadmap Q3 2026 |
+
+**Target Frameworks (Output):**
 | Framework | Status | Notes |
 |-----------|--------|-------|
 | Selenium Java + Cucumber | ✅ **Stable** | Primary use case, well-tested |
@@ -351,7 +438,129 @@ Example:
 ```
 
 ---
+## 🔌 Model Context Protocol (MCP) Integration
 
+CrossBridge is **both an MCP Client and MCP Server**, enabling seamless integration with AI agents and external tools.
+
+### 🖥️ MCP Server: Expose CrossBridge as Tools
+
+CrossBridge exposes its capabilities as MCP tools that AI agents (Claude, ChatGPT, etc.) can consume:
+
+**Available Tools:**
+- `run_tests` - Execute tests in any project (pytest, junit, robot)
+- `analyze_flaky_tests` - Detect flaky tests from execution history
+- `migrate_framework` - Convert tests between frameworks
+- `analyze_coverage` - Generate coverage reports and impact analysis
+- `generate_tests` - AI-powered test generation from requirements
+
+**Starting the MCP Server:**
+```python
+from core.ai.mcp.server import MCPServer, MCPServerConfig
+
+# Configure server
+config = MCPServerConfig(
+    host="localhost",
+    port=8080,
+    auth_enabled=True,
+    api_key="your-api-key"
+)
+
+# Start server
+server = MCPServer(config)
+server.start()
+
+# AI agents can now call CrossBridge tools via MCP!
+```
+
+**Example: AI Agent Using CrossBridge**
+```json
+{
+  "tool": "migrate_framework",
+  "inputs": {
+    "source_framework": "selenium_java_bdd",
+    "target_framework": "robot_playwright",
+    "repository_url": "https://github.com/org/repo",
+    "branch": "main"
+  }
+}
+```
+
+### 🔄 MCP Client: Consume External Tools
+
+CrossBridge can connect to external MCP servers (Jira, GitHub, CI/CD) to enhance workflows:
+
+**Supported External Tools:**
+- **Jira**: Create issues, search, update
+- **GitHub**: Create PRs, get status, merge
+- **CI/CD**: Trigger builds, get status
+
+**Using External Tools:**
+```python
+from core.ai.mcp.client import MCPClient, MCPToolRegistry
+
+# Discover tools from Jira server
+registry = MCPToolRegistry(config_path="config/mcp_servers.json")
+tools = registry.discover_tools("jira_server")
+
+# Use MCP client to call tool
+client = MCPClient(registry)
+result = client.call_tool(
+    "jira_create_issue",
+    inputs={
+        "project": "TEST",
+        "summary": "Migration failed for LoginTest.java",
+        "description": "AI transformation returned empty content",
+        "issue_type": "Bug"
+    }
+)
+```
+
+**Configuration (config/mcp_servers.json):**
+```json
+{
+  "servers": {
+    "jira_server": {
+      "url": "https://jira.example.com",
+      "authentication": {
+        "type": "bearer",
+        "token": "your-jira-token"
+      }
+    },
+    "github_server": {
+      "url": "https://api.github.com",
+      "authentication": {
+        "type": "token",
+        "token": "ghp_your-token"
+      }
+    }
+  }
+}
+```
+
+### 🎯 MCP Use Cases
+
+**1. AI-Driven Workflows:**
+```
+AI Agent → CrossBridge MCP Server → Run tests → Create Jira issue (MCP Client)
+```
+
+**2. Automated Test Intelligence:**
+```
+Claude detects flaky test → CrossBridge analyzes → GitHub PR created → CI triggered
+```
+
+**3. Self-Service Test Migration:**
+```
+ChatGPT plugin → CrossBridge migrate_framework → PR opened → Slack notification
+```
+
+### 📚 MCP Documentation
+
+- **[MCP Client Implementation](core/ai/mcp/client.py)** - Connect to external tools
+- **[MCP Server Implementation](core/ai/mcp/server.py)** - Expose CrossBridge tools
+- **[Unit Tests](tests/unit/core/ai/test_mcp_and_memory.py)** - Comprehensive test coverage
+
+---
 ## �🛠️ Configuration Example
 
 ```yaml

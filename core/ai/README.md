@@ -13,7 +13,7 @@ All core features complete and production-ready:
 - ✅ AI skills framework (5 skills implemented)
 - ✅ Governance layer (cost tracking, audit logs, credits)
 - ✅ Orchestration engine
-- ⏳ MCP client/server (planned)
+- ✅ MCP client/server (both client and server implemented)
 - ⏳ Memory/embeddings (planned)
 
 ---

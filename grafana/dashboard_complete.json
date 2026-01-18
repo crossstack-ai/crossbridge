@@ -1,0 +1,918 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 100,
+      "panels": [],
+      "title": "📊 Behavioral Coverage Analytics",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "green", "value": 50}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT endpoint_path) as value FROM api_endpoint_coverage;",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique API Endpoints",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "blue", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as value FROM api_endpoint_coverage;",
+          "refId": "A"
+        }
+      ],
+      "title": "Total API Calls",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 5},
+              {"color": "green", "value": 20}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT component_name) as \"Buttons, Inputs & Forms\" FROM ui_component_coverage;",
+          "refId": "A"
+        }
+      ],
+      "title": "UI Elements Interacted",
+      "description": "Number of unique UI components (buttons, inputs, dropdowns, etc.) that tests have interacted with",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "purple", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT id) as value FROM test_case;",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Tests",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 5,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT endpoint_path || ' ' || http_method as endpoint, test_count as tests FROM api_endpoint_summary ORDER BY test_count DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Most Tested Endpoints",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false}
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "pie",
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN status_code = 200 THEN '200 OK' WHEN status_code = 201 THEN '201 Created' WHEN status_code = 204 THEN '204 No Content' WHEN status_code = 400 THEN '400 Bad Request' WHEN status_code = 401 THEN '401 Unauthorized' WHEN status_code = 404 THEN '404 Not Found' WHEN status_code = 500 THEN '500 Server Error' ELSE status_code::text END as metric, COUNT(*) as value FROM api_endpoint_coverage GROUP BY status_code ORDER BY status_code;",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP Status Code Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, COUNT(DISTINCT endpoint_path) as \"Unique Endpoints\", COUNT(*) as \"Total Calls\" FROM api_endpoint_coverage WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY time ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "API Coverage Over Time (24h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "total_interactions"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+              {"id": "color", "value": {"mode": "thresholds"}},
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 5},
+                    {"color": "green", "value": 10}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT component_name, component_type, CASE WHEN page_url = '/' THEN 'Home' ELSE INITCAP(REPLACE(TRIM(BOTH '/' FROM page_url), '-', ' ')) END as page_name, page_url, test_count, total_interactions, interaction_types FROM ui_component_summary ORDER BY total_interactions DESC LIMIT 20;",
+          "refId": "A"
+        }
+      ],
+      "title": "UI Component Interactions",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false}
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT INITCAP(framework) as metric, COUNT(*) as value FROM test_case GROUP BY framework ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Test Framework Distribution",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 29},
+      "id": 200,
+      "panels": [],
+      "title": "🔖 Version-Aware Test Analytics",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "blue", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 30},
+      "id": 201,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days';",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Tests",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 30},
+      "id": 202,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT application_version) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days';",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Versions",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "purple", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 30},
+      "id": 203,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT product_name) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days';",
+          "refId": "A"
+        }
+      ],
+      "title": "Products",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "orange", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 30},
+      "id": 204,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT environment) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days';",
+          "refId": "A"
+        }
+      ],
+      "title": "Environments",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 34},
+      "id": 205,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT application_version as metric, ROUND(100.0 * SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) / COUNT(*), 1) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days' GROUP BY application_version ORDER BY application_version;",
+          "refId": "A"
+        }
+      ],
+      "title": "Pass Rate by Version",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 34},
+      "id": 206,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT product_name as metric, COUNT(*) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days' GROUP BY product_name ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Tests by Product",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Pass Rate %"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "green", "value": 90}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 42},
+      "id": 207,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT application_version as \"Version\", product_name as \"Product\", environment as \"Environment\", COUNT(*) as \"Total Tests\", SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as \"Passed\", SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as \"Failed\", ROUND(100.0 * SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) / COUNT(*), 1) as \"Pass Rate %\" FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days' GROUP BY application_version, product_name, environment ORDER BY product_name, application_version;",
+          "refId": "A"
+        }
+      ],
+      "title": "Version Details",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 52},
+      "id": 208,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, application_version as metric, COUNT(*) as value FROM test_execution_event WHERE application_version IS NOT NULL AND $__timeFilter(created_at) GROUP BY time, application_version ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "Test Execution Timeline by Version",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false}
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 60},
+      "id": 209,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "values": []
+        },
+        "pieType": "pie",
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT status as metric, COUNT(*) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days' GROUP BY status;",
+          "refId": "A"
+        }
+      ],
+      "title": "Status Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 60},
+      "id": 210,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT environment as metric, ROUND(100.0 * SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) / COUNT(*), 1) as value FROM test_execution_event WHERE application_version IS NOT NULL AND created_at >= NOW() - INTERVAL '10 days' GROUP BY environment ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Pass Rate by Environment",
+      "type": "barchart"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["crossbridge", "coverage", "version-tracking"],
+  "templating": {"list": []},
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CrossBridge Complete Analytics",
+  "version": 0,
+  "weekStart": ""
+}
