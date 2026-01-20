@@ -58,7 +58,7 @@ class TestExecutionDB(Base):
     
     # Metadata
     tags = Column(ARRAY(String))
-    metadata = Column(JSONB)
+    test_metadata = Column(JSONB)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
     
     created_at = Column(DateTime, default=datetime.now)
     
@@ -82,7 +82,7 @@ class TestExecutionDB(Base):
             environment=record.environment,
             build_id=record.build_id,
             tags=record.tags,
-            metadata=record.metadata
+            test_metadata=record.metadata
         )
     
     def to_record(self) -> TestExecutionRecord:
@@ -103,7 +103,7 @@ class TestExecutionDB(Base):
             test_file=self.test_file,
             test_line=self.test_line,
             tags=self.tags or [],
-            metadata=self.metadata or {}
+            metadata=self.test_metadata or {}
         )
 
 
@@ -144,20 +144,27 @@ class FlakyTestDB(Base):
     @staticmethod
     def from_result(result: FlakyTestResult) -> "FlakyTestDB":
         """Create database model from FlakyTestResult."""
+        # Convert numpy types to Python native types
+        def to_native(value):
+            """Convert numpy types to Python native types."""
+            if hasattr(value, 'item'):  # numpy scalar
+                return value.item()
+            return value
+        
         return FlakyTestDB(
             test_id=result.test_id,
             test_name=result.test_name,
             framework=result.framework.value,
-            flaky_score=result.flaky_score,
+            flaky_score=float(to_native(result.flaky_score)),
             is_flaky=result.is_flaky,
-            confidence=result.confidence,
+            confidence=float(to_native(result.confidence)),
             classification=result.classification,
             severity=result.severity,
-            failure_rate=result.features.failure_rate,
-            switch_rate=result.features.pass_fail_switch_rate,
-            duration_variance=result.features.duration_variance,
-            unique_error_count=result.features.unique_error_count,
-            total_executions=result.features.total_executions,
+            failure_rate=float(to_native(result.features.failure_rate)),
+            switch_rate=float(to_native(result.features.pass_fail_switch_rate)),
+            duration_variance=float(to_native(result.features.duration_variance)),
+            unique_error_count=int(to_native(result.features.unique_error_count)),
+            total_executions=int(to_native(result.features.total_executions)),
             primary_indicators=result.primary_indicators,
             detected_at=result.detected_at,
             model_version=result.model_version
@@ -310,17 +317,22 @@ class FlakyDetectionRepository:
             ).first()
             
             if existing:
-                # Update existing record
-                existing.flaky_score = result.flaky_score
+                # Update existing record - convert numpy types to Python native
+                def to_native(value):
+                    if hasattr(value, 'item'):  # numpy scalar
+                        return value.item()
+                    return value
+                
+                existing.flaky_score = float(to_native(result.flaky_score))
                 existing.is_flaky = result.is_flaky
-                existing.confidence = result.confidence
+                existing.confidence = float(to_native(result.confidence))
                 existing.classification = result.classification
                 existing.severity = result.severity
-                existing.failure_rate = result.features.failure_rate
-                existing.switch_rate = result.features.pass_fail_switch_rate
-                existing.duration_variance = result.features.duration_variance
-                existing.unique_error_count = result.features.unique_error_count
-                existing.total_executions = result.features.total_executions
+                existing.failure_rate = float(to_native(result.features.failure_rate))
+                existing.switch_rate = float(to_native(result.features.pass_fail_switch_rate))
+                existing.duration_variance = float(to_native(result.features.duration_variance))
+                existing.unique_error_count = int(to_native(result.features.unique_error_count))
+                existing.total_executions = int(to_native(result.features.total_executions))
                 existing.primary_indicators = result.primary_indicators
                 existing.detected_at = result.detected_at
                 existing.model_version = result.model_version
@@ -329,15 +341,20 @@ class FlakyDetectionRepository:
                 db_result = FlakyTestDB.from_result(result)
                 session.add(db_result)
             
-            # Also save to history
+            # Also save to history - convert numpy types
+            def to_native(value):
+                if hasattr(value, 'item'):
+                    return value.item()
+                return value
+            
             history = FlakyTestHistoryDB(
                 test_id=result.test_id,
-                flaky_score=result.flaky_score,
+                flaky_score=float(to_native(result.flaky_score)),
                 is_flaky=result.is_flaky,
-                confidence=result.confidence,
+                confidence=float(to_native(result.confidence)),
                 classification=result.classification,
-                failure_rate=result.features.failure_rate,
-                total_executions=result.features.total_executions,
+                failure_rate=float(to_native(result.features.failure_rate)),
+                total_executions=int(to_native(result.features.total_executions)),
                 detected_at=result.detected_at,
                 model_version=result.model_version
             )

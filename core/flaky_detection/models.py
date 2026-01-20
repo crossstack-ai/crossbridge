@@ -64,6 +64,10 @@ class TestExecutionRecord:
     test_line: Optional[int] = None         # Line number
     tags: List[str] = field(default_factory=list)  # Test tags/labels
     
+    # External test management system references
+    external_test_id: Optional[str] = None  # TestRail, Zephyr, qTest, etc. ID
+    external_system: Optional[str] = None   # System name (testrail, zephyr, qtest)
+    
     # Framework-specific data (optional JSON blob)
     metadata: dict = field(default_factory=dict)
     
@@ -210,6 +214,10 @@ class FlakyTestResult:
     detected_at: datetime           # When analysis was performed
     model_version: str              # ML model version
     
+    # External test case mapping
+    external_test_ids: List[str] = field(default_factory=list)  # TestRail, Zephyr IDs
+    external_systems: List[str] = field(default_factory=list)   # System names
+    
     # Classification reasoning
     primary_indicators: List[str] = field(default_factory=list)  # Why it's flaky
     
@@ -247,7 +255,7 @@ class FlakyTestResult:
     
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
-        return {
+        result = {
             "test_id": self.test_id,
             "test_name": self.test_name,
             "framework": self.framework.value,
@@ -263,3 +271,15 @@ class FlakyTestResult:
             "detected_at": self.detected_at.isoformat(),
             "model_version": self.model_version,
         }
+        
+        # Add external test IDs if present
+        if self.external_test_ids:
+            result["external_test_ids"] = self.external_test_ids
+            result["external_systems"] = self.external_systems
+            # Create formatted external references
+            refs = []
+            for system, ext_id in zip(self.external_systems, self.external_test_ids):
+                refs.append(f"{system}:{ext_id}")
+            result["external_refs"] = refs
+        
+        return result

@@ -151,3 +151,14 @@ persistence/data/
 
 # Documents
 QA_Automation_AI_Platform_Analysis_v2.pdf
+
+# Temporary development files
+scripts/
+examples/
+demo_*
+test_*
+tests/unit/
+tests/core/
+docs/
+#grafana/
+*.md

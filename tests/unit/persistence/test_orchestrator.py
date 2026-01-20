@@ -19,7 +19,8 @@ from persistence.orchestrator import (
     get_git_commit,
     get_git_branch
 )
-from adapters.common.models import TestMetadata, PageObjectReference
+from adapters.common.models import TestMetadata
+from adapters.common.impact_models import PageObjectReference
 
 
 @pytest.fixture

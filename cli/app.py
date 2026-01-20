@@ -38,6 +38,7 @@ from services.logging_service import setup_logging
 
 # Import coverage commands
 from cli.commands.coverage_commands import coverage_group
+from cli.commands.flaky import flaky_group
 
 app = typer.Typer(
     name="crossbridge",
@@ -48,6 +49,8 @@ app = typer.Typer(
 
 # Add coverage commands subgroup
 app.add_typer(coverage_group, name="coverage")
+# Add flaky detection commands subgroup
+app.add_typer(flaky_group, name="flaky")
 
 # Install custom exception hook to suppress tracebacks in CLI
 def _custom_exception_hook(exc_type, exc_value, exc_traceback):

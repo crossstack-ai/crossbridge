@@ -159,7 +159,9 @@ class FlakyDetector:
         self,
         feature_map: Dict[str, FlakyFeatureVector],
         framework_map: Dict[str, TestFramework],
-        name_map: Optional[Dict[str, str]] = None
+        name_map: Optional[Dict[str, str]] = None,
+        external_id_map: Optional[Dict[str, List[str]]] = None,
+        external_system_map: Optional[Dict[str, List[str]]] = None
     ) -> Dict[str, FlakyTestResult]:
         """
         Detect flaky tests in batch.
@@ -168,18 +170,29 @@ class FlakyDetector:
             feature_map: Map of test_id to feature vector
             framework_map: Map of test_id to framework
             name_map: Optional map of test_id to test name
+            external_id_map: Optional map of test_id to external test IDs (e.g., TestRail)
+            external_system_map: Optional map of test_id to external system names
         
         Returns:
             Map of test_id to detection result
         """
         results = {}
         name_map = name_map or {}
+        external_id_map = external_id_map or {}
+        external_system_map = external_system_map or {}
         
         for test_id, features in feature_map.items():
             framework = framework_map.get(test_id, TestFramework.JUNIT)
             test_name = name_map.get(test_id)
             
             result = self.detect(features, framework, test_name)
+            
+            # Attach external test IDs if available
+            if test_id in external_id_map:
+                result.external_test_ids = external_id_map[test_id]
+            if test_id in external_system_map:
+                result.external_systems = external_system_map[test_id]
+            
             results[test_id] = result
         
         return results

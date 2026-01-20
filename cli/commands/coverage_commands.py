@@ -164,10 +164,10 @@ def coverage_gaps_command(
         crossbridge coverage gaps
         crossbridge coverage gaps --type api
     """
-    click.echo("🔍 Identifying Coverage Gaps...\n")
+    typer.echo("🔍 Identifying Coverage Gaps...\n")
     
     # Get database session
-    typeron = get_session()
+    session = get_session()
     repo = FunctionalCoverageRepository(session)
     
     # Query coverage gaps
@@ -182,13 +182,13 @@ def coverage_gaps_command(
 
 
 @coverage_group.command(name="impact")
-@click.option(
-    "--file",
-    required=True,
 def impact_command(
     file: str = typer.Option(..., "--file", help="File path to analyze impact for"),
     output: Optional[str] = typer.Option(None, "--output", help="Export to CSV/JSON file"),
-    format: str = typer.Option("console", "--format", help="Output format: console, csv, json") Impact Surface for a file.
+    format: str = typer.Option("console", "--format", help="Output format: console, csv, json")
+):
+    """
+    Show Change Impact Surface for a file.
     
     Displays:
     - Tests impacted by changes to the file
@@ -199,7 +199,7 @@ def impact_command(
         crossbridge coverage impact --file src/LoginService.java
         crossbridge coverage impact --file auth.py --output impact.csv
     """
-    click.echo(f"🎯 Analyzing impact for: {file}\n")
+    typer.echo(f"🎯 Analyzing impact for: {file}\n")
     
     # Get database session
     session = get_session()
@@ -216,7 +216,7 @@ def impact_command(
     
     # Create report
     report = ChangeImpactSurfaceReport(
-    typerhanged_file=file,
+        changed_file=file,
         entries=entries,
         total_impacted_tests=total_impacted_tests,
         total_impacted_features=total_impacted_features
@@ -238,29 +238,6 @@ def impact_command(
                 export_to_json(report, output)
 
 
-# Optional: Add sync command to sync with external systems
-@coverage_group.command(name="sync")
-@click.option(
-    "--system",
-    type=click.Choice(["testrail", "zephyr", "qtest"]),
-    required=True,
-    help="External test management system"
-)
-@click.option(
-    "--api-key",
-    type=str,
-    required=True,
-    help="API key for the system"
-)
-@click.option(
-    "--url",
-    type=str,
-    required=True,
-    help="API URL for the system"
-def sync_command(
-    system: str = typer.Option(..., "--system", help="External test management system: testrail, zephyr, qtest"),
-    api_key: str = typer.Option(..., "--api-key", help="API key for the system"),
-    url: str = typer.Option(..., "--url", help="API URL for the system")
 
 @coverage_group.command(name="summary")
 def summary_command():
@@ -274,39 +251,25 @@ def summary_command():
     - Coverage gaps
     - External TC mappings
     """
-    click.echo("📈 Coverage Summary\n")
-@coverage_group.command(name="summary")
-def summary_command():
-    """
-    Show coverage summary statistics.
+    typer.echo("📈 Coverage Summary\n")
     
-    Provides high-level overview of:
-    - Total code units
-    - Total tests
-    - Total features
-    - Coverage gaps
-    - External TC mappings
-    """
-    typer
-    typer_gaps = len(gaps)
+    # Get database session
+    session = get_session()
+    repo = FunctionalCoverageRepository(session)
+    
+    # Get stats
+    coverage_map = repo.get_functional_coverage_map(limit=10000)
+    features = repo.get_test_to_feature_coverage()
+    gaps = repo.get_coverage_gaps()
+    
+    total_code_units = len(coverage_map)
+    total_tests = sum(entry.test_count for entry in coverage_map)
+    total_features = len(features)
+    total_gaps = len(gaps)
     total_external_tcs = sum(len(entry.testrail_tcs) for entry in coverage_map)
     
     # Print summary
-    click.echo("=" * 50)
-    click.echo(f"Code Units Covered:      {total_code_units}")
-    click.echo(f"Total Tests:             {total_tests}")
-    click.echo(f"Total Features:          {total_features}")
-    click.echo(f"Coverage Gaps:           {total_gaps}")
-    click.echo(f"External TC Mappings:    {total_external_tcs}")
-    click.echo("=" * 50)
-    
-    if total_gaps > 0:
-        click.echo(f"\n[yellow]⚠ {total_gaps} features have no test coverage[/yellow]")
-    else:
-        click.echo("\n[green]✓ All features have test coverage![/green]")
-    
-    click.echo(f"\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-typer.echo("=" * 50)
+    typer.echo("=" * 50)
     typer.echo(f"Code Units Covered:      {total_code_units}")
     typer.echo(f"Total Tests:             {total_tests}")
     typer.echo(f"Total Features:          {total_features}")
@@ -315,8 +278,8 @@ typer.echo("=" * 50)
     typer.echo("=" * 50)
     
     if total_gaps > 0:
-        typer.echo(f"\n[yellow]⚠ {total_gaps} features have no test coverage[/yellow]")
+        typer.echo(f"\n⚠ {total_gaps} features have no test coverage")
     else:
-        typer.echo("\n[green]✓ All features have test coverage![/green]")
+        typer.echo("\n✓ All features have test coverage!")
     
-    typer
+    typer.echo(f"\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")

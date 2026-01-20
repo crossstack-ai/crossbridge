@@ -1,0 +1,547 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5},
+              {"color": "red", "value": 20}
+            ]
+          },
+          "unit": "tests"
+        }
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as value FROM flaky_test WHERE is_flaky = true;",
+          "refId": "A"
+        }
+      ],
+      "title": "Flaky Test Summary",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false}
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "critical"},
+            "properties": [
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "dark-red"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "high"},
+            "properties": [
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "dark-orange"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "medium"},
+            "properties": [
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "dark-yellow"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "low"},
+            "properties": [
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "dark-green"}}
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "values": true,
+          "fields": "",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT severity as metric, COUNT(*) as value FROM flaky_test WHERE is_flaky = true GROUP BY severity ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 END;",
+          "refId": "A"
+        }
+      ],
+      "title": "Flaky Tests by Severity",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.6},
+              {"color": "red", "value": 0.8}
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
+      "id": 3,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(flaky_score) as value FROM flaky_test WHERE is_flaky = true;",
+          "refId": "A"
+        }
+      ],
+      "title": "Average Flaky Score",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 80}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('day', detected_at) as time, COUNT(*) as \"Flaky Tests\" FROM flaky_test_history WHERE is_flaky = true AND detected_at >= NOW() - INTERVAL '30 days' GROUP BY time ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "Flaky Test Trend (Last 30 Days)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 80}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Severity"},
+            "properties": [
+              {"id": "custom.displayMode", "value": "color-background"},
+              {
+                "id": "mappings",
+                "value": [
+                  {"options": {"critical": {"color": "dark-red", "index": 0, "text": "🔴 CRITICAL"}}, "type": "value"},
+                  {"options": {"high": {"color": "dark-orange", "index": 1, "text": "🟠 HIGH"}}, "type": "value"},
+                  {"options": {"medium": {"color": "dark-yellow", "index": 2, "text": "🟡 MEDIUM"}}, "type": "value"},
+                  {"options": {"low": {"color": "dark-green", "index": 3, "text": "🟢 LOW"}}, "type": "value"}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 14},
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT test_name as \"Test Name\", framework as \"Framework\", severity as \"Severity\", ROUND(flaky_score::numeric, 3) as \"Score\", ROUND((failure_rate * 100)::numeric, 1) || '%' as \"Failure Rate\", ROUND((confidence * 100)::numeric, 0) || '%' as \"Confidence\" FROM flaky_test WHERE is_flaky = true ORDER BY flaky_score DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Flaky Tests",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 80}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 14},
+      "id": 6,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT framework as metric, COUNT(*) as value FROM flaky_test WHERE is_flaky = true GROUP BY framework ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Flaky Tests by Framework",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "normal"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 80}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Passed"},
+            "properties": [
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Failed"},
+            "properties": [
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Skipped"},
+            "properties": [
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 23},
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', executed_at) as time, SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as \"Passed\", SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as \"Failed\", SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as \"Skipped\" FROM test_execution GROUP BY time ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "Test Execution Status Distribution (All Time)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "High (0.8-1.0)"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Medium (0.5-0.8)"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Low (<0.5)"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 31},
+      "id": 8,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN confidence >= 0.8 THEN 'High (0.8-1.0)' WHEN confidence >= 0.5 THEN 'Medium (0.5-0.8)' ELSE 'Low (<0.5)' END as metric, COUNT(*) as value FROM flaky_test WHERE is_flaky = true GROUP BY CASE WHEN confidence >= 0.8 THEN 'High (0.8-1.0)' WHEN confidence >= 0.5 THEN 'Medium (0.5-0.8)' ELSE 'Low (<0.5)' END ORDER BY metric DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Confidence Score Distribution",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 80}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 31},
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT test_name as \"Test\", error_type as \"Error Type\", TO_CHAR(executed_at, 'YYYY-MM-DD HH24:MI') as \"Time\", SUBSTRING(git_commit, 1, 8) as \"Commit\" FROM test_execution WHERE status = 'failed' ORDER BY executed_at DESC LIMIT 50;",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent Test Failures (All Time)",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["crossbridge", "flaky-tests", "quality"],
+  "templating": {"list": []},
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CrossBridge - Flaky Test Detection",
+  "version": 0,
+  "weekStart": ""
+}
