@@ -293,7 +293,88 @@ Tier 3: Deep Regeneration → Full AI-powered rewrite
 - **Batch Commits**: Configurable commit sizes for large migrations
 - **Credential Caching**: Secure storage of API tokens
 
-### 4. Impact Analysis
+### 4. Flaky Test Detection 🎯 NEW!
+
+**Machine Learning-powered flaky test detection** with comprehensive analytics:
+
+```bash
+# Detect flaky tests using ML (Isolation Forest)
+crossbridge flaky detect --db-url postgresql://user:pass@host:5432/db
+
+# List flaky tests with severity filtering
+crossbridge flaky list --severity critical
+
+# Get detailed report for a specific test
+crossbridge flaky report test_user_login
+
+# Export flaky test data
+crossbridge flaky export --format json --output flaky_tests.json
+```
+
+**Key Features:**
+- ✅ **ML-Based Detection**: Isolation Forest algorithm with 200 decision trees
+- ✅ **10 Feature Analysis**: Failure rate, pass/fail switching, timing variance, error diversity, retry patterns
+- ✅ **Severity Classification**: Critical, High, Medium, Low based on failure rate and confidence
+- ✅ **PostgreSQL Persistence**: 3 database tables (test_execution, flaky_test, flaky_test_history)
+- ✅ **Grafana Dashboards**: 9 interactive panels for real-time monitoring
+- ✅ **CI/CD Integration**: GitHub Actions, GitLab CI, Jenkins, Azure DevOps, CircleCI
+- ✅ **External Test IDs**: TestRail, Zephyr, qTest integration
+
+**Grafana Dashboard Panels:**
+1. 📊 Flaky Test Summary - Total count with color-coded thresholds
+2. 🍩 Flaky Tests by Severity - Donut chart (Critical/High/Medium/Low)
+3. 📏 Average Flaky Score - Gauge visualization (0-1 scale)
+4. 📈 Flaky Test Trend - 30-day historical trend
+5. 📋 Top 10 Flaky Tests - Table with scores and external test IDs
+6. 📊 Flaky Tests by Framework - Bar chart (pytest, junit, etc.)
+7. 📊 Test Execution Status - Stacked timeseries (Passed/Failed/Skipped)
+8. 📊 Confidence Score Distribution - Bar chart grouped by confidence levels
+9. 🔍 Recent Test Failures - Table with timestamps and error types
+
+**Database Setup:**
+```bash
+# Option 1: Using environment variables
+export CROSSBRIDGE_DB_URL="postgresql://postgres:admin@10.55.12.99:5432/your-database"
+python tests/populate_flaky_test_db.py
+
+# Option 2: Using crossbridge.yml (automatic)
+# Configure database in crossbridge.yml:
+crossbridge:
+  database:
+    enabled: true
+    host: ${CROSSBRIDGE_DB_HOST:-localhost}
+    port: ${CROSSBRIDGE_DB_PORT:-5432}
+    database: ${CROSSBRIDGE_DB_NAME:-crossbridge}
+    user: ${CROSSBRIDGE_DB_USER:-postgres}
+    password: ${CROSSBRIDGE_DB_PASSWORD:-admin}
+
+# Run population script (reads config automatically)
+python tests/populate_flaky_test_db.py
+```
+
+**Grafana Integration:**
+1. Import dashboard: `grafana/flaky_dashboard_fixed.json`
+2. Configure PostgreSQL datasource
+3. View real-time flaky test analytics
+
+**CI/CD Pipeline Example (GitHub Actions):**
+```yaml
+- name: Detect Flaky Tests
+  run: |
+    python scripts/store_test_results.py \
+      --format pytest-json \
+      --input results.json \
+      --db-url ${{ secrets.CROSSBRIDGE_DB_URL }}
+    
+    crossbridge flaky detect \
+      --db-url ${{ secrets.CROSSBRIDGE_DB_URL }} \
+      --threshold 0.7 \
+      --fail-on-flaky
+```
+
+📖 **See [FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md](FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md) and [docs/CI_CD_FLAKY_INTEGRATION.md](docs/CI_CD_FLAKY_INTEGRATION.md)**
+
+### 5. Impact Analysis
 
 ```bash
 # Discover which tests use specific page objects
@@ -303,7 +384,7 @@ crossbridge impact --page-object LoginPage
 crossbridge analyze-impact --changed-files src/pages/HomePage.java
 ```
 
-### 5. Post-Migration Testing
+### 6. Post-Migration Testing
 
 - **Validation Reports**: Syntax checks, missing imports, undefined keywords
 - **Execution Readiness**: Verify tests can run in Robot Framework
@@ -351,6 +432,9 @@ crossbridge analyze-impact --changed-files src/pages/HomePage.java
 - ✅ Page object extraction and locator migration
 - ✅ Impact analysis and coverage mapping
 - ✅ Multi-threaded processing for large repositories
+- ✅ **Flaky test detection with ML-based analysis** 🎯 NEW!
+- ✅ **PostgreSQL persistence and Grafana dashboards** 🎯 NEW!
+- ✅ **CI/CD integration for automated flaky detection** 🎯 NEW!
 
 **Known Limitations:**
 - ⚠️ **Parser Coverage**: Complex Java patterns may not parse (fallback generates TODOs)
@@ -592,6 +676,8 @@ migration:
 
 - **[Getting Started Guide](docs/usage/)** - Step-by-step tutorials
 - **[Architecture Overview](docs/architecture/)** - System design and components
+- **[Flaky Detection Quick Start](docs/FLAKY_DETECTION_QUICK_START.md)** - 5-minute setup guide 🎯 NEW!
+- **[CI/CD Flaky Integration](docs/CI_CD_FLAKY_INTEGRATION.md)** - Automated detection in pipelines 🎯 NEW!
 - **[Adapter Development](docs/contributing/ADAPTER_DEVELOPMENT.md)** - Build your own adapters
 - **[Migration Strategies](docs/migration/)** - Best practices for large migrations
 - **[API Reference](docs/vision/)** - Future roadmap and APIs
@@ -670,6 +756,10 @@ Built by **CrossStack AI** for the global QA and DevOps community. Special thank
 - [x] Core Selenium Java migration
 - [x] Bitbucket/GitHub/Azure DevOps integration
 - [x] Impact analysis features
+- [x] **Flaky test detection with ML** 🎯
+- [x] **PostgreSQL persistence layer** 🎯
+- [x] **Grafana dashboard integration** 🎯
+- [x] **CI/CD flaky test automation** 🎯
 - [ ] Improved error handling and logging
 - [ ] Comprehensive test coverage (>80%)
 
