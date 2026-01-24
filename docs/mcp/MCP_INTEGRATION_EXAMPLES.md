@@ -950,9 +950,8 @@ except SyntaxError as e:
 
 **Need Help?**
 
-- 📧 Email: vikas.sdet@gmail.com
-- 💬 Discussions: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
-- 🐛 Issues: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
+- **📧 Email**: vikas.sdet@gmail.com
+- ** GitHub Issues**: [Report Issues](https://github.com/crossstack-ai/crossbridge/issues)
 
 ---
 

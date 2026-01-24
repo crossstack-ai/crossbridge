@@ -546,8 +546,7 @@ with open('grafana/dashboards/crossbridge_overview_updated.json', 'w') as f:
 
 ### Getting Help
 - **📧 Email**: vikas.sdet@gmail.com
-- **💬 Discussions**: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
-- **🐛 Issues**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
+- **� GitHub Issues**: [Report Issues](https://github.com/crossstack-ai/crossbridge/issues)
 
 ---
 

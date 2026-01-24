@@ -569,9 +569,8 @@ We welcome community-created tutorials! If you'd like to create a video tutorial
 
 Have a tutorial idea? Want to request specific content?
 
-- **Email**: vikas.sdet@gmail.com
-- **Discussions**: [Request a Tutorial](https://github.com/crossstack-ai/crossbridge/discussions/categories/tutorial-requests)
-- **Issues**: [Tutorial Issue Template](https://github.com/crossstack-ai/crossbridge/issues/new?template=tutorial_request.md)
+- **📧 Email**: vikas.sdet@gmail.com
+- ** GitHub Issues**: [Tutorial Issue Template](https://github.com/crossstack-ai/crossbridge/issues/new?template=tutorial_request.md)
 
 ---
 
