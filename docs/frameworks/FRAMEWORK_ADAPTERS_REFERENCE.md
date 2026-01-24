@@ -1,4 +1,4 @@
-# Phase-2 Multi-Framework Quick Reference
+# CrossBridge AI: Multi-Framework Quick Reference
 
 ## Supported Frameworks (12 Total)
 

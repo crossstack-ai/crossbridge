@@ -1,10 +1,10 @@
-# CrossBridge: NO MIGRATION Framework Support
+# CrossBridge AI: NO MIGRATION MODE Framework Support
 
-**CrossBridge works as a pure SIDECAR observer - NO test migration required!**
+**CrossBridge AI works as a pure SIDECAR observer - NO test migration required!**
 
-Your existing tests run exactly as they always have. CrossBridge simply watches and learns.
+Your existing tests run exactly as they always have. CrossBridge AI simply watches and learns.
 
-## ✅ Supported Frameworks (Sidecar Mode)
+## ✅ Supported Frameworks (NO MIGRATION MODE)
 
 | Framework | Type | Hook/Plugin | Migration Required |
 |-----------|------|-------------|-------------------|

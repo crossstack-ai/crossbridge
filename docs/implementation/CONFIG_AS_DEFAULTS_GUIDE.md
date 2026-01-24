@@ -1,8 +1,8 @@
-# Config as Default Inputs - Integration Guide
+# CrossBridge AI: Config as Default Inputs - Integration Guide
 
 ## ✅ Yes! Config File Values Act as Default Inputs
 
-When you run the CrossBridge application, **all values from `crossbridge.yml` act as default inputs** to the main program.
+When you run the CrossBridge AI application, **all values from `crossbridge.yml` act as default inputs** to the main program.
 
 ### Priority Order (High to Low)
 1. **CLI Arguments** - Explicitly passed command-line flags

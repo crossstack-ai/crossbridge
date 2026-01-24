@@ -1,8 +1,6 @@
-"""
-Example CLI usage documentation.
-"""
+# CrossBridge AI: CLI - Discover Tests with Page Object Mappings
 
-# Discover Tests with Page Object Mappings
+**CrossBridge AI** provides powerful CLI commands to discover tests and analyze page object dependencies across multiple frameworks.
 
 ## Pytest Example
 

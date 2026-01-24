@@ -1,10 +1,10 @@
-# CrossBridge Phase-2: Quick Start Guide
+# CrossBridge AI: Intelligent Test Assistance - Quick Start Guide
 
-## 🎯 What is Phase-2?
+## 🎯 What is Intelligent Test Assistance?
 
-Phase-2 adds intelligent test assistance to CrossBridge by combining:
-- **Semantic intelligence** (Phase-1): Test embeddings for similarity search
-- **Structural intelligence** (Phase-2 NEW): AST-extracted code patterns
+CrossBridge AI's intelligent test assistance combines:
+- **Semantic intelligence**: Test embeddings for similarity search
+- **Structural intelligence**: AST-extracted code patterns
 
 This enables:
 1. **Explain** test coverage with evidence
