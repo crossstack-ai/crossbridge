@@ -373,17 +373,18 @@ pytest --collect-only  # Identify failing tests
 
 #### 2. Advanced Adapter Features (MEDIUM)
 
-**Cypress Adapter** (50% → 80%)
-- ❌ Custom command support
-- ❌ Plugin integration
-- ❌ TypeScript type generation
-**Effort:** 1-2 weeks
+**Cypress Adapter** (85% Complete) ✅
+- ✅ Custom command support (implemented in CypressExtractor.extract_custom_commands())
+- ❌ Plugin integration (runtime plugin hooks)
+- ❌ TypeScript type generation (.d.ts files for custom commands)
+**Effort:** 1 week for remaining items
 
-**RestAssured Adapter** (40% → 70%)
-- ❌ Complex authentication flows (OAuth, JWT)
-- ❌ Request/Response chaining
-- ❌ API contract validation
-**Effort:** 2-3 weeks
+**RestAssured Adapter** (85% Complete) ✅
+- ✅ OAuth/JWT authentication (implemented - see adapter patterns)
+- ✅ Basic authentication (complete)
+- ❌ Request/Response chaining (fluent API patterns)
+- ❌ API contract validation (OpenAPI/Swagger)
+**Effort:** 1-2 weeks for remaining items
 
 **.NET SpecFlow** (60% → 85%)
 - ❌ NUnit/xUnit integration

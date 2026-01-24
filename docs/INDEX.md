@@ -90,9 +90,9 @@ AI-powered transformation and enhancement features:
 - **[AI_SUMMARY_QUICK_REFERENCE.md](ai/AI_SUMMARY_QUICK_REFERENCE.md)** - Quick AI reference
 - **[AI_TRANSFORMATION_SUMMARY.md](ai/AI_TRANSFORMATION_SUMMARY.md)** - Transformation overview
 - **[AI_TRANSFORMATION_TEST_RESULTS.md](ai/AI_TRANSFORMATION_TEST_RESULTS.md)** - Test results
-- **[QUICK_REFERENCE_AI.md](ai/QUICK_REFERENCE_AI.md)** - AI quick reference
-- **[AI_SETUP.md](AI_SETUP.md)** - AI provider configuration
-- **[AI_TRANSFORMATION_USAGE.md](AI_TRANSFORMATION_USAGE.md)** - Using AI transformations
+- **[AI_QUICK_REFERENCE.md](ai/AI_QUICK_REFERENCE.md)** - AI quick reference
+- **[AI_SETUP.md](ai/AI_SETUP.md)** - AI provider configuration
+- **[AI_TRANSFORMATION_USAGE.md](ai/AI_TRANSFORMATION_USAGE.md)** - Using AI transformations
 
 ---
 
@@ -134,6 +134,10 @@ Multi-framework support and adapter development:
 - **[MULTI_FRAMEWORK_SUPPORT.md](frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - Complete guide
 
 **Supported Frameworks**: pytest, JUnit, TestNG, NUnit, SpecFlow, Robot, RestAssured, Playwright, Selenium (Python/Java), Cucumber, Behave, Cypress
+
+### RestAssured Adapter (`docs/restassured/`)
+
+- **[RESTASSURED_OAUTH_JWT_GUIDE.md](restassured/RESTASSURED_OAUTH_JWT_GUIDE.md)** - OAuth/JWT authentication support for RestAssured API tests
 
 ---
 
@@ -208,6 +212,7 @@ Work with existing frameworks without migration:
 
 Implementation summaries and status:
 
+- **[ADAPTER_COMPLETION_SUMMARY.md](../ADAPTER_COMPLETION_SUMMARY.md)** - Cypress & RestAssured adapter completion (85% complete with OAuth/JWT support)
 - **[DATABASE_DEPLOYMENT_SUMMARY.md](implementation/DATABASE_DEPLOYMENT_SUMMARY.md)** - Database setup
 - **[DOCUMENTATION_UPDATES_SUMMARY.md](implementation/DOCUMENTATION_UPDATES_SUMMARY.md)** - Doc updates
 - **[IMPLEMENTATION_SUMMARY_CONTINUOUS_INTELLIGENCE.md](implementation/IMPLEMENTATION_SUMMARY_CONTINUOUS_INTELLIGENCE.md)** - CI summary
@@ -277,7 +282,7 @@ Additional guides and references:
 1. **[AI Setup](ai/AI_SETUP.md)** - Configure AI providers
 2. **[AI Transformation Usage](ai/AI_TRANSFORMATION_USAGE.md)** - Use AI for migrations
 3. **[MCP Documentation](mcp/MCP_DOCUMENTATION.md)** - MCP client/server guide
-4. **[AI Quick Reference](ai/QUICK_REFERENCE_AI.md)** - Quick AI reference
+4. **[AI Quick Reference](ai/AI_QUICK_REFERENCE.md)** - Quick AI reference
 
 ### Framework Integration
 1. **[Multi-Framework Support](frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - All 12+ supported frameworks

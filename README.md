@@ -378,7 +378,7 @@ Hybrid Mode         → AI-enhanced with human review markers (best quality)
 - **AI metrics & cost analysis** - detailed token usage, cost per file, and transformation statistics
 - Natural language documentation and best practice implementations
 - Automatic fallback to pattern-based if AI unavailable
-- See [`docs/AI_TRANSFORMATION_USAGE.md`](docs/AI_TRANSFORMATION_USAGE.md) for setup
+- See [`docs/ai/AI_TRANSFORMATION_USAGE.md`](docs/ai/AI_TRANSFORMATION_USAGE.md) for setup
 
 ```python
 # Enable AI transformation for all file types

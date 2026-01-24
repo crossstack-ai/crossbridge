@@ -78,6 +78,40 @@ RESTASSURED_METHODS = [
     'preemptive',
 ]
 
+# Authentication patterns
+AUTH_BASIC_PATTERN = re.compile(
+    r'\.auth\(\)\.basic\(\s*["\']([^"\']*)["\'],\s*["\']([^"\']*)["\']\s*\)',
+    re.MULTILINE
+)
+
+AUTH_OAUTH2_PATTERN = re.compile(
+    r'\.auth\(\)\.oauth2\(\s*["\']([^"\']+)["\']\s*\)',
+    re.MULTILINE
+)
+
+AUTH_OAUTH1_PATTERN = re.compile(
+    r'\.auth\(\)\.oauth\(',
+    re.MULTILINE
+)
+
+# JWT/Bearer token pattern
+AUTH_BEARER_PATTERN = re.compile(
+    r'\.header\(\s*["\']Authorization["\']\s*,\s*["\']Bearer\s+([^"\']+)["\']\s*\)',
+    re.MULTILINE | re.IGNORECASE
+)
+
+# JWT in variable pattern
+JWT_VARIABLE_PATTERN = re.compile(
+    r'String\s+(\w*[Tt]oken\w*)\s*=\s*["\']([^"\']+)["\']',
+    re.MULTILINE
+)
+
+# OAuth client credentials pattern
+OAUTH_CLIENT_PATTERN = re.compile(
+    r'(clientId|client_id|apiKey|api_key)\s*[=:]\s*["\']([^"\']+)["\']',
+    re.MULTILINE | re.IGNORECASE
+)
+
 # Regex patterns
 CLASS_PATTERN = re.compile(
     r'(?:public\s+)?class\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+[\w,\s]+)?\s*\{',

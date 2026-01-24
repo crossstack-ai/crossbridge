@@ -28,6 +28,11 @@ from .patterns import (
     TESTNG_IMPORT_PATTERN,
     JUNIT5_IMPORT_PATTERN,
     RESTASSURED_METHODS,
+    AUTH_BASIC_PATTERN,
+    AUTH_OAUTH2_PATTERN,
+    AUTH_BEARER_PATTERN,
+    JWT_VARIABLE_PATTERN,
+    OAUTH_CLIENT_PATTERN,
 )
 
 
@@ -112,6 +117,59 @@ class RestAssuredExtractor(BaseTestExtractor):
         
         return has_restassured_calls
     
+    def extract_authentication_info(self, content: str) -> dict:
+        """Extract authentication information from test code.
+        
+        Returns:
+            Dictionary with authentication type and credentials/tokens
+        """
+        auth_info = {
+            'type': None,
+            'username': None,
+            'password': None,
+            'token': None,
+            'client_id': None,
+            'has_oauth': False,
+            'has_jwt': False
+        }
+        
+        # Check for basic auth
+        basic_match = AUTH_BASIC_PATTERN.search(content)
+        if basic_match:
+            auth_info['type'] = 'basic'
+            auth_info['username'] = basic_match.group(1)
+            auth_info['password'] = basic_match.group(2)
+        
+        # Check for OAuth2
+        oauth2_match = AUTH_OAUTH2_PATTERN.search(content)
+        if oauth2_match:
+            auth_info['type'] = 'oauth2'
+            auth_info['token'] = oauth2_match.group(1)
+            auth_info['has_oauth'] = True
+        
+        # Check for Bearer/JWT tokens
+        bearer_match = AUTH_BEARER_PATTERN.search(content)
+        if bearer_match:
+            if not auth_info['type']:
+                auth_info['type'] = 'bearer'
+            auth_info['token'] = bearer_match.group(1)
+            auth_info['has_jwt'] = True
+        
+        # Check for JWT variables
+        jwt_var_match = JWT_VARIABLE_PATTERN.search(content)
+        if jwt_var_match:
+            auth_info['has_jwt'] = True
+            if not auth_info['token']:
+                auth_info['token'] = jwt_var_match.group(2)
+        
+        # Check for OAuth client credentials
+        client_match = OAUTH_CLIENT_PATTERN.search(content)
+        if client_match:
+            auth_info['client_id'] = client_match.group(2)
+            auth_info['has_oauth'] = True
+        
+        return auth_info
+    
     def _extract_from_file(self, java_file: Path, content: str, framework: str) -> List[TestMetadata]:
         """Extract all tests from a single file."""
         results = []
@@ -181,6 +239,9 @@ class RestAssuredExtractor(BaseTestExtractor):
             else:
                 tags = list(class_tags)
             
+            # Extract authentication information from file
+            auth_info = self.extract_authentication_info(content)
+            
             # Build metadata
             metadata = TestMetadata(
                 framework=fw_name,
@@ -188,7 +249,12 @@ class RestAssuredExtractor(BaseTestExtractor):
                 file_path=str(java_file.relative_to(Path(self.config.project_root))),
                 tags=tags,
                 test_type="api",
-                language="java"
+                language="java",
+                metadata={
+                    'authentication': auth_info if auth_info['type'] else None,
+                    'has_oauth': auth_info['has_oauth'],
+                    'has_jwt': auth_info['has_jwt']
+                }
             )
             
             results.append(metadata)
