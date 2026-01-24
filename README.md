@@ -88,12 +88,14 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 | Framework | Language | Type | Status |
 |-----------|----------|------|--------|
 | **pytest** | Python | Unit/Integration | ✅ Production |
-| **Selenium** | Java/Python | UI | ✅ Stable |
+| **Selenium Python** | Python | UI Automation | ✅ Stable |
+| **Selenium Java** | Java | UI Automation | ✅ Stable |
+| **Selenium .NET** | C# | UI Automation | ✅ Stable |
 | **Cypress** | JavaScript/TS | E2E | ✅ Beta |
 | **Robot Framework** | Robot | Keyword-Driven | ✅ Production |
 | **JUnit/TestNG** | Java | Unit/Enterprise | ✅ Stable |
-| **NUnit/SpecFlow** | C# | Unit/BDD | ✅ Stable |
-| **Playwright** | JavaScript/TS | E2E | ✅ Beta |
+| **NUnit/SpecFlow** | C# / .NET | Unit/BDD | ✅ Stable |
+| **Playwright** | JavaScript/TS/Python | E2E | ✅ Beta |
 | **RestAssured** | Java | API | ✅ Beta |
 | **Cucumber/Behave** | Gherkin | BDD | ✅ Stable |
 
@@ -139,11 +141,11 @@ crossbridge:
         database: cbridge-unit-test-db
 ```
 
-**Supported Frameworks**:
-- ✅ Python: pytest, Robot Framework, Selenium Python, requests
-- ✅ Java: TestNG, JUnit, RestAssured, Selenium Java
-- ✅ .NET: NUnit, SpecFlow
-- ✅ JavaScript: Cypress, Playwright
+**Supported Frameworks** (All features: Profiling, Intelligence, Flaky Detection, Impact Analysis, Embeddings):
+- ✅ **Python**: pytest, Robot Framework, Selenium Python, requests
+- ✅ **Java**: TestNG, JUnit, RestAssured, Selenium Java
+- ✅ **.NET/C#**: NUnit, SpecFlow, Selenium .NET (with or without test framework)
+- ✅ **JavaScript**: Cypress, Playwright
 
 📖 **Learn More**: [Performance Profiling Documentation](docs/profiling/README.md)
 
@@ -320,6 +322,17 @@ When you migrate with CrossBridge, **all recent features are automatically set u
 ✅ .env.template                                   # Database + AI settings
 ✅ SETUP.md                                        # Environment setup
 ```
+
+**For .NET/SpecFlow Migration**:
+```
+✅ CrossBridge.Profiling/CrossBridgeProfilingHook.cs  # NUnit/SpecFlow hook
+✅ crossbridge.yml                                     # All features configured
+✅ .env.template                                       # Database + AI settings
+✅ SETUP.md                                            # Environment setup
+✅ AssemblyInfo.cs                                     # Profiling attribute configured
+```
+
+> **Note**: .NET Selenium works with or without NUnit/SpecFlow. The profiling hook uses direct PostgreSQL connection via Npgsql.
 
 #### 🚀 Ready to Use
 

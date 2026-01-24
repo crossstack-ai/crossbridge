@@ -12,7 +12,7 @@ import os
 from typing import List, Optional
 import uuid
 
-from core.profiling.models import PerformanceEvent, ProfileConfig
+from core.profiling.models import PerformanceEvent, ProfileConfig, EventType
 from core.profiling.storage import StorageBackend, StorageFactory
 
 logger = logging.getLogger(__name__)
@@ -236,6 +236,68 @@ class MetricsCollector:
             "events_written": self.events_written,
             "queue_size": self.queue.qsize(),
         }
+    
+    # ========================================================================
+    # Convenience Methods for Test Recording
+    # ========================================================================
+    
+    def record_test_start(self, test_id: str, framework: str, metadata: dict = None) -> None:
+        """Record test start event"""
+        event = PerformanceEvent(
+            run_id=self.current_run_id or str(uuid.uuid4()),
+            test_id=test_id,
+            event_type=EventType.TEST_START,
+            start_time=time.monotonic(),
+            end_time=time.monotonic(),
+            duration_ms=0,
+            framework=framework,
+            metadata=metadata or {}
+        )
+        self.collect(event)
+    
+    def record_test_end(self, test_id: str, framework: str, duration_ms: int, status: str, metadata: dict = None) -> None:
+        """Record test end event"""
+        event = PerformanceEvent(
+            run_id=self.current_run_id or str(uuid.uuid4()),
+            test_id=test_id,
+            event_type=EventType.TEST_END,
+            start_time=time.monotonic(),
+            end_time=time.monotonic() + (duration_ms / 1000),
+            duration_ms=duration_ms,
+            framework=framework,
+            metadata={**(metadata or {}), "status": status}
+        )
+        self.collect(event)
+    
+    def record_step_start(self, test_id: str, framework: str, step_name: str, metadata: dict = None) -> None:
+        """Record step start event"""
+        event = PerformanceEvent(
+            run_id=self.current_run_id or str(uuid.uuid4()),
+            test_id=test_id,
+            event_type=EventType.STEP_START,
+            start_time=time.monotonic(),
+            end_time=time.monotonic(),
+            duration_ms=0,
+            framework=framework,
+            step_name=step_name,
+            metadata=metadata or {}
+        )
+        self.collect(event)
+    
+    def record_step_end(self, test_id: str, framework: str, step_name: str, duration_ms: int, metadata: dict = None) -> None:
+        """Record step end event"""
+        event = PerformanceEvent(
+            run_id=self.current_run_id or str(uuid.uuid4()),
+            test_id=test_id,
+            event_type=EventType.STEP_END,
+            start_time=time.monotonic(),
+            end_time=time.monotonic() + (duration_ms / 1000),
+            duration_ms=duration_ms,
+            framework=framework,
+            step_name=step_name,
+            metadata=metadata or {}
+        )
+        self.collect(event)
 
 
 # Global convenience functions
