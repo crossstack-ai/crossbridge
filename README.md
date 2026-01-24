@@ -249,9 +249,9 @@ crossbridge.register(on, { enabled: true });
 
 📖 **Learn More**: [NO_MIGRATION_FRAMEWORK_SUPPORT.md](docs/sidecar/NO_MIGRATION_IMPLEMENTATION_COMPLETE.md)
 
-### 🔄 Option 2: FULL MIGRATION MODE
+### 🔄 Option 2: FULL MIGRATION MODE (Auto-Configured!)
 
-Transform legacy tests to modern frameworks:
+Transform legacy tests to modern frameworks with **automatic configuration**:
 
 ```bash
 # Start the interactive CLI
@@ -265,9 +265,84 @@ python -m cli.app
 # 5. Run migration ✨
 ```
 
-**Output:** Transformed tests in Robot Framework/Playwright, ready for review.
+**Output**: Transformed tests + **Auto-configured CrossBridge features**:
 
-📖 **Learn More**: [AI_TRANSFORMATION_USAGE.md](docs/ai/AI_TRANSFORMATION_USAGE.md)
+#### ✅ Automatically Configured Features
+
+When you migrate with CrossBridge, **all recent features are automatically set up**:
+
+**Performance Profiling**:
+- ✅ Framework-specific hooks (pytest conftest, Robot listener, TestNG listener, etc.)
+- ✅ PostgreSQL storage configuration
+- ✅ Grafana dashboard templates
+- ✅ Environment variable templates
+
+**Continuous Intelligence**:
+- ✅ Database schema for test results
+- ✅ Flaky test detection enabled
+- ✅ Embedding/semantic search configured
+- ✅ Test coverage tracking
+
+**Configuration Files Created**:
+- ✅ `crossbridge.yml` - Complete configuration with all features
+- ✅ `.env.template` - Environment variables for database, AI, etc.
+- ✅ `SETUP.md` - Step-by-step setup instructions
+- ✅ Framework hooks (conftest.py, listeners, plugins)
+- ✅ Database configuration
+- ✅ CI/CD templates
+
+#### 📋 What You Get
+
+**For Robot Framework Migration**:
+```
+✅ tests/robot/libraries/crossbridge_listener.py  # Performance profiling + intelligence
+✅ crossbridge.yml                                 # All features configured
+✅ .env.template                                   # Database + AI settings
+✅ SETUP.md                                        # Quick start guide
+✅ robot.yaml                                      # Framework configuration
+✅ requirements.txt                                # Dependencies with profiling
+```
+
+**For pytest/Playwright Migration**:
+```
+✅ tests/conftest.py                               # Profiling + intelligence hooks
+✅ crossbridge.yml                                 # All features configured
+✅ .env.template                                   # Database + AI settings
+✅ SETUP.md                                        # Quick start guide
+✅ pytest.ini                                      # Framework configuration
+```
+
+**For Java/TestNG Migration**:
+```
+✅ src/test/java/com/crossbridge/profiling/CrossBridgeProfilingListener.java
+✅ testng.xml                                      # Listener configured
+✅ crossbridge.yml                                 # All features configured
+✅ .env.template                                   # Database + AI settings
+✅ SETUP.md                                        # Environment setup
+```
+
+#### 🚀 Ready to Use
+
+After migration, simply:
+
+```bash
+# 1. Configure database
+cp .env.template .env
+# Edit .env with your database credentials
+
+# 2. Enable profiling
+export CROSSBRIDGE_PROFILING=true
+
+# 3. Run tests - profiling and intelligence work automatically!
+robot tests/  # or pytest tests/  # or mvn test
+```
+
+**No manual configuration needed!** All hooks and listeners are pre-configured.
+
+📖 **Learn More**: 
+- [AI Transformation Usage](docs/ai/AI_TRANSFORMATION_USAGE.md)
+- [Performance Profiling Setup](docs/profiling/QUICK_REFERENCE.md)
+- [Framework Integration Guide](docs/profiling/FRAMEWORK_INTEGRATION.md)
 
 ---
 
