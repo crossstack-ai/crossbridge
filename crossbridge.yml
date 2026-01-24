@@ -550,6 +550,62 @@ crossbridge:
 # ============================================================================
 
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # PERFORMANCE PROFILING (NEW)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Passive, framework-agnostic performance profiling for test execution
+  # Disabled by default - explicitly enable when needed
+  
+  profiling:
+    # Enable/disable performance profiling (DEFAULT: false)
+    # Override with: CROSSBRIDGE_PROFILING=true/false
+    enabled: false
+    
+    # Profiling mode: 'passive' (observer) or 'active' (future)
+    mode: passive
+    
+    # Sampling rate: 1.0 = 100%, 0.5 = 50% of events
+    sampling_rate: 1.0
+    
+    # ── Collectors ──
+    # Control which metrics are collected
+    collectors:
+      test_lifecycle: true      # Test start/end, setup/teardown timing
+      webdriver: true           # Selenium WebDriver command timing
+      http: true                # API/HTTP request timing
+      system_metrics: false     # CPU/Memory usage (optional, can be expensive)
+    
+    # ── Storage Backend ──
+    # Options: 'none', 'local', 'postgres', 'influxdb'
+    storage:
+      backend: none  # DEFAULT: none (disabled)
+      
+      # Local file storage (JSONL format)
+      local:
+        path: .crossbridge/profiles
+      
+      # PostgreSQL storage (Grafana-friendly schema)
+      postgres:
+        host: ${CROSSBRIDGE_DB_HOST:-localhost}
+        port: ${CROSSBRIDGE_DB_PORT:-5432}
+        database: ${CROSSBRIDGE_DB_NAME:-crossbridge}
+        user: ${CROSSBRIDGE_DB_USER:-crossbridge}
+        password: ${CROSSBRIDGE_DB_PASSWORD:-crossbridge}
+        schema: profiling  # Schema name for profiling tables
+      
+      # InfluxDB time-series storage (on-prem)
+      influxdb:
+        url: ${INFLUXDB_URL:-http://localhost:8086}
+        org: ${INFLUXDB_ORG:-crossbridge}
+        bucket: ${INFLUXDB_BUCKET:-profiling}
+        token: ${INFLUX_TOKEN}
+    
+    # ── Grafana Integration ──
+    grafana:
+      enabled: false
+      datasource: postgres  # 'postgres' or 'influxdb'
+
+
 # ============================================================================
 # COMMON CONFIGURATION EXAMPLES
 # ============================================================================
@@ -591,3 +647,21 @@ crossbridge:
 #     risk_based_recommendations: true
 #   flaky_detection:
 #     min_executions_confident: 50  # More data for confidence
+
+# Example 4: Performance Profiling Enabled (PostgreSQL + Grafana)
+# -----------------------------------------------------------------------------
+# crossbridge:
+#   profiling:
+#     enabled: true
+#     storage:
+#       backend: postgres
+#       postgres:
+#         host: 10.60.67.247
+#         port: 5432
+#         database: cbridge-unit-test-db
+#         user: postgres
+#         password: admin
+#     grafana:
+#       enabled: true
+#       datasource: postgres
+

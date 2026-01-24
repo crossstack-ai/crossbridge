@@ -99,6 +99,54 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
 
+### 🔹 5. **Performance Profiling & Observability** 🆕
+Passive, non-invasive performance profiling for all test executions:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Execution    │         │   Profiling      │         │   Observability     │
+│                     │         │   (Background)   │         │                     │
+│  • Test lifecycle   │────────▶│  • Event capture │────────▶│  • Grafana          │
+│  • WebDriver calls  │         │  • Queue batch   │         │  • PostgreSQL       │
+│  • HTTP requests    │         │  • Async write   │         │  • InfluxDB         │
+│  • Setup/teardown   │         │  • <1% overhead  │         │  • Dashboards       │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 📊 **Test execution timing** - duration, setup, teardown
+- 🌐 **HTTP request profiling** - API calls, status codes, latency
+- 🖱️ **WebDriver command tracking** - clicks, navigations, waits
+- 📈 **Performance regression detection** - historical trend analysis
+- 🎯 **Framework-agnostic** - works with all 12 supported frameworks
+- 💾 **Multiple storage backends** - PostgreSQL, InfluxDB, Local files
+- 📉 **Grafana dashboards** - 12 pre-built panels + alerting
+- 🚫 **Disabled by default** - zero impact unless enabled
+- ⚡ **Non-blocking async** - never slows down test execution
+- 🛡️ **Exception-safe** - profiling failures never fail tests
+
+**Quick Enable**:
+```yaml
+# crossbridge.yml
+crossbridge:
+  profiling:
+    enabled: true
+    storage:
+      backend: postgres
+      postgres:
+        host: 10.60.67.247
+        port: 5432
+        database: cbridge-unit-test-db
+```
+
+**Supported Frameworks**:
+- ✅ Python: pytest, Robot Framework, Selenium Python, requests
+- ✅ Java: TestNG, JUnit, RestAssured, Selenium Java
+- ✅ .NET: NUnit, SpecFlow
+- ✅ JavaScript: Cypress, Playwright
+
+📖 **Learn More**: [Performance Profiling Documentation](docs/profiling/README.md)
+
 ---
 
 ## 🎯 Who Should Use CrossBridge AI
