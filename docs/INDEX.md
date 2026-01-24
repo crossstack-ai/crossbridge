@@ -64,6 +64,22 @@ Continuous integration and deployment guides:
 
 ---
 
+## 🎓 Tutorials & Learning (`docs/tutorials/`)
+
+Video tutorials and learning resources:
+
+- **[VIDEO_TUTORIALS_ROADMAP.md](tutorials/VIDEO_TUTORIALS_ROADMAP.md)** - Complete roadmap of planned video tutorials (12 tutorials from beginner to expert level)
+
+---
+
+## 🧬 Sidecar Integration (`docs/sidecar/`)
+
+Zero-code observability for Java and .NET frameworks:
+
+- **[JAVA_DOTNET_COMPREHENSIVE_GUIDE.md](sidecar/JAVA_DOTNET_COMPREHENSIVE_GUIDE.md)** - Complete Java/.NET sidecar integration guide (TestNG, JUnit, NUnit, SpecFlow)
+
+---
+
 ## 🤖 AI Features (`docs/ai/`)
 
 AI-powered transformation and enhancement features:
@@ -159,6 +175,7 @@ ML-based flaky test identification:
 MCP client and server documentation for AI integration:
 
 - **[MCP_DOCUMENTATION.md](mcp/MCP_DOCUMENTATION.md)** - Complete MCP client/server guide with provider setup, token tracking, and best practices
+- **[MCP_INTEGRATION_EXAMPLES.md](mcp/MCP_INTEGRATION_EXAMPLES.md)** - Practical examples: JUnit to pytest transformation, flaky test analysis, test generation from specs, streaming transformations, error handling, cost optimization, and batch processing
 
 ---
 
@@ -169,9 +186,7 @@ Monitoring, dashboards, and continuous intelligence:
 - **[CONTINUOUS_INTELLIGENCE_README.md](observability/CONTINUOUS_INTELLIGENCE_README.md)** - Overview
 - **[GRAFANA_VERSION_DASHBOARD_GUIDE.md](observability/GRAFANA_VERSION_DASHBOARD_GUIDE.md)** - Dashboard guide
 - **[MANUAL_DASHBOARD_CREATION.md](observability/MANUAL_DASHBOARD_CREATION.md)** - Manual setup
-- **[GRAFANA_MEMORY_PANELS_FIX.md](observability/GRAFANA_MEMORY_PANELS_FIX.md)** - Panel fixes
-- **[GRAFANA_PANEL_ENHANCEMENT.md](observability/GRAFANA_PANEL_ENHANCEMENT.md)** - Enhancements
-- **[GRAFANA_TROUBLESHOOTING.md](observability/GRAFANA_TROUBLESHOOTING.md)** - Troubleshooting
+- **[GRAFANA_COMPREHENSIVE_TROUBLESHOOTING.md](observability/GRAFANA_COMPREHENSIVE_TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide (consolidates panel enhancements, memory panel fixes, and general troubleshooting)
 - **[CONTINUOUS_INTELLIGENCE_GUIDE.md](CONTINUOUS_INTELLIGENCE_GUIDE.md)** - Complete guide
 
 **Grafana Files**: See `grafana/` directory for dashboard JSON and scripts
