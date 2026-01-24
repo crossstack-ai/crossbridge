@@ -12,13 +12,55 @@ This directory contains comprehensive documentation for CrossBridge AI, organize
 ### Root Documentation
 Essential files that should remain in project root:
 - **[README.md](../README.md)** - Project overview and quick start
-- **[API.md](../API.md)** - Complete API reference
 - **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Contribution guidelines
 - **[CHANGELOG.md](../CHANGELOG.md)** - Version history
 - **[LICENSE](../LICENSE)** - Apache 2.0 license
 - **[AUTHORS.md](../AUTHORS.md)** - Project authorship
 - **[CLA.md](../CLA.md)** - Contributor license agreement
 - **[GOVERNANCE.md](../GOVERNANCE.md)** - Project governance
+
+---
+
+## 🚀 Getting Started (`docs/quick-start/`)
+
+Quick start guides for immediate productivity:
+
+- **[QUICK_START.md](quick-start/QUICK_START.md)** - Comprehensive quick start guide with No-Migration and Migration modes
+
+---
+
+## 📖 API & Configuration (`docs/api/` & `docs/config/`)
+
+Complete API reference and configuration guides:
+
+- **[API.md](api/API.md)** - Complete API reference
+- **[CONFIG.md](config/CONFIG.md)** - Configuration options and examples
+
+---
+
+## 🔌 Adapters & Parsers (`docs/adapter/` & `docs/parser/`)
+
+Framework adapter development and parsing implementation:
+
+- **[ADAPTER_SIGNAL_INTEGRATION.md](adapter/ADAPTER_SIGNAL_INTEGRATION.md)** - Signal integration for adapters
+- **[ENHANCED_PARSER_IMPLEMENTATION.md](parser/ENHANCED_PARSER_IMPLEMENTATION.md)** - Parser implementation details
+
+---
+
+## 🖥️ CLI Tools (`docs/cli/`)
+
+Command-line interface documentation:
+
+- **[cli-architecture.md](cli/cli-architecture.md)** - CLI architecture and design
+- **[cli-page-mapping.md](cli/cli-page-mapping.md)** - Page mapping utilities
+
+---
+
+## 🔗 CI/CD Integration (`docs/ci-cd/`)
+
+Continuous integration and deployment guides:
+
+- **[CI_CD_FLAKY_INTEGRATION.md](ci-cd/CI_CD_FLAKY_INTEGRATION.md)** - Flaky test detection in CI/CD pipelines
 
 ---
 
@@ -96,10 +138,9 @@ Semantic search and test memory features:
 
 - **[MEMORY_INTEGRATION_COMPLETE.md](memory/MEMORY_INTEGRATION_COMPLETE.md)** - Complete integration
 - **[MEMORY_SEMANTIC_SEARCH_IMPLEMENTATION_COMPLETE.md](memory/MEMORY_SEMANTIC_SEARCH_IMPLEMENTATION_COMPLETE.md)** - Semantic search
-- **[GIT_COMMIT_CHECKLIST_MEMORY_INTEGRATION.md](memory/GIT_COMMIT_CHECKLIST_MEMORY_INTEGRATION.md)** - Commit checklist
-- **[MEMORY_EMBEDDINGS_SYSTEM.md](MEMORY_EMBEDDINGS_SYSTEM.md)** - System overview
-- **[MEMORY_INTEGRATION_QUICK_START.md](MEMORY_INTEGRATION_QUICK_START.md)** - Quick start
-- **[MEMORY_QUICK_START.md](MEMORY_QUICK_START.md)** - Fast setup
+- **[MEMORY_EMBEDDINGS_SYSTEM.md](memory/MEMORY_EMBEDDINGS_SYSTEM.md)** - System overview
+- **[MEMORY_QUICK_START.md](memory/MEMORY_QUICK_START.md)** - Quick start guide
+- **[MEMORY_INTEGRATION_QUICK_START.md](MEMORY_INTEGRATION_QUICK_START.md)** - Fast setup
 
 ---
 
@@ -107,9 +148,17 @@ Semantic search and test memory features:
 
 ML-based flaky test identification:
 
-- **[FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md](flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md)** - Implementation
-- **[FLAKY_DETECTION_QUICK_START.md](FLAKY_DETECTION_QUICK_START.md)** - Quick start
-- **[CI_CD_FLAKY_INTEGRATION.md](CI_CD_FLAKY_INTEGRATION.md)** - CI/CD integration
+- **[FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md](flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md)** - Implementation summary
+- **[FLAKY_DETECTION_QUICK_START.md](flaky-detection/FLAKY_DETECTION_QUICK_START.md)** - Quick start guide
+- **[FLAKY_DETECTION.md](FLAKY_DETECTION.md)** - Complete documentation
+
+---
+
+## 🧠 Model Context Protocol (`docs/mcp/`)
+
+MCP client and server documentation for AI integration:
+
+- **[MCP_DOCUMENTATION.md](mcp/MCP_DOCUMENTATION.md)** - Complete MCP client/server guide with provider setup, token tracking, and best practices
 
 ---
 
@@ -149,16 +198,24 @@ Implementation summaries and status:
 - **[CRITICAL_FEATURES_CONFIRMED.md](implementation/CRITICAL_FEATURES_CONFIRMED.md)** - Feature status
 - **[DATABASE_DEPLOYMENT_SUMMARY.md](implementation/DATABASE_DEPLOYMENT_SUMMARY.md)** - Database setup
 - **[DOCUMENTATION_UPDATES_SUMMARY.md](implementation/DOCUMENTATION_UPDATES_SUMMARY.md)** - Doc updates
-- **[IMPLEMENTATION_STATUS.md](implementation/IMPLEMENTATION_STATUS.md)** - Overall status
 - **[IMPLEMENTATION_SUMMARY_CONTINUOUS_INTELLIGENCE.md](implementation/IMPLEMENTATION_SUMMARY_CONTINUOUS_INTELLIGENCE.md)** - CI summary
 - **[IMPLEMENTATION_SUMMARY_DATABASE.md](implementation/IMPLEMENTATION_SUMMARY_DATABASE.md)** - DB summary
 - **[POST_MIGRATION_IMPLEMENTATION_SUMMARY.md](implementation/POST_MIGRATION_IMPLEMENTATION_SUMMARY.md)** - Migration
-- **[REQUIREMENTS_CONFIRMATION.md](implementation/REQUIREMENTS_CONFIRMATION.md)** - Requirements
 - **[VERSION_TRACKING_IMPLEMENTATION.md](implementation/VERSION_TRACKING_IMPLEMENTATION.md)** - Version tracking
 - **[UNIFIED_CONFIG_IMPLEMENTATION.md](implementation/UNIFIED_CONFIG_IMPLEMENTATION.md)** - Config
 - **[CONFIG_AS_DEFAULTS_GUIDE.md](implementation/CONFIG_AS_DEFAULTS_GUIDE.md)** - Config defaults
 - **[CONFIG_QUICK_REFERENCE.md](implementation/CONFIG_QUICK_REFERENCE.md)** - Config reference
-- **[TEST_COLLECTION_ERRORS_FIXED.md](implementation/TEST_COLLECTION_ERRORS_FIXED.md)** - Bug fixes
+- **[MULTITHREADED_TRANSFORMATION.md](implementation/MULTITHREADED_TRANSFORMATION.md)** - Performance optimization
+
+---
+
+## 🔒 Internal Documentation (`docs/internal/`)
+
+Internal development documentation (not for external users):
+
+- **[IMPLEMENTATION_STATUS.md](internal/IMPLEMENTATION_STATUS.md)** - Development status tracking
+- **[REQUIREMENTS_CONFIRMATION.md](internal/REQUIREMENTS_CONFIRMATION.md)** - Internal requirements
+- **[GIT_COMMIT_CHECKLIST_MEMORY_INTEGRATION.md](internal/GIT_COMMIT_CHECKLIST_MEMORY_INTEGRATION.md)** - Dev checklists
 
 ---
 
@@ -199,16 +256,46 @@ Additional guides and references:
 ## 🎯 Quick Navigation by Use Case
 
 ### Getting Started
-1. [README.md](../README.md) - Project overview
-2. [API.md](../API.md) - API reference
-3. [CONTRIBUTING.md](../CONTRIBUTING.md) - How to contribute
+1. **[Quick Start Guide](quick-start/QUICK_START.md)** - Comprehensive setup for both modes
+2. **[README.md](../README.md)** - Project overview
+3. **[API Documentation](api/API.md)** - Complete API reference
+4. **[Configuration Guide](config/CONFIG.md)** - All configuration options
 
 ### Using AI Features
-1. [docs/ai/AI_SETUP.md](AI_SETUP.md)
-2. [docs/ai/AI_TRANSFORMATION_USAGE.md](AI_TRANSFORMATION_USAGE.md)
-3. [docs/ai/QUICK_REFERENCE_AI.md](ai/QUICK_REFERENCE_AI.md)
+1. **[AI Setup](ai/AI_SETUP.md)** - Configure AI providers
+2. **[AI Transformation Usage](ai/AI_TRANSFORMATION_USAGE.md)** - Use AI for migrations
+3. **[MCP Documentation](mcp/MCP_DOCUMENTATION.md)** - MCP client/server guide
+4. **[AI Quick Reference](ai/QUICK_REFERENCE_AI.md)** - Quick AI reference
 
 ### Framework Integration
+1. **[Multi-Framework Support](frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - All 12+ supported frameworks
+2. **[Framework Adapters Reference](frameworks/FRAMEWORK_ADAPTERS_REFERENCE.md)** - Adapter development
+3. **[Adapter Signal Integration](adapter/ADAPTER_SIGNAL_INTEGRATION.md)** - Signal integration
+
+### Sidecar Mode (No Migration)
+1. **[No-Migration Implementation](sidecar/NO_MIGRATION_IMPLEMENTATION_COMPLETE.md)** - Complete guide
+2. **[Automatic Sidecar Integration](sidecar/AUTOMATIC_SIDECAR_INTEGRATION.md)** - Auto-integration
+3. **[Quick Start - No Migration Mode](quick-start/QUICK_START.md#no-migration-mode-setup)** - Step-by-step setup
+
+### Coverage & Testing
+1. **[Functional Coverage Quickstart](coverage/FUNCTIONAL_COVERAGE_QUICKSTART.md)** - Get started with coverage
+2. **[Behavioral Coverage Usage](coverage/BEHAVIORAL_COVERAGE_USAGE.md)** - Behavioral coverage
+3. **[Flaky Detection Quick Start](flaky-detection/FLAKY_DETECTION_QUICK_START.md)** - ML-based detection
+4. **[CI/CD Flaky Integration](ci-cd/CI_CD_FLAKY_INTEGRATION.md)** - Automate in CI/CD
+
+### Observability & Monitoring
+1. **[Continuous Intelligence README](observability/CONTINUOUS_INTELLIGENCE_README.md)** - Overview
+2. **[Grafana Dashboard Guide](observability/GRAFANA_VERSION_DASHBOARD_GUIDE.md)** - Set up dashboards
+3. **[Grafana Troubleshooting](observability/GRAFANA_TROUBLESHOOTING.md)** - Fix common issues
+
+### Memory & Semantic Search
+1. **[Memory Embeddings System](memory/MEMORY_EMBEDDINGS_SYSTEM.md)** - Complete system guide
+2. **[Memory Quick Start](memory/MEMORY_QUICK_START.md)** - Fast setup
+3. **[Semantic Search Implementation](memory/MEMORY_SEMANTIC_SEARCH_IMPLEMENTATION_COMPLETE.md)** - Deep dive
+
+### CLI & Automation
+1. **[CLI Architecture](cli/cli-architecture.md)** - CLI design principles
+2. **[CLI Page Mapping](cli/cli-page-mapping.md)** - Page mapping utilities
 1. [docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md](frameworks/MULTI_FRAMEWORK_SUPPORT.md)
 2. [docs/frameworks/FRAMEWORK_ADAPTERS_REFERENCE.md](frameworks/FRAMEWORK_ADAPTERS_REFERENCE.md)
 3. [API.md - Adapters Section](../API.md#adapters-api)
