@@ -197,8 +197,7 @@ Monitoring, dashboards, and continuous intelligence:
 Work with existing frameworks without migration:
 
 - **[AUTOMATIC_SIDECAR_INTEGRATION.md](sidecar/AUTOMATIC_SIDECAR_INTEGRATION.md)** - Integration guide
-- **[JAVA_DOTNET_COMPATIBILITY_VERIFIED.md](sidecar/JAVA_DOTNET_COMPATIBILITY_VERIFIED.md)** - Compatibility
-- **[JAVA_DOTNET_SIDECAR_COMPLETE.md](sidecar/JAVA_DOTNET_SIDECAR_COMPLETE.md)** - Java/.NET guide
+- **[JAVA_DOTNET_COMPREHENSIVE_GUIDE.md](sidecar/JAVA_DOTNET_COMPREHENSIVE_GUIDE.md)** - Complete Java/.NET guide (merged compatibility & setup)
 - **[NO_MIGRATION_IMPLEMENTATION_COMPLETE.md](sidecar/NO_MIGRATION_IMPLEMENTATION_COMPLETE.md)** - Implementation
 - **[RESTASSURED_IMPLEMENTATION_COMPLETE.md](sidecar/RESTASSURED_IMPLEMENTATION_COMPLETE.md)** - RestAssured
 - **[NO_MIGRATION_FRAMEWORK_SUPPORT.md](NO_MIGRATION_FRAMEWORK_SUPPORT.md)** - Framework support
@@ -299,7 +298,7 @@ Additional guides and references:
 ### Observability & Monitoring
 1. **[Continuous Intelligence README](observability/CONTINUOUS_INTELLIGENCE_README.md)** - Overview
 2. **[Grafana Dashboard Guide](observability/GRAFANA_VERSION_DASHBOARD_GUIDE.md)** - Set up dashboards
-3. **[Grafana Troubleshooting](observability/GRAFANA_TROUBLESHOOTING.md)** - Fix common issues
+3. **[Grafana Comprehensive Troubleshooting](observability/GRAFANA_COMPREHENSIVE_TROUBLESHOOTING.md)** - Complete troubleshooting guide
 
 ### Memory & Semantic Search
 1. **[Memory Embeddings System](memory/MEMORY_EMBEDDINGS_SYSTEM.md)** - Complete system guide

@@ -374,7 +374,7 @@ curl https://api.anthropic.com/v1/messages \
 1. Check PostgreSQL datasource connection
 2. Verify data exists: `SELECT COUNT(*) FROM test_execution;`
 3. Check dashboard time range settings
-4. Review [Grafana Troubleshooting](../observability/GRAFANA_TROUBLESHOOTING.md)
+4. Review [Grafana Comprehensive Troubleshooting](../observability/GRAFANA_COMPREHENSIVE_TROUBLESHOOTING.md)
 
 ---
 
