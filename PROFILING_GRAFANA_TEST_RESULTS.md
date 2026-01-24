@@ -404,6 +404,23 @@ All critical functionality validated:
 
 ---
 
+## Production Deployment
+
+**Ready to deploy?** See the complete production deployment guide:
+
+📖 **[Production Deployment Guide](docs/profiling/PRODUCTION_DEPLOYMENT_GUIDE.md)**
+
+Includes:
+- ✅ Quick start (5 minutes)
+- ✅ Environment configuration (.env setup)
+- ✅ Live database demonstration
+- ✅ Grafana dashboard setup
+- ✅ Framework integration examples
+- ✅ Troubleshooting guide
+- ✅ Production checklist
+
+---
+
 **Test Author**: GitHub Copilot (AI Assistant)  
 **Test Date**: January 25, 2026  
 **Test File**: `tests/test_profiling_grafana_integration.py`  

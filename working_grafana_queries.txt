@@ -1,0 +1,128 @@
+"""
+Working queries for Grafana panels
+Copy these into Grafana panels
+"""
+
+print("=" * 70)
+print("WORKING GRAFANA QUERIES")
+print("=" * 70)
+
+print("\n1. For STAT panels (Total Tests, Versions, etc.):")
+print("-" * 70)
+print("""
+SELECT 
+    NOW() as time,
+    COUNT(*) as value
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+""")
+
+print("\n2. For STAT panel (Active Versions):")
+print("-" * 70)
+print("""
+SELECT 
+    NOW() as time,
+    COUNT(DISTINCT application_version) as value
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+""")
+
+print("\n3. For STAT panel (Products):")
+print("-" * 70)
+print("""
+SELECT 
+    NOW() as time,
+    COUNT(DISTINCT product_name) as value
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+""")
+
+print("\n4. For STAT panel (Environments):")
+print("-" * 70)
+print("""
+SELECT 
+    NOW() as time,
+    COUNT(DISTINCT environment) as value
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+""")
+
+print("\n5. For BAR GAUGE panel (Pass Rate by Version):")
+print("-" * 70)
+print("""
+SELECT 
+    application_version as metric,
+    ROUND(100.0 * SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) / COUNT(*), 1) as value
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+GROUP BY application_version 
+ORDER BY application_version
+""")
+print("Note: Format = Table, Visualization = Bar gauge")
+
+print("\n6. For BAR GAUGE panel (Tests by Product):")
+print("-" * 70)
+print("""
+SELECT 
+    product_name as metric,
+    COUNT(*) as value
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+GROUP BY product_name 
+ORDER BY value DESC
+""")
+print("Note: Format = Table, Visualization = Bar gauge")
+
+print("\n7. For TABLE panel (Version Details):")
+print("-" * 70)
+print("""
+SELECT 
+    application_version as "Version",
+    product_name as "Product",
+    environment as "Environment",
+    COUNT(*) as "Total Tests",
+    SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as "Passed",
+    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as "Failed",
+    ROUND(100.0 * SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) / COUNT(*), 1) as "Pass Rate %"
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+GROUP BY application_version, product_name, environment 
+ORDER BY product_name, application_version
+""")
+print("Note: Format = Table, Visualization = Table")
+
+print("\n8. For TIME SERIES panel (Execution Timeline):")
+print("-" * 70)
+print("""
+SELECT 
+    DATE_TRUNC('hour', created_at) as time,
+    application_version as metric,
+    COUNT(*) as value
+FROM test_execution_event 
+WHERE application_version IS NOT NULL 
+AND created_at >= NOW() - INTERVAL '10 days'
+GROUP BY time, application_version 
+ORDER BY time
+""")
+print("Note: Format = Time series, Visualization = Time series")
+
+print("\n" + "=" * 70)
+print("HOW TO USE:")
+print("=" * 70)
+print("1. Create new dashboard in Grafana")
+print("2. Add visualization")
+print("3. Select PostgreSQL datasource")
+print("4. Switch to 'Code' mode")
+print("5. Paste the query above")
+print("6. Change Format dropdown as noted")
+print("7. Select the Visualization type as noted")
+print("8. Click 'Run query'")
+print("9. If it works, click 'Apply' then 'Save'")
+print("=" * 70)

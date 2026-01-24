@@ -703,6 +703,12 @@ Allows flexibility while maintaining secure defaults.
 - ✅ Team onboarding
 - ✅ External usage
 
+**Production Deployment**:
+- 📖 [Production Deployment Guide](docs/profiling/PRODUCTION_DEPLOYMENT_GUIDE.md) - Complete setup instructions
+- 🚀 Quick start in 5 minutes
+- ✅ Live database demo included
+- 📊 Grafana dashboard configuration
+
 **Support**: vikas.sdet@gmail.com  
 **License**: Apache 2.0  
 **Status**: ✅ **IMPLEMENTATION COMPLETE**

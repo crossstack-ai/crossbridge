@@ -1,0 +1,29 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0 -- D:\python314\python.exe
+cachedir: .pytest_cache
+rootdir: D:\Future-work2\crossbridge
+configfile: pyproject.toml
+plugins: anyio-4.11.0, cov-7.0.0
+collecting ... collected 18 items
+
+tests/unit/test_migration_hooks.py::TestMigrationHookConfig::test_custom_initialization PASSED [  5%]
+tests/unit/test_migration_hooks.py::TestMigrationHookConfig::test_default_initialization PASSED [ 11%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorRobot::test_integrate_robot_framework PASSED [ 16%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorRobot::test_robot_config_file_content PASSED [ 22%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorPytest::test_integrate_pytest_plugin PASSED [ 27%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorPytest::test_pytest_ini_created PASSED [ 33%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorPlaywright::test_integrate_playwright_python PASSED [ 38%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorPlaywright::test_integrate_playwright_typescript PASSED [ 44%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorCypress::test_cypress_support_file_created PASSED [ 50%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorCypress::test_integrate_cypress_plugin PASSED [ 55%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorMain::test_all_supported_frameworks 
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorMain::test_all_supported_frameworks PASSED [ 61%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorMain::test_integrate_hooks_disabled PASSED [ 66%]
+tests/unit/test_migration_hooks.py::TestMigrationHookIntegratorMain::test_integrate_hooks_unsupported_framework PASSED [ 72%]
+tests/unit/test_migration_hooks.py::TestIntegrateHooksAfterMigration::test_convenience_function_disabled PASSED [ 77%]
+tests/unit/test_migration_hooks.py::TestIntegrateHooksAfterMigration::test_convenience_function_robot PASSED [ 83%]
+tests/unit/test_migration_hooks.py::TestDisableInstructions::test_generate_disable_instructions_cypress PASSED [ 88%]
+tests/unit/test_migration_hooks.py::TestDisableInstructions::test_generate_disable_instructions_pytest PASSED [ 94%]
+tests/unit/test_migration_hooks.py::TestDisableInstructions::test_generate_disable_instructions_robot PASSED [100%]
+
+==================== 18 passed, 5 subtests passed in 1.05s ====================

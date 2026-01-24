@@ -578,6 +578,7 @@ pytest tests/ -v
 - **Email**: vikas.sdet@gmail.com
 - **GitHub Issues**: https://github.com/crossstack-ai/crossbridge/issues
 - **Documentation**: See `docs/observability/GRAFANA_PERFORMANCE_PROFILING.md`
+- **Production Deployment**: See `docs/profiling/PRODUCTION_DEPLOYMENT_GUIDE.md`
 
 ---
 
