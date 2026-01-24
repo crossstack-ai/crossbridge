@@ -1,56 +1,60 @@
-# CrossBridge 🌉
-### by CrossStack AI
+# CrossBridge AI
 
-> **AI-Powered Test Automation Transformation Platform**  
-> Modernize legacy test frameworks to modern, maintainable architectures
+> **AI-Powered Test Automation Modernization & Transformation Platform**  
+> Reduce test automation debt, unlock legacy test value, and accelerate delivery with AI-guided modernization.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Development Status](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/yourusername/crossbridge)
+[![Development Status](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/crossstack-ai/crossbridge)
 [![CrossStack AI](https://img.shields.io/badge/by-CrossStack%20AI-blue)](https://crossstack.ai)
 
----
-
-## 🎯 The Problem
-
-Testing teams worldwide face a critical challenge: **legacy test automation debt**. Organizations struggle with:
-
-- **Brittle Selenium-based tests** that break with every UI change
-- **Framework lock-in** making modernization expensive and risky
-- **Manual migration efforts** taking months of engineering time
-- **Lost tribal knowledge** when converting old test suites
-- **Inconsistent quality** across migrated tests
-
-**The cost?** Delayed releases, frustrated teams, and mounting technical debt that only grows over time.
+CrossBridge AI is an open-source platform by **CrossStack AI** that helps organizations and teams **modernize, analyze, and optimize test automation** in a framework-agnostic way.
 
 ---
 
-## 💡 The Solution
+## 🚀 Mission
 
-**CrossBridge** is an open-source platform that works in **TWO MODES**:
+Modern test automation ecosystems are fragmented, brittle, and expensive to maintain.  
+CrossBridge AI enables teams to:
 
-### Mode 1: NO MIGRATION (Sidecar Observer) ⭐ NEW!
+- 🧠 **Analyze existing automation across languages & frameworks**
+- 🔄 **Upgrade legacy tests intelligently**
+- 🚫 **Avoid costly rewrites**
+- 🚀 **Accelerate QA velocity with AI-infused insights**
 
-Work with your **existing frameworks WITHOUT any migration**:
+Whether you have Selenium, Cypress, Robot, or pytest suites — CrossBridge works **with or without migration changes**.
 
+---
+
+## 🧩 Core Capabilities
+
+## 🧩 Core Capabilities
+
+### 🔹 1. **Legacy Support Without Migration**
+Work with existing tests as-is — zero code changes required.
+
+**NO MIGRATION MODE** (Sidecar Observer):
 ```
 ┌─────────────────────┐         ┌──────────────────┐         
 │   Your Tests        │         │   CrossBridge    │         
-│   (NO CHANGES!)     │────────▶│   (Observer)     │────────▶ 📊 Insights
+│   (NO CHANGES!)     │────────▶│   (Observer)     │────────▶ 📊 Intelligence
 │                     │         │                  │         
 │  • Selenium Java    │         │  • Auto-detect   │         • Coverage tracking
-│  • Cypress          │         │  • Auto-register │         • Flaky detection
+│  • Cypress          │         │  • Auto-register │         • Flaky detection  
 │  • pytest           │         │  • AI analysis   │         • Risk scores
 │  • Robot Framework  │         │  • Zero impact   │         • Test optimization
 └─────────────────────┘         └──────────────────┘         
 ```
 
-**Supports 8+ frameworks as-is**: Selenium Java/BDD/RestAssured, .NET SpecFlow, Python pytest/Robot, Cypress
-**Zero code changes**: Add a listener/plugin and go!
+**Features:**
+- Sidecar observer — no code changes
+- Continuous intelligence dashboards
+- Works with 12+ frameworks
 
-### Mode 2: FULL MIGRATION (Transformation)
+✔ Selenium, pytest, Cypress, Robot, JUnit, TestNG, NUnit, BDD frameworks, and more
 
-Transform legacy tests to modern frameworks:
+### 🔹 2. **Intelligent Test Migration & Transformation**
+Automate conversion from outdated frameworks to modern ones:
 
 ```
 ┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
@@ -63,31 +67,54 @@ Transform legacy tests to modern frameworks:
 └─────────────────────┘         └──────────────────┘         └─────────────────────┘
 ```
 
-**Key Capabilities:**
-- ✅ **NO MIGRATION MODE**: Work with existing frameworks (Selenium, Cypress, pytest, Robot, etc.) as sidecar observer
-- ✅ **Automated Migration**: Or convert entire test suites in hours when you're ready
-- ✅ **Intelligent Parsing**: Extracts test intent, locators, and page objects
-- ✅ **Memory & Embeddings**: Universal test normalization with semantic search across all 13 frameworks
-- ✅ **Continuous Intelligence**: Coverage tracking, flaky detection, AI optimization recommendations
-- ✅ **AI-Enhanced** (Optional): Improves transformation quality, locator strategies, and provides self-healing
-- ✅ **Framework-Agnostic**: Plugin architecture supports multiple sources/targets
-- ✅ **Repository-Native**: Works directly with Git/Bitbucket/Azure DevOps
-- ✅ **Impact Analysis**: Understand what tests break when code changes
-- ✅ **Validation & Review**: Built-in quality checks and hybrid modes
+**Features:**
+- Selenium → Playwright transformation
+- Legacy BDD → Modern structured tests
+- AI-assisted locator improvement
+- Pattern-based intelligent parsing
+
+### 🔹 3. **AI-Powered Test Intelligence**
+Reduce maintenance costs with intelligent insights:
+
+- 🔍 **Flaky test detection** with ML-based analysis
+- 📊 **Coverage analysis** across behavioral and functional dimensions
+- 🎯 **Test risk insight and prioritization**
+- 🔧 **Self-healing locator suggestions**
+- 📈 **Impact analysis** linking tests to code changes
+
+### 🔹 4. **Framework-Agnostic Architecture**
+Plugin-based ecosystem supports 12+ existing frameworks:
+
+| Framework | Language | Type | Status |
+|-----------|----------|------|--------|
+| **pytest** | Python | Unit/Integration | ✅ Production |
+| **Selenium** | Java/Python | UI | ✅ Stable |
+| **Cypress** | JavaScript/TS | E2E | ✅ Beta |
+| **Robot Framework** | Robot | Keyword-Driven | ✅ Production |
+| **JUnit/TestNG** | Java | Unit/Enterprise | ✅ Stable |
+| **NUnit/SpecFlow** | C# | Unit/BDD | ✅ Stable |
+| **Playwright** | JavaScript/TS | E2E | ✅ Beta |
+| **RestAssured** | Java | API | ✅ Beta |
+| **Cucumber/Behave** | Gherkin | BDD | ✅ Stable |
+
+📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
 
 ---
 
-## 🎪 Who Is This For?
+## 🎯 Who Should Use CrossBridge AI
 
-### Primary Audience
-- **QA Engineers** modernizing Selenium test suites
-- **Test Automation Architects** planning framework migrations
-- **DevOps Teams** consolidating CI/CD test pipelines
-- **Engineering Managers** reducing technical debt
+CrossBridge AI is ideal for:
+
+✔ **QA Engineers** modernizing legacy Selenium test suites  
+✔ **Test Architects** planning framework migrations and reducing technical debt  
+✔ **DevOps Teams** optimizing CI/CD test validation pipelines  
+✔ **Engineering Leaders** accelerating release cycles and improving quality  
+✔ **QA Managers** seeking data-driven testing insights  
+✔ **Organizations** embracing modern test ecosystems and AI-driven quality
 
 ### You Should Use CrossBridge If You:
-- ✅ Have 100+ Selenium tests that need modernization
-- ✅ Want to adopt Robot Framework + Playwright
+- ✅ Have 100+ tests needing modernization
+- ✅ Want intelligence on existing tests without migration
 - ✅ Need to migrate before losing team knowledge
 - ✅ Require audit trails and reproducible transformations
 - ✅ Value open-source and extensibility
@@ -95,38 +122,55 @@ Transform legacy tests to modern frameworks:
 ### This May Not Be For You If:
 - ❌ You have < 50 tests (manual rewrite may be faster)
 - ❌ Your tests are already modern (Playwright/Cypress native)
-- ❌ You need production-grade stability today (see maturity below)
 - ❌ Your framework isn't supported yet (contributions welcome!)
+
+---
+
+## 💡 Why It Matters
+
+Traditional test automation modernization is:
+- ❌ **Expensive** — months of engineering effort
+- ❌ **Risky** — potential loss of test coverage  
+- ❌ **Slow** — manual rewrites delay delivery
+- ❌ **Inconsistent** — varying quality across migrated tests
+
+**CrossBridge AI** makes it:
+- ✅ **Faster** — automated transformation in hours
+- ✅ **Data-driven** — intelligence-based decisions
+- ✅ **Scalable** — handles hundreds of tests
+- ✅ **AI-enhanced** — smart insights and recommendations
+
+**Result:** Teams get better maintainability and measurable ROI in weeks, not months.
 
 ---
 
 ## 🚀 Quick Start
 
-### Installation
+### 📥 Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/crossbridge.git
+git clone https://github.com/crossstack-ai/crossbridge.git
 cd crossbridge
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### Option 1: NO MIGRATION MODE (Recommended for new users!)
+### 🎯 Option 1: NO MIGRATION MODE (Recommended!)
 
-**Just observe your existing tests - no changes needed:**
+Work with existing tests — **zero code changes required**.
 
+**Step 1: Configure Environment**
 ```bash
-# Configure database (one-time)
 export CROSSBRIDGE_ENABLED=true
-export CROSSBRIDGE_DB_HOST=10.55.12.99
+export CROSSBRIDGE_DB_HOST=localhost
 export CROSSBRIDGE_APPLICATION_VERSION=v2.0.0
-
-# Add listener to your framework:
 ```
 
-**For Selenium Java:**
+**Step 2: Add Framework Listener/Plugin**
+
+**For Selenium Java (TestNG):**
 ```xml
 <!-- testng.xml -->
 <listeners>
@@ -147,13 +191,19 @@ const crossbridge = require('crossbridge-cypress');
 crossbridge.register(on, { enabled: true });
 ```
 
-**That's it!** Run your tests normally - CrossBridge observes and provides intelligence.
+**Step 3: Run Tests Normally**
+```bash
+# Run your tests as you normally would
+# CrossBridge observes and provides intelligence automatically
+```
 
-📖 **See [NO_MIGRATION_FRAMEWORK_SUPPORT.md](docs/NO_MIGRATION_FRAMEWORK_SUPPORT.md) for all 8+ frameworks**
+**That's it!** View insights in Grafana dashboards or via CLI.
 
-### Option 2: FULL MIGRATION MODE
+📖 **Learn More**: [NO_MIGRATION_FRAMEWORK_SUPPORT.md](docs/sidecar/NO_MIGRATION_IMPLEMENTATION_COMPLETE.md)
 
-**Transform tests to modern frameworks:**
+### 🔄 Option 2: FULL MIGRATION MODE
+
+Transform legacy tests to modern frameworks:
 
 ```bash
 # Start the interactive CLI
@@ -161,83 +211,15 @@ python -m cli.app
 
 # Follow the prompts:
 # 1. Select "Migration + Transformation"
-# 2. Choose your source framework (e.g., Selenium Java BDD)
-# 3. Connect your repository (Bitbucket/GitHub/Azure DevOps)
-# 4. Configure paths (step definitions, page objects, features)
-# 5. Select transformation mode (Enhanced recommended)
-# 6. Run migration ✨
+# 2. Choose source framework (e.g., Selenium Java BDD)
+# 3. Connect repository (GitHub/Bitbucket/Azure DevOps)
+# 4. Configure paths
+# 5. Run migration ✨
 ```
 
-**Output:** Transformed Robot Framework tests in a new branch, ready for review.
+**Output:** Transformed tests in Robot Framework/Playwright, ready for review.
 
----
-
-## 📋 Supported Frameworks
-
-### Multi-Framework Intelligence 🆕
-
-**CrossBridge now supports 12 testing frameworks** with unified AI-powered analysis:
-
-| Framework | Language | Testing Type | AST Support | Status |
-|-----------|----------|--------------|-------------|--------|
-| **pytest** | Python | Unit/Integration | ✅ Full | ✅ Production |
-| **JUnit** | Java | Unit | ⏳ Partial | ✅ Stable |
-| **TestNG** | Java | Enterprise | ⏳ Partial | ✅ Stable |
-| **NUnit** | C# | Unit | ⏳ Partial | ✅ Stable |
-| **SpecFlow** | C# | BDD | ✅ Gherkin | ✅ Stable |
-| **Robot Framework** | Robot | Keyword-Driven | ⏳ Partial | ✅ Production |
-| **RestAssured** 🆕 | Java | REST API | ⏳ Partial | ✅ Beta |
-| **Playwright** 🆕 | JavaScript/TS | E2E | ⏳ Partial | ✅ Beta |
-| **Selenium Python** 🆕 | Python | UI | ✅ Full | ✅ Beta |
-| **Selenium Java** 🆕 | Java | UI | ⏳ Partial | ✅ Beta |
-| **Cucumber** 🆕 | Gherkin | BDD | ✅ Gherkin | ✅ Beta |
-| **Behave** 🆕 | Python/Gherkin | BDD | ✅ Gherkin | ✅ Beta |
-
-**Extended Framework Features**:
-- **RestAssured**: Java REST API testing with fluent assertions
-- **Playwright**: Modern browser automation for JavaScript/TypeScript
-- **Selenium**: Full support for Python (with AST) and Java (UI automation)
-- **Cucumber/Behave**: BDD with Gherkin parsing and natural language step detection
-
-📖 **See**: [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete documentation
-
-### NO MIGRATION MODE (Sidecar Observer) ⭐
-| Framework | Status | Hook Type | Setup Time |
-|-----------|--------|-----------|------------|
-| **Selenium Java** | ✅ Ready | TestNG/JUnit Listener | 5 min |
-| **Selenium Java BDD** | ✅ Ready | TestNG Listener | 5 min |
-| **Selenium Java + RestAssured** | ✅ Ready | TestNG Listener | 5 min |
-| **Selenium .NET SpecFlow** | ✅ Ready | SpecFlow Plugin | 5 min |
-| **Selenium Python pytest** | ✅ Ready | pytest Plugin | 5 min |
-| **Selenium Python Robot** | ✅ Ready | Robot Listener | 5 min |
-| **Requests Python Robot (API)** | ✅ Ready | Robot Listener | 5 min |
-| **Cypress** | ✅ Ready | Cypress Plugin | 5 min |
-| **Playwright** 🆕 | ✅ Ready | Playwright Plugin | 5 min |
-
-**All work with ZERO test code changes!**
-
-### MIGRATION MODE (Full Transformation)
-
-**Source Frameworks (Input):**
-| Framework | Status | Notes |
-|-----------|--------|-------|
-| Selenium Java + Cucumber | ✅ **Stable** | Primary use case, well-tested |
-| Selenium Java (no BDD) | ✅ Supported | Basic transformation |
-| Pytest + Selenium | ✅ Supported | Python UI automation |
-| .NET SpecFlow | ✅ Supported | BDD transformation |
-| Robot Framework (existing) | ✅ Supported | For transformation/enhancement |
-| RestAssured 🆕 | ✅ Supported | Java REST API tests |
-| Playwright 🆕 | ✅ Supported | JavaScript/TS E2E tests |
-| Cucumber/Behave 🆕 | ✅ Supported | BDD Gherkin features |
-| Cypress | 🔵 Planned | Roadmap Q2 2026 |
-
-**Target Frameworks (Output):**
-| Framework | Status | Quality |
-|-----------|--------|---------|
-| Robot Framework + Playwright | ✅ **Primary** | Production-ready output |
-| pytest-bdd | ✅ Supported | Python BDD output |
-| Cucumber/Gherkin | ✅ Supported | Java/JS BDD output |
-| pytest + Selenium | ✅ Supported | Python UI output |
+📖 **Learn More**: [AI_TRANSFORMATION_USAGE.md](docs/ai/AI_TRANSFORMATION_USAGE.md)
 
 ---
 
@@ -878,34 +860,71 @@ pytest tests/
 
 ## 📚 Documentation
 
-### For Users
-- **[API Documentation](API.md)** - Complete API reference and integration examples
-- **[Quick Start Guide](README.md#-quick-start)** - Get started in minutes
-- **[Configuration Guide](docs/CONFIG.md)** - Configuration options
-- **[Framework Support](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - All supported frameworks
+Comprehensive guides for test automation modernization and AI-powered transformation:
 
-### For Developers
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
-- **[Architecture Overview](docs/intelligence/INTELLIGENT_TEST_ASSISTANCE.md)** - System design
-- **[Adapter Development](docs/frameworks/FRAMEWORK_ADAPTERS_REFERENCE.md)** - Create custom adapters
-- **[API Reference](API.md)** - Programmatic usage
+### 🚀 Getting Started
+- **[Quick Start Guide](#-quick-start)** - Get started in 5 minutes
+- **[API Documentation](API.md)** - Complete API reference
+- **[Configuration Guide](docs/CONFIG.md)** - All configuration options
+- **[Contributing Guide](CONTRIBUTING.md)** - Join the community
 
-### Feature Guides
-- **[Memory & Embeddings](docs/MEMORY_INTEGRATION_QUICK_START.md)** - Semantic search
-- **[Flaky Detection](docs/FLAKY_DETECTION_QUICK_START.md)** - ML-based detection
-- **[Coverage Tracking](docs/coverage/FUNCTIONAL_COVERAGE_QUICKSTART.md)** - Functional coverage
-- **[Continuous Intelligence](docs/observability/CONTINUOUS_INTELLIGENCE_README.md)** - Observability
-- **[Post-Migration Testing](docs/POST_MIGRATION_TESTING.md)** - Validate transformations
+### 🔧 Framework Integration
+- **[Multi-Framework Support](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - 12+ supported frameworks
+- **[No-Migration Mode](docs/sidecar/NO_MIGRATION_IMPLEMENTATION_COMPLETE.md)** - Sidecar observer setup
+- **[Framework Adapters](docs/frameworks/FRAMEWORK_ADAPTERS_REFERENCE.md)** - Custom adapter development
+
+### 🤖 AI & Intelligence
+- **[AI Transformation](docs/ai/AI_TRANSFORMATION_USAGE.md)** - AI-powered test migration
+- **[Memory & Embeddings](docs/memory/MEMORY_INTEGRATION_COMPLETE.md)** - Semantic search
+- **[Intelligent Assistance](docs/intelligence/INTELLIGENT_TEST_ASSISTANCE.md)** - AI-powered insights
+
+### 📊 Quality & Observability
+- **[Flaky Test Detection](docs/flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md)** - ML-based detection
+- **[Coverage Tracking](docs/coverage/FUNCTIONAL_COVERAGE_QUICKSTART.md)** - Behavioral & functional coverage
+- **[Grafana Dashboards](docs/observability/CONTINUOUS_INTELLIGENCE_README.md)** - Real-time monitoring
+
+### 📖 Complete Documentation
+For full documentation index, visit: **[docs/INDEX.md](docs/INDEX.md)**
 
 ---
 
-## 🎓 Learning Resources
+## 🤝 Get Involved
 
-- **[Post-Migration Testing Guide](docs/POST_MIGRATION_TESTING.md)** - Validate transformed tests
-- **[Step Definition Enhancement](docs/STEP_DEFINITION_TRANSFORMATION_ENHANCEMENT.md)** - Advanced transformations
-- **[Impact Analysis](docs/testing-impact-mapping.md)** - Track test-to-code dependencies
-- **[AI Setup](docs/AI_SETUP.md)** - Configure AI providers
-- **[Database Schema](docs/COMPREHENSIVE_DATABASE_SCHEMA.md)** - Database structure
+CrossBridge AI is **open source and community-driven**.  
+We welcome contributions from developers, QA engineers, and organizations worldwide.
+
+### How to Contribute
+- 📝 **Read** [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+- 🔑 **Sign** [Contributor License Agreement](CLA.md)
+- 💻 **Submit** pull requests for features or fixes
+- 🐛 **Report** bugs and issues
+- 📢 **Share** your experience
+
+### Author & Maintainer
+- **Vikas Verma** - Creator & Lead Developer
+- **Email**: vikas.sdet@gmail.com
+- **Organization**: CrossStack AI
+
+See [AUTHORS.md](AUTHORS.md) and [GOVERNANCE.md](GOVERNANCE.md) for details.
+
+---
+
+## 🏆 Why Choose CrossBridge AI
+
+### ✅ Framework Agnostic
+Work with any testing framework — Selenium, Cypress, pytest, Robot, and more.
+
+### ✅ Zero Lock-In
+Use sidecar mode with existing tests — no migration required.
+
+### ✅ AI-Enhanced
+Optional AI features for smarter transformation and insights.
+
+### ✅ Open Source
+Apache 2.0 license — free forever, transparent, community-driven.
+
+### ✅ Proven Architecture
+Plugin-based design supports extensibility and custom integrations.
 
 ---
 
@@ -940,36 +959,41 @@ Built by **CrossStack AI** for the global QA and DevOps community. Special thank
 
 ## 🗺️ Roadmap
 
-### Q1 2026 (Current)
+### ✅ Completed (Q4 2025 - Q1 2026)
 - [x] Core Selenium Java migration
+- [x] Multi-framework intelligence (12+ frameworks)
 - [x] Bitbucket/GitHub/Azure DevOps integration
-- [x] Impact analysis features
-- [x] **Flaky test detection with ML** 🎯
-- [x] **PostgreSQL persistence layer** 🎯
-- [x] **Grafana dashboard integration** 🎯
-- [x] **CI/CD flaky test automation** 🎯
-- [x] **Universal memory & embedding integration** 🎯
+- [x] Impact analysis and coverage mapping
+- [x] **Flaky test detection with ML**
+- [x] **PostgreSQL persistence + Grafana dashboards**
+- [x] **Memory & Embeddings with semantic search**
+- [x] **No-Migration sidecar mode**
+
+### 🚀 In Progress (Q1 2026)
 - [ ] Improved error handling and logging
 - [ ] Comprehensive test coverage (>80%)
+- [ ] Enhanced documentation and examples
 
-### Q2 2026
+### 📅 Planned (Q2 2026)
 - [ ] Beta release (v0.5)
-- [ ] Cypress adapter
-- [ ] Enhanced AI features (Claude, GPT-4 support)
+- [ ] Enhanced AI features (GPT-4, Claude 3.5 support)
 - [ ] Web UI for migrations
-- [ ] Docker support
+- [ ] Docker containerization
+- [ ] Playwright Java/Python adapters
 
-### Q3 2026
-- [ ] Playwright (Java/Python) adapter
-- [ ] Performance optimization
-- [ ] Internationalization
-- [ ] Plugin marketplace
-
-### Q4 2026
+### 🔮 Future (Q3-Q4 2026)
 - [ ] v1.0 Stable release
 - [ ] Enterprise features (LDAP, SSO)
 - [ ] Cloud-hosted service option
+- [ ] Plugin marketplace
+- [ ] Internationalization support
 - [ ] Certification program
+
+---
+
+## 📈 SEO Keywords
+
+`test automation modernization` • `AI test transformation` • `legacy test migration` • `framework agnostic testing` • `test automation platform` • `selenium migration` • `flaky test detection` • `test intelligence` • `automated test migration` • `test framework conversion` • `AI-powered testing` • `test optimization` • `qa automation` • `devops testing` • `continuous testing`
 
 ---
 
@@ -981,52 +1005,59 @@ Built by **CrossStack AI** for the global QA and DevOps community. Special thank
 
 ## ⭐ Show Your Support
 
-If CrossBridge helps your team, please:
-- ⭐ **Star this repository** to help others discover it
-- 📢 **Share your experience** in Discussions or LinkedIn
-- 🐛 **Report bugs** to help improve quality
-- 💻 **Contribute code** to make it better for everyone
+If CrossBridge AI helps your team modernize test automation, please:
+
+- ⭐ **Star this repository** to increase visibility
+- 📢 **Share on LinkedIn** and social media
+- 🐛 **Report issues** to improve quality
+- 💻 **Contribute code** via pull requests
+- 💬 **Join discussions** to share experiences
+
+**Together, we can eliminate test automation debt worldwide.**
 
 ---
 
-**Built with ❤️ by CrossStack AI for the test automation community.**
+## 📞 Support & Community
 
-*CrossBridge is a product of CrossStack AI - Bridging Legacy to AI-Powered Test Systems*
+### Get Help
+- **📖 Documentation**: [docs/INDEX.md](docs/INDEX.md)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
+- **📧 Email**: vikas.sdet@gmail.com
+
+### Stay Connected
+- **Organization**: CrossStack AI
+- **Website**: https://crossstack.ai (coming soon)
+- **Repository**: https://github.com/crossstack-ai/crossbridge
+
+**Response Time**: This is a community-driven project. Please be patient! 🙂
 
 ---
 
-## ⚖️ Legal & Disclaimer
+## ⚖️ Legal & License
 
 ### License
 CrossBridge AI is licensed under the [Apache License 2.0](LICENSE).
 
-Copyright (c) 2025 Vikas Verma
+**Copyright (c) 2025 Vikas Verma**
+
+- ✅ **Commercial use allowed**
+- ✅ **Modification and distribution permitted**  
+- ✅ **Patent grant included**
+- ✅ **Attribution required**
 
 ### Disclaimer
-**CrossBridge AI is an independent open-source project developed by Vikas Verma in a personal capacity.**
+**CrossBridge AI is an independent open-source project** developed by Vikas Verma in a personal capacity.
 
 This project is:
-- ✅ **NOT affiliated with, endorsed by, or sponsored by any current or former employer**
-- ✅ Developed independently using personal time and resources
-- ✅ Created on personal equipment outside of work hours
-- ✅ Open-source under Apache 2.0 for the benefit of the testing community
+- ✅ NOT affiliated with any employer
+- ✅ Developed using personal time and resources
+- ✅ Open-source for the testing community
 
-For authorship details, see [AUTHORS.md](AUTHORS.md).
-
-For contributor guidelines, see [CLA.md](CLA.md).
-
-### Contributing
-We welcome contributions! By contributing, you agree to the [Contributor License Agreement (CLA)](CLA.md).
-
-All contributors must confirm they have the legal right to submit their contributions and are not violating any employment or IP agreements.
+For details, see [AUTHORS.md](AUTHORS.md) and [CLA.md](CLA.md).
 
 ---
 
-## 📞 Contact & Support
+**Built with ❤️ by [CrossStack AI](https://crossstack.ai) for the global test automation community.**
 
-- **Author**: Vikas Verma
-- **Email**: vikas.sdet@gmail.com
-- **Organization**: CrossStack AI
-- **Repository**: https://github.com/crossstack-ai/crossbridge
-
-For questions, issues, or collaboration opportunities, please open an issue or reach out directly.
+*Bridging Legacy Test Systems to AI-Powered Quality Engineering*
