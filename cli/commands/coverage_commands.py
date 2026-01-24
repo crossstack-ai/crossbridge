@@ -26,7 +26,7 @@ from core.coverage.console_formatter import (
     export_to_csv,
     export_to_json
 )
-from persistence.db import get_session
+from persistence.db import create_session
 
 
 coverage_group = typer.Typer(
@@ -56,7 +56,7 @@ def coverage_map_command(
     typer.echo("📊 Generating Functional Coverage Map...\n")
     
     # Get database session
-    session = get_session()
+    session = create_session()
     repo = FunctionalCoverageRepository(session)
     
     # Query coverage map
@@ -113,7 +113,7 @@ def coverage_features_command(
     click.echo("🎯 Generating Test-to-Feature Coverage...\n")
     
     # Get database session
-    session = get_session()
+    session = create_session()
     repo = FunctionalCoverageRepository(session)
     
     # Query test-to-feature coverage
@@ -167,7 +167,7 @@ def coverage_gaps_command(
     typer.echo("🔍 Identifying Coverage Gaps...\n")
     
     # Get database session
-    session = get_session()
+    session = create_session()
     repo = FunctionalCoverageRepository(session)
     
     # Query coverage gaps
@@ -202,7 +202,7 @@ def impact_command(
     typer.echo(f"🎯 Analyzing impact for: {file}\n")
     
     # Get database session
-    session = get_session()
+    session = create_session()
     repo = FunctionalCoverageRepository(session)
     
     # Query change impact surface
@@ -254,7 +254,7 @@ def summary_command():
     typer.echo("📈 Coverage Summary\n")
     
     # Get database session
-    session = get_session()
+    session = create_session()
     repo = FunctionalCoverageRepository(session)
     
     # Get stats

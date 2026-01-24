@@ -4,8 +4,8 @@ Flaky Test Detection Module for CrossBridge.
 Framework-agnostic flaky test detection using machine learning (Isolation Forest)
 and historical execution analysis.
 
-Phase-1: Base detection with unified model
-Phase-2: Per-framework models, step-level detection, calibrated confidence
+Supports unified and per-framework detection models with step-level detection,
+calibrated confidence scoring, and historical analysis.
 
 Supports all test frameworks: JUnit, TestNG, Pytest, Robot, Cucumber, etc.
 """

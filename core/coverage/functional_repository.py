@@ -20,7 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from ..functional_models import (
+from .functional_models import (
     Feature, CodeUnit, ExternalTestCase,
     TestCaseExternalMap, TestFeatureMap,
     TestCodeCoverageMap, ChangeEvent, ChangeImpact,

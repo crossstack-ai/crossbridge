@@ -1,5 +1,5 @@
 """
-Multi-Framework Flaky Detection System (Phase-2).
+Multi-Framework Flaky Detection System.
 
 Implements per-framework Isolation Forest models with:
 - Framework-specific feature extraction
@@ -7,7 +7,7 @@ Implements per-framework Isolation Forest models with:
 - Step-level detection for BDD/keyword frameworks
 - Enhanced confidence calibration
 
-This is the main entry point for Phase-2 detection.
+This is the main entry point for multi-framework flaky detection.
 """
 
 from typing import List, Dict, Optional

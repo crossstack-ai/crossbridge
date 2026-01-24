@@ -59,6 +59,47 @@ crossbridge:
   
   
   # ──────────────────────────────────────────────────────────────────────────
+  # MEMORY & EMBEDDINGS
+  # ──────────────────────────────────────────────────────────────────────────
+  # Universal test normalization and semantic search
+  
+  memory:
+    # Enable memory & embedding features
+    enabled: true
+    
+    # Automatic normalization during test execution
+    # When true: tests are automatically normalized to UnifiedTestMemory
+    # When false: manual normalization required
+    auto_normalize: true
+    
+    # Generate embeddings for semantic search
+    generate_embeddings: false  # Set to true when embedding service is configured
+    
+    # Embedding provider (when generate_embeddings: true)
+    # Options: 'openai', 'huggingface', 'local', 'azure'
+    embedding_provider: openai
+    
+    # AST extraction settings
+    extract_structural_signals: true  # Extract imports, functions, assertions via AST
+    extract_ui_interactions: true     # Extract UI commands (cy.click, page.goto, etc.)
+    
+    # Supported frameworks (all enabled by default)
+    frameworks:
+      cypress: true
+      playwright: true
+      robot: true
+      pytest: true
+      junit: true
+      testng: true
+      restassured: true
+      selenium_java: true
+      selenium_python: true
+      cucumber: true
+      behave: true
+      specflow: true
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
   # SIDECAR OBSERVER HOOKS
   # ──────────────────────────────────────────────────────────────────────────
   # Automatic hook integration during test migration
@@ -183,6 +224,60 @@ crossbridge:
   
   
   # ──────────────────────────────────────────────────────────────────────────
+  # MEMORY & EMBEDDINGS SYSTEM
+  # ──────────────────────────────────────────────────────────────────────────
+  # Semantic memory for tests, coverage, and execution intelligence
+  # Enables AI-powered search and similarity detection
+  
+  memory:
+    enabled: true
+    
+    # Embedding provider configuration
+    embedding_provider:
+      # Type: 'openai', 'local' (Ollama), 'huggingface'
+      type: openai
+      
+      # OpenAI settings
+      model: text-embedding-3-large  # Options: text-embedding-3-large, text-embedding-3-small, text-embedding-ada-002
+      api_key: ${OPENAI_API_KEY}     # Use environment variable
+      batch_size: 100                # Embeddings per API call
+      
+      # Local settings (Ollama)
+      # model: nomic-embed-text
+      # base_url: http://localhost:11434
+      
+      # HuggingFace settings
+      # model: sentence-transformers/all-MiniLM-L6-v2
+      # device: cpu                  # or 'cuda' for GPU
+    
+    # Vector store configuration
+    vector_store:
+      # Type: 'pgvector' (recommended), 'faiss' (local)
+      type: pgvector
+      
+      # PostgreSQL with pgvector
+      connection_string: postgresql://${CROSSBRIDGE_DB_USER:-postgres}:${CROSSBRIDGE_DB_PASSWORD:-admin}@${CROSSBRIDGE_DB_HOST:-10.55.12.99}:${CROSSBRIDGE_DB_PORT:-5432}/${CROSSBRIDGE_DB_NAME:-udp-native-webservices-automation}
+      dimension: 3072              # Must match embedding model (3072 for text-embedding-3-large, 1536 for text-embedding-3-small)
+      
+      # FAISS (local file-based storage)
+      # index_path: ./data/memory/faiss_index
+      # dimension: 1536
+    
+    # Ingestion settings
+    batch_size: 100                # Records to process per batch
+    auto_ingest_on_discovery: true # Automatically ingest after test discovery
+    update_on_change: true         # Re-embed when test code changes
+    
+    # Search settings
+    default_top_k: 10              # Default number of search results
+    min_similarity_score: 0.5      # Minimum score to include in results (0.0-1.0)
+    
+    # Memory lifecycle
+    ttl_days: 90                   # Delete records older than N days (0 = never)
+    cleanup_on_startup: false      # Clean old records on startup
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
   # INTELLIGENCE FEATURES
   # ──────────────────────────────────────────────────────────────────────────
   # AI-powered analysis and recommendations
@@ -208,10 +303,11 @@ crossbridge:
   # FRAMEWORK-SPECIFIC SETTINGS
   # ──────────────────────────────────────────────────────────────────────────
   # Configuration for each supported test framework
+  # Multi-Framework Support: 12 frameworks across 5 languages
   
   frameworks:
     
-    # ─── pytest ─────────────────────────────────────────────────────────────
+    # ─── pytest (Python Unit/Integration) ───────────────────────────────────
     pytest:
       enabled: true
       
@@ -227,7 +323,61 @@ crossbridge:
       track_api_calls: true               # Track API endpoint coverage
     
     
-    # ─── Playwright ─────────────────────────────────────────────────────────
+    # ─── JUnit (Java Unit Testing) ──────────────────────────────────────────
+    junit:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API calls
+      auto_instrument_ui_interactions: false  # Track UI interactions
+      
+      # Tracking options
+      track_keywords: true                # Track @Test annotations
+      track_api_calls: true               # Track API endpoint coverage
+    
+    
+    # ─── TestNG (Java Enterprise Testing) ───────────────────────────────────
+    testng:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API calls
+      auto_instrument_ui_interactions: false  # Track UI interactions
+      
+      # Tracking options
+      track_keywords: true                # Track @Test annotations
+      track_api_calls: true               # Track API endpoint coverage
+      track_groups: true                  # Track test groups
+    
+    
+    # ─── NUnit (C# Unit Testing) ────────────────────────────────────────────
+    nunit:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API calls
+      auto_instrument_ui_interactions: false  # Track UI interactions
+      
+      # Tracking options
+      track_keywords: true                # Track [Test] attributes
+      track_api_calls: true               # Track API endpoint coverage
+    
+    
+    # ─── SpecFlow (C# BDD) ──────────────────────────────────────────────────
+    specflow:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API calls in steps
+      auto_instrument_ui_interactions: true  # Track UI interactions in steps
+      
+      # Tracking options
+      track_keywords: true                # Track Gherkin keywords
+      track_api_calls: true               # Track API endpoint coverage
+      parse_gherkin: true                 # Parse .feature files
+    
+    
+    # ─── Playwright (JavaScript/TypeScript E2E) ─────────────────────────────
     playwright:
       enabled: true
       
@@ -243,7 +393,7 @@ crossbridge:
       track_api_calls: true               # Track route handlers
     
     
-    # ─── Robot Framework ────────────────────────────────────────────────────
+    # ─── Robot Framework (Keyword-Driven) ───────────────────────────────────
     robot:
       enabled: true
       
@@ -259,7 +409,81 @@ crossbridge:
       track_api_calls: true               # Track API test cases
     
     
-    # ─── Cypress ────────────────────────────────────────────────────────────
+    # ─── RestAssured (Java REST API Testing) 🆕 ─────────────────────────────
+    restassured:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track REST API calls
+      
+      # Network monitoring
+      capture_network_traffic: true       # Capture request/response data
+      
+      # Tracking options
+      track_keywords: true                # Track @Test annotations
+      track_api_calls: true               # Track API endpoint coverage
+      track_groups: true                  # Track TestNG groups
+    
+    
+    # ─── Selenium Python (Python UI Automation) 🆕 ──────────────────────────
+    selenium_python:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: false    # Focus on UI testing
+      auto_instrument_ui_interactions: true  # Track WebDriver actions
+      
+      # Tracking options
+      track_keywords: true                # Track pytest markers
+      track_api_calls: false              # Not primary use case
+      ast_extraction: true                # Full AST parsing enabled
+    
+    
+    # ─── Selenium Java (Java UI Automation) 🆕 ──────────────────────────────
+    selenium_java:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: false    # Focus on UI testing
+      auto_instrument_ui_interactions: true  # Track WebDriver actions
+      
+      # Tracking options
+      track_keywords: true                # Track @Test annotations
+      track_api_calls: false              # Not primary use case
+      track_groups: true                  # Track TestNG groups
+    
+    
+    # ─── Cucumber (BDD Gherkin) 🆕 ──────────────────────────────────────────
+    cucumber:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API calls in steps
+      auto_instrument_ui_interactions: true  # Track UI interactions in steps
+      
+      # Tracking options
+      track_keywords: true                # Track Gherkin keywords
+      track_api_calls: true               # Track API endpoint coverage
+      parse_gherkin: true                 # Parse .feature files
+      detect_step_patterns: true          # Detect API/UI patterns in steps
+    
+    
+    # ─── Behave (Python BDD) 🆕 ─────────────────────────────────────────────
+    behave:
+      enabled: true
+      
+      # Automatic instrumentation
+      auto_instrument_api_calls: true     # Track API calls in steps
+      auto_instrument_ui_interactions: true  # Track UI interactions in steps
+      
+      # Tracking options
+      track_keywords: true                # Track Gherkin keywords
+      track_api_calls: true               # Track API endpoint coverage
+      parse_gherkin: true                 # Parse .feature files
+      detect_step_patterns: true          # Detect API/UI patterns in steps
+    
+    
+    # ─── Cypress (JavaScript E2E) ───────────────────────────────────────────
     cypress:
       enabled: true
       

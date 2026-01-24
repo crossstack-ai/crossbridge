@@ -1,0 +1,426 @@
+"""
+CLI commands for Memory and Semantic Search features in CrossBridge.
+
+Commands:
+- memory ingest: Ingest test data into memory system
+- memory stats: Show memory statistics
+- search query: Semantic search for tests
+- search similar: Find similar tests
+"""
+
+import json
+from pathlib import Path
+from typing import List, Optional
+
+import typer
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich import box
+
+from core.memory import (
+    MemoryIngestionPipeline,
+    SemanticSearchEngine,
+    create_embedding_provider,
+    create_vector_store,
+)
+from core.memory.models import MemoryType
+
+console = Console()
+
+memory_app = typer.Typer(help="Memory and embeddings management")
+search_app = typer.Typer(help="Semantic search for tests")
+
+
+def get_pipeline():
+    """Get configured memory ingestion pipeline from config."""
+    try:
+        import yaml
+
+        config_path = Path("crossbridge.yml")
+        if not config_path.exists():
+            console.print(
+                "[red]Error: crossbridge.yml not found. Please configure memory system.[/red]"
+            )
+            raise typer.Exit(1)
+
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+
+        memory_config = config.get("memory", {})
+
+        # Create embedding provider
+        provider_type = memory_config.get("embedding_provider", {}).get(
+            "type", "openai"
+        )
+        provider_config = memory_config.get("embedding_provider", {})
+        provider = create_embedding_provider(provider_type, **provider_config)
+
+        # Create vector store
+        store_type = memory_config.get("vector_store", {}).get("type", "pgvector")
+        store_config = memory_config.get("vector_store", {})
+        store = create_vector_store(store_type, **store_config)
+
+        # Create pipeline
+        batch_size = memory_config.get("batch_size", 100)
+        pipeline = MemoryIngestionPipeline(provider, store, batch_size=batch_size)
+
+        return pipeline, provider, store
+
+    except Exception as e:
+        console.print(f"[red]Failed to initialize memory system: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@memory_app.command("ingest")
+def memory_ingest(
+    source: str = typer.Option(
+        ...,
+        "--source",
+        "-s",
+        help="Source directory or file to ingest",
+    ),
+    framework: Optional[str] = typer.Option(
+        None,
+        "--framework",
+        "-f",
+        help="Framework filter (pytest, cypress, etc.)",
+    ),
+    entity_types: Optional[List[str]] = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Entity types to ingest (test, scenario, step, etc.)",
+    ),
+):
+    """
+    Ingest test data into memory system.
+    
+    Examples:
+        crossbridge memory ingest --source ./tests --framework pytest
+        crossbridge memory ingest --source discovery_results.json --type test scenario
+    """
+    console.print("[bold blue]🔄 Starting memory ingestion...[/bold blue]")
+
+    pipeline, _, _ = get_pipeline()
+
+    # Check if source is JSON file or directory
+    source_path = Path(source)
+
+    if source_path.is_file() and source_path.suffix == ".json":
+        # Load from JSON file (discovery results)
+        with open(source_path) as f:
+            data = json.load(f)
+
+        from core.memory.ingestion import ingest_from_discovery
+
+        counts = ingest_from_discovery(data, pipeline)
+
+        table = Table(title="Ingestion Results", box=box.ROUNDED)
+        table.add_column("Entity Type", style="cyan")
+        table.add_column("Count", style="green")
+
+        for entity_type, count in counts.items():
+            table.add_row(entity_type, str(count))
+
+        console.print(table)
+        console.print(
+            f"[bold green]✅ Successfully ingested {sum(counts.values())} records[/bold green]"
+        )
+
+    else:
+        console.print(
+            "[yellow]⚠️  Directory ingestion not yet implemented. Use JSON discovery results.[/yellow]"
+        )
+        console.print(
+            "[dim]Run 'crossbridge discover' first and save results to JSON.[/dim]"
+        )
+
+
+@memory_app.command("stats")
+def memory_stats():
+    """
+    Show memory system statistics.
+    
+    Example:
+        crossbridge memory stats
+    """
+    console.print("[bold blue]📊 Memory System Statistics[/bold blue]\n")
+
+    pipeline, _, _ = get_pipeline()
+    stats = pipeline.get_stats()
+
+    table = Table(title="Memory Records by Type", box=box.ROUNDED)
+    table.add_column("Entity Type", style="cyan")
+    table.add_column("Count", style="green", justify="right")
+
+    # Total
+    table.add_row("[bold]Total Records[/bold]", f"[bold]{stats['total']}[/bold]")
+
+    # By type
+    for memory_type in MemoryType:
+        count_key = f"{memory_type.value}_count"
+        if count_key in stats:
+            table.add_row(memory_type.value.capitalize(), str(stats[count_key]))
+
+    console.print(table)
+
+
+@memory_app.command("clear")
+def memory_clear(
+    entity_types: Optional[List[str]] = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Entity types to clear (or all if not specified)",
+    ),
+    confirm: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Skip confirmation prompt",
+    ),
+):
+    """
+    Clear memory records.
+    
+    Example:
+        crossbridge memory clear --type failure
+        crossbridge memory clear --yes  # Clear all
+    """
+    if not confirm:
+        if entity_types:
+            msg = f"Clear all {', '.join(entity_types)} records?"
+        else:
+            msg = "Clear ALL memory records?"
+
+        if not typer.confirm(msg):
+            console.print("[yellow]❌ Cancelled[/yellow]")
+            raise typer.Exit(0)
+
+    console.print("[yellow]⚠️  Memory clearing not yet fully implemented[/yellow]")
+
+
+@search_app.command("query")
+def search_query(
+    query: str = typer.Argument(..., help="Natural language search query"),
+    entity_types: Optional[List[str]] = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Filter by entity types (test, scenario, step, etc.)",
+    ),
+    framework: Optional[str] = typer.Option(
+        None,
+        "--framework",
+        "-f",
+        help="Filter by framework",
+    ),
+    top_k: int = typer.Option(
+        10,
+        "--top",
+        "-k",
+        help="Maximum number of results",
+    ),
+    explain: bool = typer.Option(
+        False,
+        "--explain",
+        "-e",
+        help="Show explanation for matches",
+    ),
+):
+    """
+    Semantic search for tests and scenarios.
+    
+    Examples:
+        crossbridge search query "tests covering login timeout"
+        crossbridge search query "payment edge cases" --type scenario
+        crossbridge search query "flaky auth tests" --framework pytest --top 5
+    """
+    console.print(f'[bold blue]🔍 Searching for: "{query}"[/bold blue]\n')
+
+    _, provider, store = get_pipeline()
+    engine = SemanticSearchEngine(provider, store)
+
+    results = engine.search(
+        query=query,
+        entity_types=entity_types,
+        framework=framework,
+        top_k=top_k,
+    )
+
+    if not results:
+        console.print("[yellow]No results found[/yellow]")
+        return
+
+    # Display results
+    table = Table(
+        title=f"Search Results ({len(results)} found)",
+        box=box.ROUNDED,
+        show_lines=True,
+    )
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Type", style="cyan", width=10)
+    table.add_column("ID", style="yellow")
+    table.add_column("Score", style="green", width=8)
+    table.add_column("Preview", style="white")
+
+    for result in results:
+        # Truncate text preview
+        preview = result.record.text.replace("\n", " ")[:80]
+        if len(result.record.text) > 80:
+            preview += "..."
+
+        table.add_row(
+            str(result.rank),
+            result.record.type.value,
+            result.record.id,
+            f"{result.score:.3f}",
+            preview,
+        )
+
+    console.print(table)
+
+    # Show detailed info for top result
+    if results:
+        top_result = results[0]
+        console.print("\n[bold]📋 Top Result Details:[/bold]")
+
+        # Create panel with result details
+        details = [
+            f"[cyan]ID:[/cyan] {top_result.record.id}",
+            f"[cyan]Type:[/cyan] {top_result.record.type.value}",
+            f"[cyan]Score:[/cyan] {top_result.score:.3f}",
+        ]
+
+        if metadata := top_result.record.metadata:
+            details.append(f"[cyan]Metadata:[/cyan]")
+            for key, value in metadata.items():
+                if value:
+                    details.append(f"  • {key}: {value}")
+
+        details.append(f"\n[cyan]Text:[/cyan]\n{top_result.record.text}")
+
+        if explain:
+            explanation = engine.explain_search(query, top_result)
+            details.append(f"\n[cyan]Explanation:[/cyan]\n{explanation}")
+
+        panel = Panel(
+            "\n".join(details),
+            title="Top Match",
+            border_style="green",
+        )
+        console.print(panel)
+
+
+@search_app.command("similar")
+def search_similar(
+    record_id: str = typer.Argument(..., help="Record ID to find similar records for"),
+    entity_types: Optional[List[str]] = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Filter by entity types",
+    ),
+    top_k: int = typer.Option(
+        5,
+        "--top",
+        "-k",
+        help="Maximum number of results",
+    ),
+):
+    """
+    Find tests/scenarios similar to a given one.
+    
+    Examples:
+        crossbridge search similar test_login_valid
+        crossbridge search similar test_checkout --type test --top 10
+    """
+    console.print(f'[bold blue]🔍 Finding records similar to: "{record_id}"[/bold blue]\n')
+
+    _, provider, store = get_pipeline()
+    engine = SemanticSearchEngine(provider, store)
+
+    results = engine.find_similar(
+        record_id=record_id,
+        entity_types=entity_types,
+        top_k=top_k,
+    )
+
+    if not results:
+        console.print("[yellow]No similar records found[/yellow]")
+        return
+
+    # Display results
+    table = Table(
+        title=f"Similar Records ({len(results)} found)",
+        box=box.ROUNDED,
+        show_lines=True,
+    )
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Type", style="cyan", width=10)
+    table.add_column("ID", style="yellow")
+    table.add_column("Similarity", style="green", width=10)
+    table.add_column("Preview", style="white")
+
+    for result in results:
+        preview = result.record.text.replace("\n", " ")[:60]
+        if len(result.record.text) > 60:
+            preview += "..."
+
+        # Color code similarity
+        if result.score > 0.9:
+            similarity_color = "red"  # Potential duplicate
+        elif result.score > 0.7:
+            similarity_color = "yellow"  # Very similar
+        else:
+            similarity_color = "green"  # Somewhat similar
+
+        table.add_row(
+            str(result.rank),
+            result.record.type.value,
+            result.record.id,
+            f"[{similarity_color}]{result.score:.3f}[/{similarity_color}]",
+            preview,
+        )
+
+    console.print(table)
+
+    # Show duplicate warning if very high similarity
+    high_similarity = [r for r in results if r.score > 0.9]
+    if high_similarity:
+        console.print(
+            f"\n[yellow]⚠️  Found {len(high_similarity)} potential duplicate(s) (similarity > 0.9)[/yellow]"
+        )
+
+
+@search_app.command("duplicates")
+def search_duplicates(
+    framework: Optional[str] = typer.Option(
+        None,
+        "--framework",
+        "-f",
+        help="Filter by framework",
+    ),
+    threshold: float = typer.Option(
+        0.9,
+        "--threshold",
+        "-t",
+        help="Similarity threshold for duplicates",
+    ),
+):
+    """
+    Find potential duplicate tests.
+    
+    Example:
+        crossbridge search duplicates --framework pytest --threshold 0.95
+    """
+    console.print("[bold blue]🔍 Searching for duplicate tests...[/bold blue]\n")
+    console.print("[yellow]⚠️  Duplicate detection not yet fully implemented[/yellow]")
+    console.print("[dim]Use 'search similar' for individual test comparison[/dim]")
+
+
+# Register subcommands
+app = typer.Typer()
+app.add_typer(memory_app, name="memory")
+app.add_typer(search_app, name="search")

@@ -33,8 +33,15 @@ requests>=2.31.0  # For API test generation (pytest generator)
 playwright>=1.40.0  # For UI test translation and generation
 
 # AI/LLM provider dependencies (optional - for AI-powered features)
-openai>=1.0.0  # For OpenAI GPT models
+openai>=1.0.0  # For OpenAI GPT models and embeddings
 anthropic>=0.7.0  # For Anthropic Claude models
+ollama>=0.1.0  # For local Ollama embeddings (optional)
+sentence-transformers>=2.2.0  # For HuggingFace embeddings (optional)
+
+# Vector store dependencies (for Memory & Embeddings system)
+pgvector>=0.2.0  # PostgreSQL vector extension support
+faiss-cpu>=1.7.4  # FAISS vector similarity search (CPU version)
+# faiss-gpu>=1.7.4  # Uncomment for GPU support
 
 # Repository integration (optional - for repo-native transformation)
 PyGithub>=2.0.0  # GitHub API integration

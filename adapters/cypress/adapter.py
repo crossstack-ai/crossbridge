@@ -15,6 +15,8 @@ from enum import Enum
 
 from adapters.common.base import BaseTestAdapter, BaseTestExtractor, TestResult
 from adapters.common.models import TestMetadata
+from adapters.common.normalizer import UniversalTestNormalizer
+from core.intelligence.models import UnifiedTestMemory
 
 
 class CypressTestType(Enum):
@@ -589,16 +591,73 @@ class CypressExtractor(BaseTestExtractor):
                     file_tests = self.parser.parse_test_file(spec_file)
                     
                     for test in file_tests:
+                        # Determine language from file extension
+                        language = "typescript" if spec_file.suffix == ".ts" else "javascript"
+                        
                         metadata = TestMetadata(
                             test_name=test['name'],
                             file_path=str(spec_file),
                             framework="cypress",
-                            tags=[self.config.test_type.value]
+                            tags=[self.config.test_type.value],
+                            language=language
                         )
                         tests.append(metadata)
         
         except Exception as e:
             print(f"Warning: Error extracting tests: {e}")
+        
+        return tests
+    
+    def extract_tests_with_memory(self) -> List[UnifiedTestMemory]:
+        """
+        Extract tests and convert to UnifiedTestMemory format.
+        
+        Returns:
+            List of UnifiedTestMemory objects with structural and semantic signals
+        """
+        tests = []
+        normalizer = UniversalTestNormalizer()
+        
+        try:
+            # Find all spec files
+            spec_patterns = ["*.cy.js", "*.cy.ts", "*.spec.js", "*.spec.ts"]
+            
+            for pattern in spec_patterns:
+                spec_files = list(self.config.specs_dir.rglob(pattern))
+                
+                for spec_file in spec_files:
+                    # Read source code for AST extraction
+                    try:
+                        source_code = spec_file.read_text(encoding='utf-8')
+                    except Exception:
+                        source_code = None
+                    
+                    file_tests = self.parser.parse_test_file(spec_file)
+                    
+                    for test in file_tests:
+                        # Determine language
+                        language = "typescript" if spec_file.suffix == ".ts" else "javascript"
+                        
+                        # Create metadata
+                        metadata = TestMetadata(
+                            test_name=test['name'],
+                            file_path=str(spec_file),
+                            framework="cypress",
+                            tags=[self.config.test_type.value, "e2e"],
+                            test_type="e2e",
+                            language=language
+                        )
+                        
+                        # Normalize to UnifiedTestMemory
+                        unified = normalizer.normalize(
+                            metadata,
+                            source_code=source_code,
+                            generate_embedding=True
+                        )
+                        tests.append(unified)
+        
+        except Exception as e:
+            print(f"Warning: Error extracting tests with memory: {e}")
         
         return tests
     

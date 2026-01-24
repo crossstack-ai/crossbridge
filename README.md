@@ -67,6 +67,7 @@ Transform legacy tests to modern frameworks:
 - ✅ **NO MIGRATION MODE**: Work with existing frameworks (Selenium, Cypress, pytest, Robot, etc.) as sidecar observer
 - ✅ **Automated Migration**: Or convert entire test suites in hours when you're ready
 - ✅ **Intelligent Parsing**: Extracts test intent, locators, and page objects
+- ✅ **Memory & Embeddings**: Universal test normalization with semantic search across all 13 frameworks
 - ✅ **Continuous Intelligence**: Coverage tracking, flaky detection, AI optimization recommendations
 - ✅ **AI-Enhanced** (Optional): Improves transformation quality, locator strategies, and provides self-healing
 - ✅ **Framework-Agnostic**: Plugin architecture supports multiple sources/targets
@@ -173,6 +174,33 @@ python -m cli.app
 
 ## 📋 Supported Frameworks
 
+### Multi-Framework Intelligence 🆕
+
+**CrossBridge now supports 12 testing frameworks** with unified AI-powered analysis:
+
+| Framework | Language | Testing Type | AST Support | Status |
+|-----------|----------|--------------|-------------|--------|
+| **pytest** | Python | Unit/Integration | ✅ Full | ✅ Production |
+| **JUnit** | Java | Unit | ⏳ Partial | ✅ Stable |
+| **TestNG** | Java | Enterprise | ⏳ Partial | ✅ Stable |
+| **NUnit** | C# | Unit | ⏳ Partial | ✅ Stable |
+| **SpecFlow** | C# | BDD | ✅ Gherkin | ✅ Stable |
+| **Robot Framework** | Robot | Keyword-Driven | ⏳ Partial | ✅ Production |
+| **RestAssured** 🆕 | Java | REST API | ⏳ Partial | ✅ Beta |
+| **Playwright** 🆕 | JavaScript/TS | E2E | ⏳ Partial | ✅ Beta |
+| **Selenium Python** 🆕 | Python | UI | ✅ Full | ✅ Beta |
+| **Selenium Java** 🆕 | Java | UI | ⏳ Partial | ✅ Beta |
+| **Cucumber** 🆕 | Gherkin | BDD | ✅ Gherkin | ✅ Beta |
+| **Behave** 🆕 | Python/Gherkin | BDD | ✅ Gherkin | ✅ Beta |
+
+**Extended Framework Features**:
+- **RestAssured**: Java REST API testing with fluent assertions
+- **Playwright**: Modern browser automation for JavaScript/TypeScript
+- **Selenium**: Full support for Python (with AST) and Java (UI automation)
+- **Cucumber/Behave**: BDD with Gherkin parsing and natural language step detection
+
+📖 **See**: [MULTI_FRAMEWORK_SUPPORT.md](MULTI_FRAMEWORK_SUPPORT.md) for complete documentation
+
 ### NO MIGRATION MODE (Sidecar Observer) ⭐
 | Framework | Status | Hook Type | Setup Time |
 |-----------|--------|-----------|------------|
@@ -184,6 +212,7 @@ python -m cli.app
 | **Selenium Python Robot** | ✅ Ready | Robot Listener | 5 min |
 | **Requests Python Robot (API)** | ✅ Ready | Robot Listener | 5 min |
 | **Cypress** | ✅ Ready | Cypress Plugin | 5 min |
+| **Playwright** 🆕 | ✅ Ready | Playwright Plugin | 5 min |
 
 **All work with ZERO test code changes!**
 
@@ -194,28 +223,21 @@ python -m cli.app
 |-----------|--------|-------|
 | Selenium Java + Cucumber | ✅ **Stable** | Primary use case, well-tested |
 | Selenium Java (no BDD) | ✅ Supported | Basic transformation |
-| Pytest + Selenium | 🟡 Beta | In active development |
-| .NET SpecFlow | 🟡 Beta | Basic support |
+| Pytest + Selenium | ✅ Supported | Python UI automation |
+| .NET SpecFlow | ✅ Supported | BDD transformation |
 | Robot Framework (existing) | ✅ Supported | For transformation/enhancement |
+| RestAssured 🆕 | ✅ Supported | Java REST API tests |
+| Playwright 🆕 | ✅ Supported | JavaScript/TS E2E tests |
+| Cucumber/Behave 🆕 | ✅ Supported | BDD Gherkin features |
 | Cypress | 🔵 Planned | Roadmap Q2 2026 |
-| Playwright (Java/Python) | 🔵 Planned | Roadmap Q3 2026 |
 
 **Target Frameworks (Output):**
-| Framework | Status | Notes |
-|-----------|--------|-------|
-| Selenium Java + Cucumber | ✅ **Stable** | Primary use case, well-tested |
-| Selenium Java (no BDD) | ✅ Supported | Basic transformation |
-| Pytest + Selenium | 🟡 Beta | In active development |
-| .NET SpecFlow | 🟡 Beta | Basic support |
-| Robot Framework (existing) | ✅ Supported | For transformation/enhancement |
-| Cypress | 🔵 Planned | Roadmap Q2 2026 |
-| Playwright (Java/Python) | 🔵 Planned | Roadmap Q3 2026 |
-
-### Target Frameworks (Output)
 | Framework | Status | Quality |
 |-----------|--------|---------|
 | Robot Framework + Playwright | ✅ **Primary** | Production-ready output |
-| pytest-bdd | 🟡 Experimental | Early stage |
+| pytest-bdd | ✅ Supported | Python BDD output |
+| Cucumber/Gherkin | ✅ Supported | Java/JS BDD output |
+| pytest + Selenium | ✅ Supported | Python UI output |
 
 ---
 
@@ -374,7 +396,142 @@ python tests/populate_flaky_test_db.py
 
 📖 **See [FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md](FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md) and [docs/CI_CD_FLAKY_INTEGRATION.md](docs/CI_CD_FLAKY_INTEGRATION.md)**
 
-### 5. Impact Analysis
+### 5. Memory & Embeddings System 🎯 NEW!
+
+**Semantic memory for intelligent test discovery and AI-powered search:**
+
+```bash
+# Ingest tests into memory system
+crossbridge memory ingest --source discovery.json
+
+# Natural language search
+crossbridge search query "tests covering login timeout"
+
+# Find similar tests
+crossbridge search similar test_login_valid
+
+# Check memory statistics
+crossbridge memory stats
+```
+
+**Key Features:**
+- ✅ **Semantic Search**: Find tests by intent, not keywords - "timeout handling tests" vs "test_timeout"
+- ✅ **Pluggable Embeddings**: OpenAI (text-embedding-3-large/small), local Ollama, HuggingFace
+- ✅ **Vector Storage**: PostgreSQL + pgvector (production) or FAISS (local development)
+- ✅ **Entity Types**: Tests, scenarios, steps, page objects, failures, assertions, locators
+- ✅ **Similarity Detection**: Find duplicates (>0.9), related tests (0.7-0.9), complementary tests (0.5-0.7)
+- ✅ **AI Integration**: Memory-augmented prompts for intelligent test generation
+
+**What Gets Stored:**
+| Entity Type | Example | Use Case |
+|-------------|---------|----------|
+| `test` | `LoginTest.testValidLogin` | Find tests by behavior/intent |
+| `scenario` | `Scenario: Valid Login` | Search BDD scenarios |
+| `step` | `When user enters valid credentials` | Find step definitions |
+| `page` | `LoginPage.login()` | Locate page objects |
+| `failure` | `TimeoutException during login` | Pattern matching for failures |
+
+**Semantic Search Examples:**
+
+```bash
+# Find timeout-related tests
+crossbridge search query "tests covering login timeout" --type test
+
+# Find duplicate tests (>0.9 similarity)
+crossbridge search similar test_login_valid --top 10
+
+# Search with framework filter
+crossbridge search query "authentication tests" --framework pytest
+
+# Explain top match
+crossbridge search query "flaky auth tests" --explain
+```
+
+**Configuration (crossbridge.yml):**
+```yaml
+memory:
+  enabled: true
+  
+  embedding_provider:
+    type: openai                        # or 'local', 'huggingface'
+    model: text-embedding-3-large       # 3072 dimensions
+    api_key: ${OPENAI_API_KEY}
+  
+  vector_store:
+    type: pgvector                      # or 'faiss'
+    connection_string: postgresql://...
+    dimension: 3072                     # Must match embedding model
+  
+  auto_ingest_on_discovery: true       # Ingest after test discovery
+  update_on_change: true               # Re-embed when tests change
+```
+
+**Supported Embedding Providers:**
+| Provider | Model | Dimension | Cost | Best For |
+|----------|-------|-----------|------|----------|
+| OpenAI | text-embedding-3-large | 3072 | $0.13/1M tokens | Production, highest quality |
+| OpenAI | text-embedding-3-small | 1536 | $0.02/1M tokens | Fast, cost-effective |
+| Ollama | nomic-embed-text | 768 | Free | Private, no API calls |
+| HuggingFace | all-MiniLM-L6-v2 | 384 | Free | Air-gapped environments |
+
+**Cost Example (OpenAI):**
+- 1,000 tests @ ~100 tokens each = 100K tokens
+- **Cost: $0.002 - $0.013** (less than a penny!)
+
+**Use Cases:**
+1. **Duplicate Detection**: Find tests with >90% similarity
+2. **Test Discovery**: "Find all payment-related tests"
+3. **Coverage Gaps**: "Which areas lack timeout handling tests?"
+4. **Failure Analysis**: "Find similar timeout failures"
+5. **AI Context**: Memory-augmented prompts for intelligent test generation
+
+**Setup:**
+```bash
+# 1. Install pgvector extension in PostgreSQL
+CREATE EXTENSION IF NOT EXISTS vector;
+
+# 2. Run setup script
+python scripts/setup_memory_db.py --dimension 3072
+
+# 3. Set API key (if using OpenAI)
+export OPENAI_API_KEY=sk-your-key-here
+
+# 4. Ingest tests
+crossbridge discover --framework pytest --output discovery.json
+crossbridge memory ingest --source discovery.json
+
+# 5. Search!
+crossbridge search query "authentication timeout tests"
+```
+
+**Programmatic Usage:**
+```python
+from core.memory import (
+    MemoryIngestionPipeline,
+    SemanticSearchEngine,
+    create_embedding_provider,
+    create_vector_store,
+)
+
+# Setup
+provider = create_embedding_provider('openai', model='text-embedding-3-large')
+store = create_vector_store('pgvector', connection_string='postgresql://...', dimension=3072)
+
+# Search
+engine = SemanticSearchEngine(provider, store)
+results = engine.search("login timeout tests", top_k=10)
+
+for result in results:
+    print(f"{result.rank}. {result.record.id} (score: {result.score:.3f})")
+
+# Find duplicates
+similar = engine.find_similar("test_login_valid", top_k=5)
+duplicates = [r for r in similar if r.score > 0.9]
+```
+
+📖 **See [docs/MEMORY_EMBEDDINGS_SYSTEM.md](docs/MEMORY_EMBEDDINGS_SYSTEM.md) and [docs/MEMORY_QUICK_START.md](docs/MEMORY_QUICK_START.md)**
+
+### 6. Impact Analysis
 
 ```bash
 # Discover which tests use specific page objects
@@ -435,6 +592,12 @@ crossbridge analyze-impact --changed-files src/pages/HomePage.java
 - ✅ **Flaky test detection with ML-based analysis** 🎯 NEW!
 - ✅ **PostgreSQL persistence and Grafana dashboards** 🎯 NEW!
 - ✅ **CI/CD integration for automated flaky detection** 🎯 NEW!
+- ✅ **Memory & Embeddings System with semantic search** 🎯 NEW!
+- ✅ **AI-powered test discovery and duplicate detection** 🎯 NEW!
+- ✅ **Pluggable embedding providers (OpenAI, Ollama, HuggingFace)** 🎯 NEW!
+- ✅ **Semantic memory and embeddings system** 🎯 NEW!
+- ✅ **AI-powered semantic search for tests** 🎯 NEW!
+- ✅ **Intelligent duplicate detection and similarity analysis** 🎯 NEW!
 
 **Known Limitations:**
 - ⚠️ **Parser Coverage**: Complex Java patterns may not parse (fallback generates TODOs)
@@ -760,6 +923,7 @@ Built by **CrossStack AI** for the global QA and DevOps community. Special thank
 - [x] **PostgreSQL persistence layer** 🎯
 - [x] **Grafana dashboard integration** 🎯
 - [x] **CI/CD flaky test automation** 🎯
+- [x] **Universal memory & embedding integration** 🎯
 - [ ] Improved error handling and logging
 - [ ] Comprehensive test coverage (>80%)
 
@@ -803,3 +967,41 @@ If CrossBridge helps your team, please:
 **Built with ❤️ by CrossStack AI for the test automation community.**
 
 *CrossBridge is a product of CrossStack AI - Bridging Legacy to AI-Powered Test Systems*
+
+---
+
+## ⚖️ Legal & Disclaimer
+
+### License
+CrossBridge AI is licensed under the [Apache License 2.0](LICENSE).
+
+Copyright (c) 2025 Vikas Verma
+
+### Disclaimer
+**CrossBridge AI is an independent open-source project developed by Vikas Verma in a personal capacity.**
+
+This project is:
+- ✅ **NOT affiliated with, endorsed by, or sponsored by any current or former employer**
+- ✅ Developed independently using personal time and resources
+- ✅ Created on personal equipment outside of work hours
+- ✅ Open-source under Apache 2.0 for the benefit of the testing community
+
+For authorship details, see [AUTHORS.md](AUTHORS.md).
+
+For contributor guidelines, see [CLA.md](CLA.md).
+
+### Contributing
+We welcome contributions! By contributing, you agree to the [Contributor License Agreement (CLA)](CLA.md).
+
+All contributors must confirm they have the legal right to submit their contributions and are not violating any employment or IP agreements.
+
+---
+
+## 📞 Contact & Support
+
+- **Author**: Vikas Verma
+- **Email**: vikas.sdet@gmail.com
+- **Organization**: CrossStack AI
+- **Repository**: https://github.com/crossstack-ai/crossbridge
+
+For questions, issues, or collaboration opportunities, please open an issue or reach out directly.

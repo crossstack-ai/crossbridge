@@ -48,6 +48,17 @@ logos/
 .coverage.*
 htmlcov/
 .tox/
+
+# Temporary test/debug files (but keep verification scripts)
+create_dashboard_api.py
+create_simple_import.py
+debug_js_ast.py
+diagnose_grafana.py
+fix_blank_dashboard.py
+generate_recent_data.py
+quick_version_data.py
+working_grafana_queries.txt
+nul
 .nox/
 coverage.xml
 *.cover
@@ -149,8 +160,10 @@ examples/**/output/
 migration/output/
 persistence/data/
 
-# Documents
+# Documents (specific ones only, not all)
 QA_Automation_AI_Platform_Analysis_v2.pdf
+CrossBridge_Framework_Analysis_2026.pdf
+CrossBridge_Implementation_Status_2026.pdf
 
 # Temporary development files
 scripts/
@@ -159,6 +172,4 @@ demo_*
 test_*
 tests/unit/
 tests/core/
-docs/
 #grafana/
-*.md

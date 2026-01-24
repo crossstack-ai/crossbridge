@@ -1,0 +1,627 @@
+{
+  "dashboard": {
+    "title": "CrossBridge - Test Intelligence Overview",
+    "tags": ["crossbridge", "testing", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Test Execution Summary (Last 24h)",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT COUNT(*) as total_executions FROM test_execution WHERE executed_at > NOW() - INTERVAL '24 hours'",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "orientation": "auto",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 10, "color": "yellow"},
+                {"value": 100, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Pass Rate (Last 24h)",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT (COUNT(*) FILTER (WHERE status = 'passed')::FLOAT / NULLIF(COUNT(*), 0) * 100) as pass_rate FROM test_execution WHERE executed_at > NOW() - INTERVAL '24 hours'",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "orientation": "auto",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 1,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 80, "color": "yellow"},
+                {"value": 95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Flaky Tests Detected",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT COUNT(*) as flaky_tests FROM flaky_test WHERE is_flaky = TRUE",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "orientation": "auto",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 20, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Feature Coverage",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT (COUNT(DISTINCT tfm.test_case_id)::FLOAT / NULLIF(COUNT(DISTINCT tc.id), 0)) * 100 as coverage_percent FROM test_case tc LEFT JOIN test_feature_map tfm ON tc.id = tfm.test_case_id",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "orientation": "auto",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 1,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 50, "color": "yellow"},
+                {"value": 80, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Test Execution Trend (Last 7 Days)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT bucket as time, status, execution_count as value FROM test_execution_hourly WHERE bucket > NOW() - INTERVAL '7 days' ORDER BY bucket",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10,
+              "spanNulls": false,
+              "showPoints": "auto"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "passed"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "failed"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "skipped"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]
+            }
+          ]
+        },
+        "options": {
+          "legend": {
+            "showLegend": true,
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Test Duration Distribution (P50, P95, P99)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+        "targets": [
+          {
+            "refId": "P50",
+            "rawSql": "SELECT bucket as time, 'P50' as metric, p50_duration_ms as value FROM test_execution_hourly WHERE bucket > NOW() - INTERVAL '7 days' AND framework = 'pytest' ORDER BY bucket",
+            "format": "time_series"
+          },
+          {
+            "refId": "P95",
+            "rawSql": "SELECT bucket as time, 'P95' as metric, p95_duration_ms as value FROM test_execution_hourly WHERE bucket > NOW() - INTERVAL '7 days' AND framework = 'pytest' ORDER BY bucket",
+            "format": "time_series"
+          },
+          {
+            "refId": "P99",
+            "rawSql": "SELECT bucket as time, 'P99' as metric, p99_duration_ms as value FROM test_execution_hourly WHERE bucket > NOW() - INTERVAL '7 days' AND framework = 'pytest' ORDER BY bucket",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 0,
+              "spanNulls": false,
+              "showPoints": "never"
+            }
+          }
+        },
+        "options": {
+          "legend": {
+            "showLegend": true,
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Flaky Test Trend (Last 30 Days)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT bucket as time, classification, test_count as value FROM flaky_test_trend_daily WHERE bucket > NOW() - INTERVAL '30 days' ORDER BY bucket",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 20,
+              "spanNulls": false,
+              "showPoints": "auto"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "flaky"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "suspected_flaky"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "stable"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+            }
+          ]
+        },
+        "options": {
+          "legend": {
+            "showLegend": true,
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Test Execution by Framework",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 14},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT framework, COUNT(*) as value FROM test_execution WHERE executed_at > NOW() - INTERVAL '24 hours' GROUP BY framework",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "displayLabels": ["name", "percent"],
+          "legend": {
+            "showLegend": true,
+            "displayMode": "list",
+            "placement": "right"
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Test Execution by Environment",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 14},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT environment, COUNT(*) as value FROM test_execution WHERE executed_at > NOW() - INTERVAL '24 hours' GROUP BY environment",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "displayLabels": ["name", "percent"],
+          "legend": {
+            "showLegend": true,
+            "displayMode": "list",
+            "placement": "right"
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Top 10 Slowest Tests (Last 24h)",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT test_name, framework, AVG(duration_ms)::INT as avg_duration_ms, COUNT(*) as executions FROM test_execution WHERE executed_at > NOW() - INTERVAL '24 hours' GROUP BY test_name, framework ORDER BY avg_duration_ms DESC LIMIT 10",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "avg_duration_ms"},
+              "properties": [
+                {"id": "unit", "value": "ms"},
+                {"id": "custom.width", "value": 150}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 11,
+        "title": "Top 10 Most Flaky Tests",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT test_name, framework, (flaky_score * 100)::INT as flaky_score_pct, (confidence * 100)::INT as confidence_pct, classification, severity FROM flaky_test WHERE is_flaky = TRUE ORDER BY flaky_score DESC LIMIT 10",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "flaky_score_pct"},
+              "properties": [
+                {"id": "unit", "value": "percent"},
+                {"id": "custom.width", "value": 120},
+                {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+                {"id": "color", "value": {
+                  "mode": "thresholds",
+                  "fixedColor": "red"
+                }},
+                {"id": "thresholds", "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 30, "color": "yellow"},
+                    {"value": 60, "color": "red"}
+                  ]
+                }}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "severity"},
+              "properties": [
+                {"id": "custom.cellOptions", "value": {"type": "color-text"}},
+                {"id": "mappings", "value": [
+                  {"type": "value", "options": {"critical": {"color": "dark-red", "text": "🔴 Critical"}}},
+                  {"type": "value", "options": {"high": {"color": "red", "text": "🟠 High"}}},
+                  {"type": "value", "options": {"medium": {"color": "yellow", "text": "🟡 Medium"}}},
+                  {"type": "value", "options": {"low": {"color": "green", "text": "🟢 Low"}}}
+                ]}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 12,
+        "title": "Features Without Test Coverage",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT name, type, source, coverage_status FROM feature_coverage_gaps WHERE coverage_status IN ('no_coverage', 'low_coverage') ORDER BY test_count ASC, name LIMIT 20",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "coverage_status"},
+              "properties": [
+                {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+                {"id": "mappings", "value": [
+                  {"type": "value", "options": {"no_coverage": {"color": "dark-red", "text": "❌ No Coverage"}}},
+                  {"type": "value", "options": {"low_coverage": {"color": "orange", "text": "⚠️ Low Coverage"}}}
+                ]}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 13,
+        "title": "Recent Discovery Runs",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT project_name, framework, test_count, page_count, (duration_ms / 1000.0)::NUMERIC(10,2) as duration_sec, git_branch, created_at FROM discovery_run ORDER BY created_at DESC LIMIT 10",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "created_at"},
+              "properties": [
+                {"id": "unit", "value": "dateTimeAsIso"}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "duration_sec"},
+              "properties": [
+                {"id": "unit", "value": "s"}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 14,
+        "title": "Memory & Embeddings Overview",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 30},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT COUNT(*) as total_embeddings FROM memory_embeddings",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value",
+          "orientation": "auto",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 15,
+        "title": "Embeddings by Entity Type",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 30},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT entity_type, COUNT(*) as count FROM memory_embeddings GROUP BY entity_type",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "pie",
+          "tooltip": {
+            "mode": "single"
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 16,
+        "title": "Recent Embeddings Created",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT entity_type, entity_id::text as entity_id, content_hash, (metadata->>'test_name') as test_name, (metadata->>'model') as model, created_at FROM memory_embeddings ORDER BY created_at DESC LIMIT 20",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [
+            {
+              "displayName": "created_at",
+              "desc": true
+            }
+          ]
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "created_at"},
+              "properties": [
+                {"id": "unit", "value": "dateTimeAsIso"}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 17,
+        "title": "Embedding Storage Trend",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 38},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT date_trunc('hour', created_at) as time, COUNT(*) as embeddings_created FROM memory_embeddings WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY time ORDER BY time",
+            "format": "time_series"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi"
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 18,
+        "title": "Embedding Vector Dimensions Info",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 38},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT (metadata->>'dimension') as dimension, (metadata->>'model') as model FROM memory_embeddings LIMIT 1",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "orientation": "auto",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "fixed", "fixedColor": "blue"}
+          }
+        }
+      }
+    ]
+  }
+}
