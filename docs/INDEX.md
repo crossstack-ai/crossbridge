@@ -128,7 +128,6 @@ Multi-framework support and adapter development:
 - **[FRAMEWORK_ADAPTERS_COMPLETE.md](frameworks/FRAMEWORK_ADAPTERS_COMPLETE.md)** - Complete adapter guide
 - **[FRAMEWORK_ADAPTERS_REFERENCE.md](frameworks/FRAMEWORK_ADAPTERS_REFERENCE.md)** - API reference
 - **[FRAMEWORK_ADAPTERS_UPDATE.md](frameworks/FRAMEWORK_ADAPTERS_UPDATE.md)** - Update guide
-- **[FRAMEWORK_ANALYSIS_2026.md](frameworks/FRAMEWORK_ANALYSIS_2026.md)** - Framework analysis
 - **[FRAMEWORK_QUICK_REFERENCE.md](frameworks/FRAMEWORK_QUICK_REFERENCE.md)** - Quick reference
 - **[FRAMEWORK_SUPPORT_COMPLETE.md](frameworks/FRAMEWORK_SUPPORT_COMPLETE.md)** - Support matrix
 - **[MULTI_FRAMEWORK_IMPLEMENTATION.md](frameworks/MULTI_FRAMEWORK_IMPLEMENTATION.md)** - Implementation
@@ -210,7 +209,6 @@ Work with existing frameworks without migration:
 
 Implementation summaries and status:
 
-- **[CRITICAL_FEATURES_CONFIRMED.md](implementation/CRITICAL_FEATURES_CONFIRMED.md)** - Feature status
 - **[DATABASE_DEPLOYMENT_SUMMARY.md](implementation/DATABASE_DEPLOYMENT_SUMMARY.md)** - Database setup
 - **[DOCUMENTATION_UPDATES_SUMMARY.md](implementation/DOCUMENTATION_UPDATES_SUMMARY.md)** - Doc updates
 - **[IMPLEMENTATION_SUMMARY_CONTINUOUS_INTELLIGENCE.md](implementation/IMPLEMENTATION_SUMMARY_CONTINUOUS_INTELLIGENCE.md)** - CI summary

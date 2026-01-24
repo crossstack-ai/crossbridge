@@ -152,4 +152,4 @@
 
 ---
 
-For detailed analysis, see [FRAMEWORK_ANALYSIS_2026.md](FRAMEWORK_ANALYSIS_2026.md)
+For detailed analysis, see [FRAMEWORK_ANALYSIS_2026.md](FRAMEWORK_ANALYSIS_2026.md) (internal document)

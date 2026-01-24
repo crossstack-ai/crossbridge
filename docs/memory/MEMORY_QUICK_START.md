@@ -254,6 +254,5 @@ Ensure embedding model dimension matches vector store:
 
 ## Support
 
-- 💬 GitHub Discussions: [github.com/crossbridge/discussions](https://github.com/crossbridge/discussions)
-- 🐛 Issues: [github.com/crossbridge/issues](https://github.com/crossbridge/issues)
-- 📧 Email: support@crossbridge.dev
+- � Issues: [github.com/crossbridge/issues](https://github.com/crossbridge/issues)
+- 📧 Email: vikas.sdet@gmail.com

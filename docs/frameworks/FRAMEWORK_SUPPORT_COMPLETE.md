@@ -568,7 +568,6 @@ core/observability/
 
 - **Quick Start**: [NO_MIGRATION_FRAMEWORK_SUPPORT.md](docs/NO_MIGRATION_FRAMEWORK_SUPPORT.md)
 - **AI Features**: [AI_TRANSFORMATION_USAGE.md](docs/AI_TRANSFORMATION_USAGE.md)
-- **Phase 3 AI**: [CRITICAL_FEATURES_CONFIRMED.md](CRITICAL_FEATURES_CONFIRMED.md)
 - **Architecture**: [docs/cli-architecture.md](docs/cli-architecture.md)
 
-**Questions?** Open an issue on GitHub or contact support@crossstack.ai
+**Questions?** Contact vikas.sdet@gmail.com or open an issue on GitHub

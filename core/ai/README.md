@@ -682,7 +682,7 @@ See [LICENSE](../../LICENSE)
 ## 💬 Support
 
 - Issues: [GitHub Issues](https://github.com/yourusername/crossbridge/issues)
-- Discussions: [GitHub Discussions](https://github.com/yourusername/crossbridge/discussions)
+- Email: vikas.sdet@gmail.com
 - Documentation: [docs/](../../docs/)
 
 ---

@@ -637,8 +637,7 @@ def test_myframework_discovery():
 - **API Documentation**: [API.md](API.md)
 - **Architecture Guide**: [INTELLIGENT_TEST_ASSISTANCE.md](INTELLIGENT_TEST_ASSISTANCE.md)
 - **Framework Guide**: [MULTI_FRAMEWORK_SUPPORT.md](MULTI_FRAMEWORK_SUPPORT.md)
-- **GitHub Discussions**: Ask questions
-- **GitHub Issues**: Report bugs
+- **GitHub Issues**: Report bugs and ask questions
 
 ### Contact
 

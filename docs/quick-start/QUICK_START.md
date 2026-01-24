@@ -437,8 +437,7 @@ Coming soon! We're working on video tutorials for:
 Need help getting started?
 
 - **📖 Documentation**: [Complete Index](../INDEX.md)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
-- **🐛 Issues**: [Report Problems](https://github.com/crossstack-ai/crossbridge/issues)
+- ** Issues**: [Report Problems](https://github.com/crossstack-ai/crossbridge/issues)
 - **📧 Email**: vikas.sdet@gmail.com
 
 ---

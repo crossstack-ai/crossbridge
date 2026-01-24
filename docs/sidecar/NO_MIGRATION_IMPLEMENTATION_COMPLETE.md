@@ -481,7 +481,6 @@ Listener   crossbridge.RobotListener
 
 ### AI Features:
 - **AI Usage**: [AI_TRANSFORMATION_USAGE.md](docs/AI_TRANSFORMATION_USAGE.md)
-- **Phase 3 Features**: [CRITICAL_FEATURES_CONFIRMED.md](CRITICAL_FEATURES_CONFIRMED.md)
 
 ### Architecture:
 - **CLI**: [cli-architecture.md](docs/cli-architecture.md)

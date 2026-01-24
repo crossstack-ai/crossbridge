@@ -619,8 +619,7 @@ class MCPClient:
 For MCP-specific issues:
 
 - **📧 Email**: vikas.sdet@gmail.com
-- **💬 Discussions**: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
-- **🐛 Issues**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
+- ** Issues**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
 
 ---
 

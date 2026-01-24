@@ -334,7 +334,6 @@ python -m cli.app
 - **[NO_MIGRATION_FRAMEWORK_SUPPORT.md](docs/NO_MIGRATION_FRAMEWORK_SUPPORT.md)** - Complete NO MIGRATION guide
 - **[FRAMEWORK_SUPPORT_COMPLETE.md](FRAMEWORK_SUPPORT_COMPLETE.md)** - Full framework comparison
 - **[AI_TRANSFORMATION_USAGE.md](docs/AI_TRANSFORMATION_USAGE.md)** - MIGRATION mode guide
-- **[CRITICAL_FEATURES_CONFIRMED.md](CRITICAL_FEATURES_CONFIRMED.md)** - Phase 3 AI features
 - **[README.md](README.md)** - Main project overview
 
 ---

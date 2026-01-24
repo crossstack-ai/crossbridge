@@ -962,8 +962,7 @@ async def test_migration_workflow():
 
 - **Documentation**: [README.md](README.md)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-- **Issues**: GitHub Issues
-- **Discussions**: GitHub Discussions
+- **Issues**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
 - **Email**: vikas.sdet@gmail.com
 
 ---

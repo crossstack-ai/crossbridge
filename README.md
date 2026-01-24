@@ -673,7 +673,7 @@ CrossBridge is **both an MCP Client and MCP Server**, enabling seamless integrat
 
 ### 🖥️ MCP Server: Expose CrossBridge as Tools
 
-CrossBridge exposes its capabilities as MCP tools that AI agents (Claude, ChatGPT, etc.) can consume:
+CrossBridge exposes its capabilities as MCP tools that AI agents (Claude, GPT-4, etc.) can consume:
 
 **Available Tools:**
 - `run_tests` - Execute tests in any project (pytest, junit, robot)
@@ -780,7 +780,7 @@ Claude detects flaky test → CrossBridge analyzes → GitHub PR created → CI 
 
 **3. Self-Service Test Migration:**
 ```
-ChatGPT plugin → CrossBridge migrate_framework → PR opened → Slack notification
+AI Agent → CrossBridge migrate_framework → PR opened → Slack notification
 ```
 
 ### 📚 MCP Documentation
@@ -864,8 +864,8 @@ Comprehensive guides for test automation modernization and AI-powered transforma
 
 ### 🚀 Getting Started
 - **[Quick Start Guide](#-quick-start)** - Get started in 5 minutes
-- **[API Documentation](API.md)** - Complete API reference
-- **[Configuration Guide](docs/CONFIG.md)** - All configuration options
+- **[API Documentation](docs/api/API.md)** - Complete API reference
+- **[Configuration Guide](docs/config/CONFIG.md)** - All configuration options
 - **[Contributing Guide](CONTRIBUTING.md)** - Join the community
 
 ### 🔧 Framework Integration
@@ -875,11 +875,11 @@ Comprehensive guides for test automation modernization and AI-powered transforma
 
 ### 🤖 AI & Intelligence
 - **[AI Transformation](docs/ai/AI_TRANSFORMATION_USAGE.md)** - AI-powered test migration
-- **[Memory & Embeddings](docs/memory/MEMORY_INTEGRATION_COMPLETE.md)** - Semantic search
+- **[Memory & Embeddings](docs/memory/MEMORY_EMBEDDINGS_SYSTEM.md)** - Semantic search and intelligent test discovery
 - **[Intelligent Assistance](docs/intelligence/INTELLIGENT_TEST_ASSISTANCE.md)** - AI-powered insights
 
 ### 📊 Quality & Observability
-- **[Flaky Test Detection](docs/flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md)** - ML-based detection
+- **[Flaky Test Detection](docs/flaky-detection/FLAKY_DETECTION_QUICK_START.md)** - ML-based detection and CI/CD integration
 - **[Coverage Tracking](docs/coverage/FUNCTIONAL_COVERAGE_QUICKSTART.md)** - Behavioral & functional coverage
 - **[Grafana Dashboards](docs/observability/CONTINUOUS_INTELLIGENCE_README.md)** - Real-time monitoring
 
@@ -950,7 +950,6 @@ Built by **CrossStack AI** for the global QA and DevOps community. Special thank
 ## 📞 Support & Community
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/crossbridge/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/crossbridge/discussions)
 - **Email**: vikas.sdet@gmail.com (for sensitive topics)
 
 **Response Time**: This is a volunteer project. Please be patient! 🙂

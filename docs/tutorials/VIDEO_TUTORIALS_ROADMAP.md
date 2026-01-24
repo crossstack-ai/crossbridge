@@ -540,8 +540,8 @@ Comprehensive written guides are available in the `docs/` directory:
 
 We welcome community-created tutorials! If you'd like to create a video tutorial, blog post, or workshop:
 
-1. **Propose your topic**: Open a discussion on [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
-2. **Get feedback**: Community reviews your proposal
+1. **Propose your topic**: Contact us via email at vikas.sdet@gmail.com
+2. **Get feedback**: We'll review your proposal
 3. **Create content**: Develop your tutorial
 4. **Submit for review**: Share your content for feedback
 5. **Publish**: We'll promote approved content on our channels
@@ -560,8 +560,7 @@ We welcome community-created tutorials! If you'd like to create a video tutorial
 
 - 🔔 Subscribe to [CrossBridge YouTube Channel](https://youtube.com/@crossbridge-ai) (coming soon)
 - 📧 Join the [mailing list](https://crossbridge.ai/newsletter) (coming soon)
-- 💬 Follow [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
-- 🐦 Follow [@CrossBridgeAI](https://twitter.com/crossbridgeai) on Twitter (coming soon)
+-  Follow [@CrossBridgeAI](https://twitter.com/crossbridgeai) on Twitter (coming soon)
 
 ---
 
