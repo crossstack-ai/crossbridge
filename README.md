@@ -199,7 +199,7 @@ python -m cli.app
 - **Selenium**: Full support for Python (with AST) and Java (UI automation)
 - **Cucumber/Behave**: BDD with Gherkin parsing and natural language step detection
 
-📖 **See**: [MULTI_FRAMEWORK_SUPPORT.md](MULTI_FRAMEWORK_SUPPORT.md) for complete documentation
+📖 **See**: [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete documentation
 
 ### NO MIGRATION MODE (Sidecar Observer) ⭐
 | Framework | Status | Hook Type | Setup Time |
@@ -857,7 +857,7 @@ We welcome contributions! This project needs help with:
 - 🧪 **Testing**: Unit tests, integration tests, real-world validations
 - 🌍 **Internationalization**: Non-English test support
 
-**See [CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines.
+**See [CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines and [CLA.md](CLA.md) for contributor license agreement.
 
 ### Quick Contribution Guide
 
@@ -876,11 +876,36 @@ pytest tests/
 
 ---
 
+## 📚 Documentation
+
+### For Users
+- **[API Documentation](API.md)** - Complete API reference and integration examples
+- **[Quick Start Guide](README.md#-quick-start)** - Get started in minutes
+- **[Configuration Guide](docs/CONFIG.md)** - Configuration options
+- **[Framework Support](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - All supported frameworks
+
+### For Developers
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[Architecture Overview](docs/intelligence/INTELLIGENT_TEST_ASSISTANCE.md)** - System design
+- **[Adapter Development](docs/frameworks/FRAMEWORK_ADAPTERS_REFERENCE.md)** - Create custom adapters
+- **[API Reference](API.md)** - Programmatic usage
+
+### Feature Guides
+- **[Memory & Embeddings](docs/MEMORY_INTEGRATION_QUICK_START.md)** - Semantic search
+- **[Flaky Detection](docs/FLAKY_DETECTION_QUICK_START.md)** - ML-based detection
+- **[Coverage Tracking](docs/coverage/FUNCTIONAL_COVERAGE_QUICKSTART.md)** - Functional coverage
+- **[Continuous Intelligence](docs/observability/CONTINUOUS_INTELLIGENCE_README.md)** - Observability
+- **[Post-Migration Testing](docs/POST_MIGRATION_TESTING.md)** - Validate transformations
+
+---
+
 ## 🎓 Learning Resources
 
 - **[Post-Migration Testing Guide](docs/POST_MIGRATION_TESTING.md)** - Validate transformed tests
 - **[Step Definition Enhancement](docs/STEP_DEFINITION_TRANSFORMATION_ENHANCEMENT.md)** - Advanced transformations
 - **[Impact Analysis](docs/testing-impact-mapping.md)** - Track test-to-code dependencies
+- **[AI Setup](docs/AI_SETUP.md)** - Configure AI providers
+- **[Database Schema](docs/COMPREHENSIVE_DATABASE_SCHEMA.md)** - Database structure
 
 ---
 
