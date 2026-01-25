@@ -240,9 +240,13 @@ Internal development documentation (not for external users):
 
 Production-ready infrastructure and hardening:
 
-- **[PRODUCTION_HARDENING.md](PRODUCTION_HARDENING.md)** - Complete production hardening guide (rate limiting, retries, health checks)
-- **[PRODUCTION_HARDENING_QUICK_REF.md](PRODUCTION_HARDENING_QUICK_REF.md)** - Quick reference for production features
-- **[PRODUCTION_HARDENING_COMPLETE.md](../PRODUCTION_HARDENING_COMPLETE.md)** - Implementation summary (118 tests ✅, 98% coverage)
+- **[PRODUCTION_HARDENING.md](hardening/PRODUCTION_HARDENING.md)** - Complete production hardening guide (rate limiting, retries, health checks)
+- **[PRODUCTION_HARDENING_QUICK_REF.md](hardening/PRODUCTION_HARDENING_QUICK_REF.md)** - Quick reference for production features
+- **[PRODUCTION_HARDENING_ALL_GAPS_FIXED.md](hardening/PRODUCTION_HARDENING_ALL_GAPS_FIXED.md)** - Complete implementation summary (27 modules, 118 tests ✅, 98% coverage)
+- **[PRODUCTION_HARDENING_AUDIT_ALL_MODULES.md](hardening/PRODUCTION_HARDENING_AUDIT_ALL_MODULES.md)** - Comprehensive audit of all modules
+- **[PRODUCTION_HARDENING_CRITICAL_GAPS_FIXED.md](hardening/PRODUCTION_HARDENING_CRITICAL_GAPS_FIXED.md)** - Critical gaps resolution
+- **[PRODUCTION_HARDENING_GAP_ANALYSIS.md](hardening/PRODUCTION_HARDENING_GAP_ANALYSIS.md)** - Initial gap analysis
+- **[PRODUCTION_HARDENING_GAP_IMPLEMENTATION_COMPLETE.md](hardening/PRODUCTION_HARDENING_GAP_IMPLEMENTATION_COMPLETE.md)** - Gap implementation details
 
 ---
 

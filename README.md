@@ -167,8 +167,9 @@ if not registry.is_healthy():
 ```
 
 📖 **Learn More**: 
-- [Production Hardening Guide](docs/PRODUCTION_HARDENING.md)
-- [Quick Reference](docs/PRODUCTION_HARDENING_QUICK_REF.md)
+- [Production Hardening Guide](docs/hardening/PRODUCTION_HARDENING.md)
+- [Quick Reference](docs/hardening/PRODUCTION_HARDENING_QUICK_REF.md)
+- [All Gaps Fixed Summary](docs/hardening/PRODUCTION_HARDENING_ALL_GAPS_FIXED.md)
 - [Module Documentation](core/runtime/README.md)
 
 ### 🔹 6. **Performance Profiling & Observability**
