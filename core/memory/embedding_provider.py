@@ -9,9 +9,9 @@ import os
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-import logging
+from core.logging import get_logger, LogCategory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.AI)
 
 
 class EmbeddingProvider(ABC):

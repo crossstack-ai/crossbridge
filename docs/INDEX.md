@@ -236,6 +236,16 @@ Internal development documentation (not for external users):
 
 ---
 
+## 🏭 Production Readiness (`docs/`)
+
+Production-ready infrastructure and hardening:
+
+- **[PRODUCTION_HARDENING.md](PRODUCTION_HARDENING.md)** - Complete production hardening guide (rate limiting, retries, health checks)
+- **[PRODUCTION_HARDENING_QUICK_REF.md](PRODUCTION_HARDENING_QUICK_REF.md)** - Quick reference for production features
+- **[PRODUCTION_HARDENING_COMPLETE.md](../PRODUCTION_HARDENING_COMPLETE.md)** - Implementation summary (118 tests ✅, 98% coverage)
+
+---
+
 ## 🗂️ Other Documentation (`docs/`)
 
 Additional guides and references:

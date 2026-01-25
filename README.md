@@ -101,7 +101,77 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
 
-### 🔹 5. **Performance Profiling & Observability** 🆕
+### 🔹 5. **Production Hardening & Runtime Protection** 🆕
+Enterprise-grade production runtime features for resilient test execution:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Execution    │         │   Runtime Layer  │         │   Protected Ops     │
+│                     │         │                  │         │                     │
+│  • AI generation    │────────▶│  • Rate limiting │────────▶│  • Fair throttling  │
+│  • API calls        │         │  • Retry logic   │         │  • Auto-recovery    │
+│  • Embeddings       │         │  • Health checks │         │  • Proactive detect │
+│  • Database ops     │         │  • YAML config   │         │  • No manual retry  │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🚦 **Rate Limiting** - Token bucket algorithm, per-user/org fair throttling
+- 🔄 **Exponential Backoff Retry** - Intelligent retry with jitter for transient failures
+- 🏥 **Health Checks** - Provider monitoring for AI, embeddings, database
+- ⚙️ **YAML Configuration** - All settings in crossbridge.yml, no code changes
+- 🪵 **Structured Logging** - Integrated with CrossBridgeLogger
+- ⚡ **Performance** - <0.1ms per rate limit check, <1ms retry overhead
+- 🧵 **Thread-Safe** - Production-ready concurrency handling
+
+**Quick Enable**:
+```yaml
+# crossbridge.yml
+runtime:
+  rate_limiting:
+    enabled: true
+    defaults:
+      search: {capacity: 30, window_seconds: 60}
+      embed: {capacity: 60, window_seconds: 60}
+  
+  retry:
+    enabled: true
+    default_policy:
+      max_attempts: 3
+      base_delay: 0.5
+      jitter: true
+  
+  health_checks:
+    enabled: true
+    interval: 30
+    providers:
+      ai_provider: {enabled: true}
+      database: {enabled: true}
+```
+
+**Usage Example**:
+```python
+from core.runtime import retry_with_backoff, check_rate_limit, get_health_registry
+
+# Automatic retry with exponential backoff
+result = retry_with_backoff(lambda: ai_provider.generate(prompt))
+
+# Rate limiting per user
+if not check_rate_limit(key=f"user:{user_id}", operation="embed"):
+    raise RateLimitExceeded("Too many requests")
+
+# Health checks
+registry = get_health_registry()
+if not registry.is_healthy():
+    logger.warning("Some providers degraded")
+```
+
+📖 **Learn More**: 
+- [Production Hardening Guide](docs/PRODUCTION_HARDENING.md)
+- [Quick Reference](docs/PRODUCTION_HARDENING_QUICK_REF.md)
+- [Module Documentation](core/runtime/README.md)
+
+### 🔹 6. **Performance Profiling & Observability**
 Passive, non-invasive performance profiling for all test executions:
 
 ```

@@ -10,12 +10,15 @@ from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 import time
 
+from core.logging import get_logger, LogCategory
 from .models import (
     TestExecutionRequest,
     TestExecutionResult,
     ExecutionStrategy as StrategyType,
     ResourceAllocation
 )
+
+logger = get_logger(__name__, category=LogCategory.EXECUTION)
 
 
 class ExecutionStrategy(ABC):

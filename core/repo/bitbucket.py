@@ -11,15 +11,16 @@ import time
 import urllib3
 import warnings
 import os
-import logging
 from requests.auth import HTTPBasicAuth
+
+from core.logging import get_logger, LogCategory
 from .base import (
     RepoConnector, RepoFile, RepoBranch, PullRequest,
     RepoNotFoundError, FileNotFoundError, BranchNotFoundError,
     AuthenticationError, RateLimitError
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.GOVERNANCE)
 
 try:
     from atlassian import Bitbucket

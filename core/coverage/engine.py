@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import List, Optional, Set, Dict
 from datetime import datetime
 
+from core.logging import get_logger, LogCategory
 from core.coverage.models import (
     TestCoverageMapping,
     CoverageSource,
@@ -32,6 +33,8 @@ except ImportError:
     CUCUMBER_SUPPORT = False
 
 from core.coverage.repository import CoverageRepository
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class CoverageMappingEngine:

@@ -4,14 +4,14 @@ Playwright Reporter for Performance Profiling
 Integrates with Playwright test runner to capture performance metrics.
 """
 
-import logging
 import time
 from typing import Optional, Dict, Any
 
 from core.profiling.models import PerformanceEvent, EventType
 from core.profiling.collector import MetricsCollector
+from core.logging import get_logger, LogCategory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERFORMANCE)
 
 
 class CrossBridgePlaywrightReporter:

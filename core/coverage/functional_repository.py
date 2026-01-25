@@ -20,6 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from core.logging import get_logger, LogCategory
 from .functional_models import (
     Feature, CodeUnit, ExternalTestCase,
     TestCaseExternalMap, TestFeatureMap,
@@ -27,6 +28,8 @@ from .functional_models import (
     FunctionalCoverageMapEntry, TestToFeatureCoverageEntry,
     ChangeImpactSurfaceEntry
 )
+
+logger = get_logger(__name__, category=LogCategory.PERSISTENCE)
 
 
 class FunctionalCoverageRepository:

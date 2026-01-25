@@ -17,7 +17,10 @@ import re
 from typing import List, Optional
 from dataclasses import dataclass
 
+from core.logging import get_logger, LogCategory
 from .functional_models import ExternalTestRef
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 @dataclass

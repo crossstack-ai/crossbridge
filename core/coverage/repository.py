@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Optional, Set, Dict
 from datetime import datetime
 
+from core.logging import get_logger, LogCategory
 from core.coverage.models import (
     TestCoverageMapping,
     ScenarioCoverageMapping,
@@ -19,6 +20,8 @@ from core.coverage.models import (
     CoverageSource,
     ExecutionMode
 )
+
+logger = get_logger(__name__, category=LogCategory.PERSISTENCE)
 
 
 class CoverageRepository:

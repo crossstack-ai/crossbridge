@@ -5,7 +5,6 @@ Pluggable storage backends for performance profiling data.
 Supports local, PostgreSQL, and InfluxDB (on-prem).
 """
 
-import logging
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -13,8 +12,9 @@ from typing import List, Optional
 from datetime import datetime
 
 from core.profiling.models import PerformanceEvent, ProfileConfig, StorageBackendType
+from core.logging import get_logger, LogCategory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERFORMANCE)
 
 
 class StorageBackend(ABC):

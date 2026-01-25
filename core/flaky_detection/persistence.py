@@ -18,10 +18,13 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
+from core.logging import get_logger, LogCategory
 from .models import (
     TestExecutionRecord, FlakyTestResult,
     TestFramework, TestStatus
 )
+
+logger = get_logger(__name__, category=LogCategory.PERSISTENCE)
 
 Base = declarative_base()
 

@@ -10,7 +10,10 @@ from datetime import datetime, timedelta
 from collections import Counter
 import statistics
 
+from core.logging import get_logger, LogCategory
 from .models import TestExecutionRecord, FlakyFeatureVector, TestStatus
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class FeatureEngineer:

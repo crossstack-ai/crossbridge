@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Set
 from dataclasses import dataclass
 
+from core.logging import get_logger, LogCategory
 from core.coverage.models import (
     CoveredCodeUnit,
     TestCoverageMapping,
@@ -35,6 +36,9 @@ class CoveragePyReport:
         missing_lines: List[int]
         excluded_lines: List[int]
         summary: Dict[str, int]
+
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class CoveragePyParser:

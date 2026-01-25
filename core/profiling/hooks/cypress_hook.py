@@ -1,11 +1,14 @@
 """
+"""
 Cypress Plugin for Performance Profiling
 
 Integrates with Cypress test runner to capture performance metrics.
 """
 
-import logging
 from typing import Dict, Any
+from core.logging import get_logger, LogCategory
+
+logger = get_logger(__name__, category=LogCategory.PERFORMANCE)
 
 CYPRESS_PLUGIN_JS = """
 // Save as: cypress/plugins/crossbridge-profiling.js

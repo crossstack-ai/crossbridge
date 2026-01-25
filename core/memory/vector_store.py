@@ -6,13 +6,13 @@ supporting both PostgreSQL (pgvector) and local FAISS indexes.
 """
 
 import json
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
+from core.logging import get_logger, LogCategory
 from core.memory.models import MemoryRecord, MemoryType
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.AI)
 
 
 class VectorStore(ABC):

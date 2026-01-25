@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import List, Optional, Dict
 from dataclasses import dataclass
 
+from core.logging import get_logger, LogCategory
 from core.coverage.models import (
     CoveredCodeUnit,
     TestCoverageMapping,
@@ -32,6 +33,9 @@ class IstanbulFileCoverage:
     s: Dict[str, int]  # Statement counts
     f: Dict[str, int]  # Function counts
     b: Dict[str, List[int]]  # Branch counts
+
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class IstanbulParser:

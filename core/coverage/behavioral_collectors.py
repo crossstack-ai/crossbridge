@@ -16,12 +16,15 @@ from datetime import datetime
 import uuid
 import re
 
+from core.logging import get_logger, LogCategory
 from core.coverage.functional_models import (
     ApiEndpointCoverage,
     UiComponentCoverage,
     NetworkCapture,
     ContractCoverage
 )
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class ApiEndpointCollector:

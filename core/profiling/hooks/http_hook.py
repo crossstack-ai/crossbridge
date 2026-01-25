@@ -4,7 +4,6 @@ HTTP Requests Performance Profiling
 Intercepts HTTP calls to measure response time and detect slow APIs.
 """
 
-import logging
 import time
 from typing import Optional
 import requests
@@ -12,8 +11,9 @@ from requests import Session
 
 from core.profiling.models import PerformanceEvent, EventType
 from core.profiling.collector import MetricsCollector
+from core.logging import get_logger, LogCategory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERFORMANCE)
 
 
 class ProfilingSession(Session):

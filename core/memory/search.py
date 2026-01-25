@@ -5,14 +5,14 @@ This module provides natural language search over test-related entities,
 enabling AI-powered test discovery and intelligent recommendations.
 """
 
-import logging
 from typing import Any, Dict, List, Optional
 
+from core.logging import get_logger, LogCategory
 from core.memory.embedding_provider import EmbeddingProvider
 from core.memory.models import MemoryRecord, MemoryType, SearchResult
 from core.memory.vector_store import VectorStore
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.AI)
 
 
 class SemanticSearchEngine:

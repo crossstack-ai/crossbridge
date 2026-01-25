@@ -4,7 +4,6 @@ Metrics Collector Service
 Non-blocking, async metrics collector with batching and backpressure handling.
 """
 
-import logging
 import queue
 import threading
 import time
@@ -14,8 +13,9 @@ import uuid
 
 from core.profiling.models import PerformanceEvent, ProfileConfig, EventType
 from core.profiling.storage import StorageBackend, StorageFactory
+from core.logging import get_logger, LogCategory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERFORMANCE)
 
 
 class MetricsCollector:

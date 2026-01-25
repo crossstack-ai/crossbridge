@@ -10,6 +10,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 from pathlib import Path
 
+from core.logging import get_logger, LogCategory
 from adapters.common.base import BaseTestAdapter, TestResult
 from .models import (
     TestExecutionRequest,
@@ -21,6 +22,8 @@ from .models import (
     ExecutionContext
 )
 from .adapter_registry import AdapterRegistry
+
+logger = get_logger(__name__, category=LogCategory.EXECUTION)
 
 
 class TestExecutor:

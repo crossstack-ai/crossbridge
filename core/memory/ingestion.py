@@ -5,9 +5,9 @@ This module orchestrates the process of extracting test-related entities,
 generating embeddings, and storing them in the vector database.
 """
 
-import logging
 from typing import Any, Dict, List, Optional
 
+from core.logging import get_logger, LogCategory
 from core.memory.embedding_provider import EmbeddingProvider
 from core.memory.models import (
     MemoryRecord,
@@ -20,7 +20,7 @@ from core.memory.models import (
 )
 from core.memory.vector_store import VectorStore
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.AI)
 
 
 class MemoryIngestionPipeline:

@@ -163,7 +163,6 @@ stability while adding CrossStack platform metadata.
 """
 
 from typing import Callable, Optional, Dict
-import logging
 import re
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -171,6 +170,7 @@ import threading
 import time
 from datetime import datetime
 
+from core.logging import get_logger, LogCategory
 from .models import (
     MigrationRequest,
     MigrationResponse,
@@ -186,7 +186,7 @@ from core.translation.robot_generator import RobotFrameworkGenerator
 from core.translation.java_analyzer import JavaCodeAnalyzer, StepDefinitionMapper
 
 # Initialize logger first
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 
 # Import advanced transformation modules
 try:

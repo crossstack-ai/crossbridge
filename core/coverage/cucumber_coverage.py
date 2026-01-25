@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Set
 from datetime import datetime
 
+from core.logging import get_logger, LogCategory
 from core.coverage.models import (
     TestCoverageMapping,
     ScenarioCoverageMapping,
@@ -24,6 +25,8 @@ from adapters.selenium_bdd_java import (
     parse_cucumber_json,
     ScenarioResult
 )
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class CucumberCoverageAggregator:

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Set
 from collections import defaultdict
 
+from core.logging import get_logger, LogCategory
 from core.coverage.models import (
     CoveredCodeUnit,
     TestCoverageMapping,
@@ -31,6 +32,8 @@ from core.coverage.models import (
     ExecutionMode,
     CoverageConfidenceCalculator
 )
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class JaCoCoXMLParser:

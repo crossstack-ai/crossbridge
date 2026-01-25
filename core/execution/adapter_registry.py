@@ -7,7 +7,10 @@ Manages loading and instantiation of framework adapters.
 from typing import Dict, Type, Optional
 from pathlib import Path
 
+from core.logging import get_logger, LogCategory
 from adapters.common.base import BaseTestAdapter
+
+logger = get_logger(__name__, category=LogCategory.EXECUTION)
 
 
 class AdapterRegistry:

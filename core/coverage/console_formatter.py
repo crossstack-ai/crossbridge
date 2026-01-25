@@ -11,6 +11,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 
+from core.logging import get_logger, LogCategory
 from .functional_models import (
     FunctionalCoverageMapReport,
     TestToFeatureCoverageReport,
@@ -20,7 +21,7 @@ from .functional_models import (
     ChangeImpactSurfaceEntry
 )
 
-
+logger = get_logger(__name__, category=LogCategory.TESTING)
 console = Console()
 
 

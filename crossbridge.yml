@@ -665,3 +665,178 @@ crossbridge:
 #       enabled: true
 #       datasource: postgres
 
+
+# ============================================================================
+# PRODUCTION RUNTIME CONFIGURATION
+# ============================================================================
+# Rate limiting, retry policies, and health checks for production robustness
+
+runtime:
+  # ──────────────────────────────────────────────────────────────────────────
+  # RATE LIMITING CONFIGURATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # Token bucket algorithm for fair per-user/org throttling
+  
+  rate_limiting:
+    enabled: true
+    
+    # Default rate limits per operation type
+    defaults:
+      # Semantic search rate limits
+      search:
+        capacity: 30              # Tokens per window
+        window_seconds: 60        # Refill window
+      
+      # Test transformation rate limits
+      transform:
+        capacity: 10
+        window_seconds: 60
+      
+      # Embedding generation rate limits
+      embed:
+        capacity: 60
+        window_seconds: 60
+      
+      # AI code generation rate limits
+      ai_generate:
+        capacity: 20
+        window_seconds: 60
+      
+      # Health check rate limits
+      health_check:
+        capacity: 100
+        window_seconds: 60
+    
+    # Cleanup settings
+    cleanup_threshold: 1000       # Clean up buckets when count exceeds this
+    
+    # Per-user/org override examples (optional)
+    # overrides:
+    #   user:12345:
+    #     search:
+    #       capacity: 100
+    #       window_seconds: 60
+    #   org:premium:
+    #     transform:
+    #       capacity: 50
+    #       window_seconds: 60
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # RETRY POLICY CONFIGURATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # Exponential backoff with jitter for transient failures
+  
+  retry:
+    enabled: true
+    
+    # Default retry policy for most operations
+    default_policy:
+      max_attempts: 3             # Maximum retry attempts
+      base_delay: 0.5             # Initial delay in seconds
+      max_delay: 5.0              # Maximum delay cap
+      exponential_base: 2.0       # Exponential multiplier (2^attempt)
+      jitter: true                # Add randomness to prevent thundering herd
+    
+    # Expensive operations policy (AI, embeddings)
+    expensive_policy:
+      max_attempts: 5
+      base_delay: 1.0
+      max_delay: 10.0
+      exponential_base: 2.0
+      jitter: true
+    
+    # Quick retry policy (database, cache)
+    quick_policy:
+      max_attempts: 2
+      base_delay: 0.1
+      max_delay: 1.0
+      exponential_base: 2.0
+      jitter: true
+    
+    # Conservative retry policy (critical operations)
+    conservative_policy:
+      max_attempts: 3
+      base_delay: 2.0
+      max_delay: 30.0
+      exponential_base: 3.0
+      jitter: true
+    
+    # Retryable HTTP status codes
+    retryable_codes:
+      - 429  # Rate limit exceeded
+      - 500  # Internal server error
+      - 502  # Bad gateway
+      - 503  # Service unavailable
+      - 504  # Gateway timeout
+    
+    # Timeout for network operations (seconds)
+    network_timeout: 30
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
+  # HEALTH CHECK CONFIGURATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # Provider health monitoring for proactive failure detection
+  
+  health_checks:
+    enabled: true
+    
+    # Global health check settings
+    interval: 30                  # Check interval in seconds
+    timeout: 10                   # Health check timeout
+    failure_threshold: 3          # Failures before marking degraded
+    
+    # Providers to monitor
+    providers:
+      # AI provider health checks
+      ai_provider:
+        enabled: true
+        check_type: embed         # Test method: embed, generate, ping
+        interval: 60              # Override global interval
+        timeout: 15               # Override global timeout
+      
+      # Embedding provider health checks
+      embedding_provider:
+        enabled: true
+        check_type: embed
+        interval: 60
+        timeout: 10
+      
+      # Vector store health checks
+      vector_store:
+        enabled: true
+        check_type: ping          # Methods: ping, health_check, get_collection
+        interval: 30
+        timeout: 5
+      
+      # Database health checks
+      database:
+        enabled: true
+        check_type: ping
+        interval: 20
+        timeout: 5
+      
+      # Custom health checks
+      # custom:
+      #   enabled: true
+      #   check_type: callable
+      #   callable: my_module.health_check_function
+      #   interval: 45
+      #   timeout: 10
+    
+    # Degraded mode behavior
+    degraded_mode:
+      # Continue operating with limited functionality
+      continue_on_degraded: true
+      
+      # Disable non-critical features when degraded
+      disable_features:
+        - flaky_detection
+        - coverage_analysis
+      
+      # Alert configuration (optional)
+      # alerts:
+      #   slack_webhook: https://hooks.slack.com/...
+      #   email: ops@example.com
+

@@ -12,9 +12,10 @@ observable without any additional manual setup.
 from pathlib import Path
 from typing import Dict, Optional, List
 import json
-import logging
 
-logger = logging.getLogger(__name__)
+from core.logging import get_logger, LogCategory
+
+logger = get_logger(__name__, category=LogCategory.MIGRATION)
 
 
 class MigrationHookConfig:

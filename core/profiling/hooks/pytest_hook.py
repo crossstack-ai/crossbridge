@@ -4,15 +4,15 @@ Framework-Specific Performance Profiling Hooks
 Pytest integration for performance profiling.
 """
 
-import logging
 import time
 import pytest
 from typing import Optional
 
 from core.profiling.models import PerformanceEvent, EventType
 from core.profiling.collector import MetricsCollector
+from core.logging import get_logger, LogCategory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERFORMANCE)
 
 
 class ProfilingPlugin:

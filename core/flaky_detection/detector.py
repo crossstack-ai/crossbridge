@@ -14,8 +14,11 @@ from pathlib import Path
 import numpy as np
 from sklearn.ensemble import IsolationForest
 
+from core.logging import get_logger, LogCategory
 from .models import FlakyFeatureVector, FlakyTestResult, TestFramework
 from .feature_engineering import FeatureEngineer
+
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 @dataclass
