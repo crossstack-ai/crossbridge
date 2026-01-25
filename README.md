@@ -85,19 +85,31 @@ Reduce maintenance costs with intelligent insights:
 ### 🔹 4. **Framework-Agnostic Architecture**
 Plugin-based ecosystem supports 12+ existing frameworks:
 
-| Framework | Language | Type | Status |
-|-----------|----------|------|--------|
-| **pytest** | Python | Unit/Integration | ✅ Production |
-| **Selenium Python** | Python | UI Automation | ✅ Stable |
-| **Selenium Java** | Java | UI Automation | ✅ Stable |
-| **Selenium .NET** | C# | UI Automation | ✅ Stable |
-| **Cypress** | JavaScript/TS | E2E | ✅ Beta |
-| **Robot Framework** | Robot | Keyword-Driven | ✅ Production |
-| **JUnit/TestNG** | Java | Unit/Enterprise | ✅ Stable |
-| **NUnit/SpecFlow** | C# / .NET | Unit/BDD | ✅ Stable |
-| **Playwright** | JavaScript/TS/Python | E2E | ✅ Beta |
-| **RestAssured** | Java | API | ✅ Beta |
-| **Cucumber/Behave** | Gherkin | BDD | ✅ Stable |
+| Framework | Language | Type | Status | Completeness |
+|-----------|----------|------|--------|--------------|
+| **pytest** | Python | Unit/Integration | ✅ Production | 95% |
+| **Selenium Python** | Python | UI Automation | ✅ Stable | 90% |
+| **Selenium Java** | Java | UI Automation | ✅ Stable | 95% |
+| **Selenium .NET** | C# | UI Automation | ✅ Stable | 75% |
+| **Cypress** | JavaScript/TS | E2E | ✅ Stable | 90% |
+| **Robot Framework** | Robot | Keyword-Driven | ✅ Production | 85% |
+| **JUnit/TestNG** | Java | Unit/Enterprise | ✅ Stable | 95% |
+| **NUnit/SpecFlow** | C# / .NET | Unit/BDD | ✅ Stable | 80% |
+| **Playwright** | JavaScript/TS/Python | E2E | ✅ Stable | 85% |
+| **RestAssured** | Java | API | ✅ Stable | 90% |
+| **Cucumber/Behave** | Gherkin | BDD | ✅ Stable | 85% |
+
+**New Advanced Features (2026):**
+- 🔹 **Dependency Injection Support**: Guice, Spring DI extraction for Java
+- 🔹 **Reporting Integration**: Allure & ExtentReports integration
+- 🔹 **Autouse Fixture Chains**: Complex pytest fixture dependency handling
+- 🔹 **Custom Hooks**: pytest_configure, pytest_collection_modifyitems support
+- 🔹 **Plugin Detection**: Automatic pytest plugin discovery and analysis
+- 🔹 **Step Parameters**: Behave regex group and parameter extraction
+- 🔹 **Custom Matchers**: Behave custom step matcher detection
+- 🔹 **.NET Version Handler**: .NET Core/5/6/8 version detection and compatibility
+- 🔹 **TypeScript Types**: Cypress custom command type generation
+- 🔹 **Fluent API Chains**: RestAssured method chaining analysis
 
 📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
 
