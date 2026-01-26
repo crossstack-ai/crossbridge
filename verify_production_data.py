@@ -5,7 +5,22 @@ Queries the database to show profiling data ready for Grafana visualization
 """
 
 import psycopg2
+import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def get_db_connection():
+    """Create database connection using environment variables."""
+    return psycopg2.connect(
+        host=os.getenv('DB_HOST', 'localhost'),
+        port=int(os.getenv('DB_PORT', '5432')),
+        database=os.getenv('DB_NAME', 'crossbridge_db'),
+        user=os.getenv('DB_USER', 'postgres'),
+        password=os.getenv('DB_PASSWORD', 'admin')
+    )
 
 
 def print_section(title):
@@ -18,13 +33,7 @@ def query_recent_test_runs():
     """Show recent test runs"""
     print_section("Recent Test Runs (Last 24 Hours)")
     
-    conn = psycopg2.connect(
-        host='10.60.67.247',
-        port=5432,
-        database='cbridge-unit-test-db',
-        user='postgres',
-        password='admin'
-    )
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -263,7 +272,9 @@ LIMIT 10"""
 def main():
     print("\n" + "=" * 80)
     print("  PRODUCTION PROFILING DATA VERIFICATION")
-    print("  Database: PostgreSQL 10.60.67.247:5432")
+    db_host = os.getenv('DB_HOST', 'localhost')
+    db_port = os.getenv('DB_PORT', '5432')
+    print(f"  Database: PostgreSQL {db_host}:{db_port}")
     print("  Date: January 25, 2026")
     print("=" * 80)
     

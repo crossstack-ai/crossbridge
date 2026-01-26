@@ -50,8 +50,9 @@ class NetworkStubbingHandler:
                     'keys': list(data.keys()) if isinstance(data, dict) else [],
                     'type': 'array' if isinstance(data, list) else 'object',
                 })
-            except:
-                pass
+            except (json.JSONDecodeError, IOError) as e:
+                # Skip invalid or unreadable files
+                continue
         
         return fixtures
     

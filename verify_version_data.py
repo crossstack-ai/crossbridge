@@ -1,6 +1,13 @@
 import psycopg2
+import os
+from dotenv import load_dotenv
 
-conn = psycopg2.connect('postgresql://postgres:admin@10.55.12.99:5432/udp-native-webservices-automation')
+load_dotenv()
+
+conn = psycopg2.connect(
+    f"postgresql://{os.getenv('DB_USER', 'postgres')}:{os.getenv('DB_PASSWORD', 'admin')}@"
+    f"{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME', 'crossbridge_db')}"
+)
 cursor = conn.cursor()
 
 print("\n" + "="*70)
@@ -30,7 +37,9 @@ conn.close()
 print("="*70)
 print("Next Step: Import Grafana Dashboard")
 print("="*70)
-print("\n1. Open Grafana: http://10.55.12.99:3000/")
+grafana_host = os.getenv('GRAFANA_HOST', 'localhost')
+grafana_port = os.getenv('GRAFANA_PORT', '3000')
+print(f"\n1. Open Grafana: http://{grafana_host}:{grafana_port}/")
 print("2. Login (admin/admin)")
 print("3. Click '+' > Import Dashboard")
 print("4. Upload: grafana/dashboard_version_aware.json")

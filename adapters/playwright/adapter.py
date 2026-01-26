@@ -130,8 +130,9 @@ class PlaywrightProjectDetector:
                             config_file=config_file,
                             project_root=self.project_root
                         )
-            except:
-                pass
+            except (OSError, json.JSONDecodeError) as e:
+                # Skip files that can't be read or parsed
+                continue
         
         return None
     

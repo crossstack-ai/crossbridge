@@ -198,8 +198,9 @@ class TagInheritanceHandler:
                 # Extract tags
                 tags = self.tag_pattern.findall(content)
                 all_tags.update(tags)
-            except:
-                pass
+            except Exception as e:
+                # Skip files that can't be read (permissions, encoding issues)
+                continue
         
         return {
             'total_scenarios': total_scenarios,

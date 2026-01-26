@@ -93,8 +93,9 @@ class SpecFlowPlusHandler:
                     'retry_count': runner_section.get('retryCount', 0),
                     'filter_tags': runner_section.get('filter', {}).get('tags', []),
                 }
-        except:
-            pass
+        except (KeyError, AttributeError) as e:
+            # Return empty dict if runner config is invalid
+            return {}
         
         return {}
     
