@@ -132,7 +132,7 @@ class PlaywrightProjectDetector:
                         )
             except (OSError, json.JSONDecodeError) as e:
                 # Skip files that can't be read or parsed
-                continue
+                pass
         
         return None
     
