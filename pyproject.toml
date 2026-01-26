@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crossbridge"
-version = "0.1.0"
+version = "0.1.1"
 description = "AI-powered test automation transformation platform by CrossStack AI"
 readme = "README.md"
 requires-python = ">=3.8"

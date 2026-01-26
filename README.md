@@ -87,19 +87,22 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 | Framework | Language | Type | Status | Completeness |
 |-----------|----------|------|--------|--------------|
-| **pytest** | Python | Unit/Integration | ✅ Production | 100% |
-| **Selenium Python** | Python | UI Automation | ✅ Production | 98% |
-| **Selenium Java** | Java | UI Automation | ✅ Production | 100% |
+| **pytest** | Python | Unit/Integration | ✅ Production | 98% |
+| **Selenium Python** | Python | UI Automation | ✅ Production | 95% |
+| **Selenium Java** | Java | UI Automation | ✅ Beta | 92% |
+| **Selenium BDD Java** | Java | BDD | ⚠️ Beta | 85% (Read-only) |
 | **Selenium .NET** | C# | UI Automation | ✅ Production | 95% |
-| **Cypress** | JavaScript/TS | E2E | ✅ Production | 100% |
+| **Cypress** | JavaScript/TS | E2E | ✅ Production | 98% |
 | **Robot Framework** | Robot | Keyword-Driven | ✅ Production | 95% |
-| **JUnit/TestNG** | Java | Unit/Enterprise | ✅ Production | 100% |
-| **NUnit/SpecFlow** | C# / .NET | Unit/BDD | ✅ Production | 98% |
-| **Playwright** | JavaScript/TS/Python | E2E | ✅ Production | 98% |
-| **RestAssured** | Java | API | ✅ Production | 100% |
-| **Cucumber/Behave** | Gherkin | BDD | ✅ Production | 98% |
+| **JUnit/TestNG** | Java | Unit/Enterprise | ✅ Production | 95% |
+| **NUnit/SpecFlow** | C# / .NET | Unit/BDD | ✅ Production | 96% |
+| **Playwright** | JavaScript/TS/Python | E2E | ✅ Production | 96% |
+| **RestAssured** | Java | API | ✅ Production | 95% |
+| **Cucumber/Behave** | Gherkin | BDD | ✅ Production | 96% |
 
-**Average Completeness: 93%** ✅ (Up from 88%)
+**Average Completeness: 95%** ✅ (Up from 88%)
+
+**Note**: Selenium BDD Java adapter supports test discovery and analysis but test execution requires manual runner integration.
 
 **Phase 3 Advanced Features (January 2026):**
 - 🔹 **Multi-line String Handler** (Behave): Docstring and text block extraction
@@ -795,7 +798,7 @@ crossbridge analyze-impact --changed-files src/pages/HomePage.java
 
 ## 📊 Project Maturity & Limitations
 
-### Current Status: **Alpha (v0.1.0)**
+### Current Status: **Alpha (v0.1.1)**
 
 **What Works Well:**
 - ✅ Selenium Java + Cucumber → Robot Framework migrations
