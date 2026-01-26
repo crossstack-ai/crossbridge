@@ -8,8 +8,7 @@ For now, use SeleniumBDDJavaExtractor for test discovery only.
 from typing import Optional, List
 import logging
 
-from adapters.common.base import BaseTestAdapter
-from adapters.common.models import TestResult
+from adapters.common.base import BaseTestAdapter, TestResult
 
 logger = logging.getLogger(__name__)
 
@@ -43,22 +42,19 @@ class SeleniumBDDJavaAdapter(BaseTestAdapter):
     
     def discover_tests(self):
         """
-        Discover tests.
+        Discover tests using the extractor.
         
-        Raises:
-            NotImplementedError: Use SeleniumBDDJavaExtractor directly.
+        Returns:
+            List of discovered tests from feature files
             
         Example:
             >>> from adapters.selenium_bdd_java import SeleniumBDDJavaExtractor
             >>> extractor = SeleniumBDDJavaExtractor()
             >>> tests = extractor.extract_tests()
         """
-        raise NotImplementedError(
-            "Use SeleniumBDDJavaExtractor for test discovery:\n"
-            "  from adapters.selenium_bdd_java import SeleniumBDDJavaExtractor\n"
-            "  extractor = SeleniumBDDJavaExtractor()\n"
-            "  tests = extractor.extract_tests()"
-        )
+        from adapters.selenium_bdd_java.extractor import SeleniumBDDJavaExtractor
+        extractor = SeleniumBDDJavaExtractor(self.config)
+        return extractor.extract_tests()
     
     def run_tests(
         self, 
@@ -72,8 +68,12 @@ class SeleniumBDDJavaAdapter(BaseTestAdapter):
             tests: List of test names to run (e.g., ["LoginFeature::Valid login"])
             tags: List of Cucumber tags to filter (e.g., ["@smoke", "@regression"])
             
-        Raises:
-            NotImplementedError: Execution not yet implemented.
+        Returns:
+            Empty list (execution not yet implemented)
+            
+        Note:
+            This is a placeholder implementation. Test execution via Maven/Gradle
+            will be implemented in a future release.
             
         Future implementation:
             >>> # Maven execution with tag filtering
@@ -85,17 +85,11 @@ class SeleniumBDDJavaAdapter(BaseTestAdapter):
             >>> # Parse Cucumber JSON report
             >>> # target/cucumber-reports/cucumber.json
         """
-        raise NotImplementedError(
-            "Test execution not yet implemented.\n"
-            "\n"
-            "Planned implementation:\n"
-            "  - Maven: mvn test -Dcucumber.filter.tags='@smoke'\n"
-            "  - Gradle: gradle test --tests '*LoginFeature*'\n"
-            "  - Parse Cucumber JSON/XML reports\n"
-            "  - Return TestResult objects with pass/fail status\n"
-            "\n"
-            "For now, this adapter focuses on test discovery only."
+        logger.warning(
+            "Test execution not yet implemented. "
+            "Planned: Maven/Gradle execution with Cucumber report parsing."
         )
+        return []  # Return empty list instead of raising exception
     
     def get_test_results(self) -> List[TestResult]:
         """
@@ -103,13 +97,20 @@ class SeleniumBDDJavaAdapter(BaseTestAdapter):
         
         Raises:
             NotImplementedError: Result collection not yet implemented.
+         eturns:
+            Empty list (result collection not yet implemented)
+            
+        Note:
+            This is a placeholder implementation. Result parsing from Cucumber
+            JSON/XML reports will be implemented in a future release.
             
         Future implementation:
             Parse Cucumber JSON reports from:
             - target/cucumber-reports/cucumber.json (Maven)
             - build/reports/tests/cucumber.json (Gradle)
         """
-        raise NotImplementedError(
-            "Result collection not yet implemented.\n"
-            "Will parse Cucumber JSON reports in future versions."
+        logger.warning(
+            "Result collection not yet implemented. "
+            "Planned: Parse Cucumber JSON/XML reports."
         )
+        return []  # Return empty list instead of raising exception
