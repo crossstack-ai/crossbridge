@@ -26,6 +26,8 @@ from .adapter import (
     CypressConfig,
     CypressTestType,
 )
+from .intercept_pattern_handler import InterceptPatternHandler
+from .network_stubbing_handler import NetworkStubbingHandler
 
 __all__ = [
     'CypressAdapter',
@@ -34,4 +36,6 @@ __all__ = [
     'CypressTestParser',
     'CypressConfig',
     'CypressTestType',
+    'InterceptPatternHandler',
+    'NetworkStubbingHandler',
 ]

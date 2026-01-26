@@ -9,9 +9,13 @@ from .adapter import (
     SeleniumBehaveExtractor,
     SeleniumBehaveDetector
 )
+from .tag_inheritance_handler import TagInheritanceHandler
+from .scenario_outline_handler import ScenarioOutlineHandler
 
 __all__ = [
     'SeleniumBehaveAdapter',
     'SeleniumBehaveExtractor',
     'SeleniumBehaveDetector',
+    'TagInheritanceHandler',
+    'ScenarioOutlineHandler',
 ]

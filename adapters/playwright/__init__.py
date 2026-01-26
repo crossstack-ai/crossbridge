@@ -28,6 +28,7 @@ from .adapter import (
     PlaywrightLanguage,
     PlaywrightTestFramework,
 )
+from .multi_language_enhancer import PlaywrightMultiLanguageEnhancer
 
 __all__ = [
     "PlaywrightAdapter",
@@ -36,4 +37,5 @@ __all__ = [
     "PlaywrightProjectConfig",
     "PlaywrightLanguage",
     "PlaywrightTestFramework",
+    "PlaywrightMultiLanguageEnhancer",
 ]

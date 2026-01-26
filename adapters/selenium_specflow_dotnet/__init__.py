@@ -34,6 +34,8 @@ from .adapter import (
     SpecFlowStepDefinitionParser,
     DotNetTestFramework,
 )
+from .value_retriever_handler import ValueRetrieverHandler
+from .specflow_plus_handler import SpecFlowPlusHandler
 
 __all__ = [
     "SeleniumSpecFlowAdapter",
@@ -43,4 +45,6 @@ __all__ = [
     "SpecFlowFeatureParser",
     "SpecFlowStepDefinitionParser",
     "DotNetTestFramework",
+    "ValueRetrieverHandler",
+    "SpecFlowPlusHandler",
 ]
