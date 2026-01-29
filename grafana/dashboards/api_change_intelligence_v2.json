@@ -1,68 +1,44 @@
 {
   "dashboard": {
-    "id": null,
-    "uid": "api-change-intel-v2",
     "title": "API Change Intelligence Dashboard",
-    "description": "Monitor API changes, breaking changes, risk levels, alerts, and Confluence notifications",
     "tags": ["crossbridge", "api-changes", "intelligence", "confluence", "alerts"],
     "timezone": "browser",
-    "schemaVersion": 38,
-    "version": 2,
+    "schemaVersion": 39,
+    "version": 1,
     "refresh": "30s",
     "time": {
       "from": "now-24h",
       "to": "now"
     },
-    "timepicker": {
-      "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h"]
-    },
-    "annotations": {
-      "list": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "${DS_CROSSBRIDGE}"
-          },
-          "enable": true,
-          "iconColor": "red",
-          "name": "Critical Changes",
-          "rawQuery": "SELECT detected_at as time, entity_name as text, 'CRITICAL: ' || change_type || ' on ' || entity_type as title FROM api_changes WHERE risk_level = 'CRITICAL' AND $__timeFilter(detected_at)"
-        }
-      ]
-    },
     "panels": [
       {
         "id": 1,
-        "gridPos": {"h": 3, "w": 6, "x": 0, "y": 0},
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
         "type": "stat",
         "title": "Total API Changes (24h)",
         "targets": [
           {
             "refId": "A",
             "rawSql": "SELECT COUNT(*) as value FROM api_changes WHERE detected_at > NOW() - INTERVAL '24 hours'",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "format": "table"
           }
         ],
         "options": {
-          "reduceOptions": {
-            "values": false,
-            "calcs": ["lastNotNull"]
-          },
-          "orientation": "auto",
-          "textMode": "auto",
+          "graphMode": "area",
           "colorMode": "value",
-          "graphMode": "area"
+          "orientation": "auto",
+          "textMode": "value_and_name"
         },
         "fieldConfig": {
           "defaults": {
+            "unit": "short",
             "color": {"mode": "thresholds"},
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"color": "green", "value": null},
-                {"color": "yellow", "value": 10},
-                {"color": "red", "value": 50}
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
               ]
             }
           }
@@ -70,35 +46,32 @@
       },
       {
         "id": 2,
-        "gridPos": {"h": 3, "w": 6, "x": 6, "y": 0},
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
         "type": "stat",
         "title": "Breaking Changes (24h)",
         "targets": [
           {
             "refId": "A",
             "rawSql": "SELECT COUNT(*) as value FROM api_changes WHERE breaking = true AND detected_at > NOW() - INTERVAL '24 hours'",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "format": "table"
           }
         ],
         "options": {
-          "reduceOptions": {
-            "values": false,
-            "calcs": ["lastNotNull"]
-          },
+          "graphMode": "area",
+          "colorMode": "value",
           "orientation": "auto",
-          "textMode": "auto",
-          "colorMode": "value"
+          "textMode": "value_and_name"
         },
         "fieldConfig": {
           "defaults": {
+            "unit": "short",
             "color": {"mode": "thresholds"},
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"color": "green", "value": null},
-                {"color": "orange", "value": 1},
-                {"color": "red", "value": 5}
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "orange"},
+                {"value": 5, "color": "red"}
               ]
             }
           }
@@ -106,34 +79,31 @@
       },
       {
         "id": 3,
-        "gridPos": {"h": 3, "w": 6, "x": 12, "y": 0},
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
         "type": "stat",
         "title": "Critical Risk Changes (24h)",
         "targets": [
           {
             "refId": "A",
             "rawSql": "SELECT COUNT(*) as value FROM api_changes WHERE risk_level = 'CRITICAL' AND detected_at > NOW() - INTERVAL '24 hours'",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "format": "table"
           }
         ],
         "options": {
-          "reduceOptions": {
-            "values": false,
-            "calcs": ["lastNotNull"]
-          },
+          "graphMode": "area",
+          "colorMode": "value",
           "orientation": "auto",
-          "textMode": "auto",
-          "colorMode": "value"
+          "textMode": "value_and_name"
         },
         "fieldConfig": {
           "defaults": {
+            "unit": "short",
             "color": {"mode": "thresholds"},
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"color": "green", "value": null},
-                {"color": "red", "value": 1}
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "red"}
               ]
             }
           }
@@ -141,142 +111,79 @@
       },
       {
         "id": 4,
-        "gridPos": {"h": 3, "w": 6, "x": 18, "y": 0},
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
         "type": "stat",
         "title": "Alerts Sent (24h)",
         "targets": [
           {
             "refId": "A",
             "rawSql": "SELECT COUNT(*) as value FROM alert_history WHERE sent_at > NOW() - INTERVAL '24 hours'",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "format": "table"
           }
         ],
         "options": {
-          "reduceOptions": {
-            "values": false,
-            "calcs": ["lastNotNull"]
-          },
+          "graphMode": "area",
+          "colorMode": "value",
           "orientation": "auto",
-          "textMode": "auto",
-          "colorMode": "value"
+          "textMode": "value_and_name"
         },
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "thresholds"},
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {"color": "blue", "value": null}
-              ]
-            }
+            "unit": "short",
+            "color": {"mode": "fixed", "fixedColor": "blue"}
           }
         }
       },
       {
         "id": 5,
-        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 3},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
         "type": "timeseries",
         "title": "API Changes Over Time",
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT DATE_TRUNC('hour', detected_at) as time, COUNT(*) as \"Total Changes\" FROM api_changes WHERE $__timeFilter(detected_at) GROUP BY time ORDER BY time",
-            "format": "time_series",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
-          },
-          {
-            "refId": "B",
-            "rawSql": "SELECT DATE_TRUNC('hour', detected_at) as time, COUNT(*) as \"Breaking Changes\" FROM api_changes WHERE breaking = true AND $__timeFilter(detected_at) GROUP BY time ORDER BY time",
-            "format": "time_series",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT DATE_TRUNC('hour', detected_at) as time, COUNT(*) as value FROM api_changes WHERE $__timeFilter(detected_at) GROUP BY time ORDER BY time",
+            "format": "time_series"
           }
         ],
         "options": {
-          "legend": {
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {"mode": "multi", "sort": "none"}
+          "legend": {"displayMode": "list", "placement": "bottom"},
+          "tooltip": {"mode": "multi"}
         },
         "fieldConfig": {
           "defaults": {
             "color": {"mode": "palette-classic"},
             "custom": {
               "fillOpacity": 10,
-              "lineWidth": 2,
-              "pointSize": 5
-            },
-            "unit": "short"
-          },
-          "overrides": [
-            {
-              "matcher": {"id": "byName", "options": "Breaking Changes"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
-              ]
+              "lineWidth": 2
             }
-          ]
+          }
         }
       },
       {
         "id": 6,
-        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 3},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
         "type": "timeseries",
-        "title": "Changes by Risk Level",
+        "title": "Breaking vs Non-Breaking Changes",
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT DATE_TRUNC('hour', detected_at) as time, risk_level, COUNT(*) as count FROM api_changes WHERE $__timeFilter(detected_at) GROUP BY time, risk_level ORDER BY time",
-            "format": "time_series",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT DATE_TRUNC('hour', detected_at) as time, SUM(CASE WHEN breaking THEN 1 ELSE 0 END) as breaking, SUM(CASE WHEN NOT breaking THEN 1 ELSE 0 END) as non_breaking FROM api_changes WHERE $__timeFilter(detected_at) GROUP BY time ORDER BY time",
+            "format": "time_series"
           }
         ],
         "options": {
-          "legend": {
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {"mode": "multi", "sort": "none"}
+          "legend": {"displayMode": "list", "placement": "bottom"},
+          "tooltip": {"mode": "multi"}
         },
         "fieldConfig": {
           "defaults": {
             "color": {"mode": "palette-classic"},
             "custom": {
               "fillOpacity": 10,
-              "lineWidth": 2,
-              "stacking": {"mode": "normal"}
-            },
-            "unit": "short"
-          },
-          "overrides": [
-            {
-              "matcher": {"id": "byName", "options": "CRITICAL"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "dark-red", "mode": "fixed"}}
-              ]
-            },
-            {
-              "matcher": {"id": "byName", "options": "HIGH"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
-              ]
-            },
-            {
-              "matcher": {"id": "byName", "options": "MEDIUM"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "orange", "mode": "fixed"}}
-              ]
-            },
-            {
-              "matcher": {"id": "byName", "options": "LOW"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}
-              ]
+              "lineWidth": 2
             }
-          ]
+          }
         }
       },
       {
@@ -287,51 +194,18 @@
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT risk_level as metric, COUNT(*) as value FROM api_changes WHERE detected_at > NOW() - INTERVAL '24 hours' GROUP BY risk_level ORDER BY COUNT(*) DESC",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT risk_level, COUNT(*) as count FROM api_changes WHERE detected_at > NOW() - INTERVAL '24 hours' GROUP BY risk_level ORDER BY count DESC",
+            "format": "table"
           }
         ],
         "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "showLegend": true,
-            "values": ["value", "percent"]
-          },
-          "pieType": "donut",
-          "tooltip": {"mode": "single"}
+          "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+          "pieType": "donut"
         },
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "palette-classic"}
-          },
-          "overrides": [
-            {
-              "matcher": {"id": "byName", "options": "CRITICAL"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "dark-red", "mode": "fixed"}}
-              ]
-            },
-            {
-              "matcher": {"id": "byName", "options": "HIGH"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
-              ]
-            },
-            {
-              "matcher": {"id": "byName", "options": "MEDIUM"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "orange", "mode": "fixed"}}
-              ]
-            },
-            {
-              "matcher": {"id": "byName", "options": "LOW"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}
-              ]
-            }
-          ]
+            "unit": "short"
+          }
         }
       },
       {
@@ -342,20 +216,18 @@
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT change_type as metric, COUNT(*) as value FROM api_changes WHERE detected_at > NOW() - INTERVAL '24 hours' GROUP BY change_type ORDER BY COUNT(*) DESC",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT change_type, COUNT(*) as count FROM api_changes WHERE detected_at > NOW() - INTERVAL '24 hours' GROUP BY change_type ORDER BY count DESC",
+            "format": "table"
           }
         ],
         "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "showLegend": true,
-            "values": ["value", "percent"]
-          },
-          "pieType": "pie",
-          "tooltip": {"mode": "single"}
+          "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+          "pieType": "pie"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
         }
       },
       {
@@ -366,20 +238,18 @@
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT entity_type as metric, COUNT(*) as value FROM api_changes WHERE detected_at > NOW() - INTERVAL '24 hours' GROUP BY entity_type ORDER BY COUNT(*) DESC",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT entity_type, COUNT(*) as count FROM api_changes WHERE detected_at > NOW() - INTERVAL '24 hours' GROUP BY entity_type ORDER BY count DESC",
+            "format": "table"
           }
         ],
         "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "showLegend": true,
-            "values": ["value", "percent"]
-          },
-          "pieType": "pie",
-          "tooltip": {"mode": "single"}
+          "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+          "pieType": "pie"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
         }
       },
       {
@@ -390,49 +260,17 @@
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT detected_at as \"Time\", entity_name as \"Entity\", change_type as \"Change Type\", entity_type as \"Entity Type\", path as \"Path\", http_method as \"Method\", CASE WHEN breaking THEN '🔴 YES' ELSE '🟢 NO' END as \"Breaking\", risk_level as \"Risk Level\" FROM api_changes ORDER BY detected_at DESC LIMIT 50",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT detected_at as \"Time\", entity_name as \"Entity\", change_type as \"Change Type\", entity_type as \"Entity Type\", path as \"Path\", http_method as \"Method\", CASE WHEN breaking THEN 'YES' ELSE 'NO' END as \"Breaking\", risk_level as \"Risk\" FROM api_changes ORDER BY detected_at DESC LIMIT 50",
+            "format": "table"
           }
         ],
         "options": {
-          "showHeader": true,
-          "sortBy": [
-            {
-              "displayName": "Time",
-              "desc": true
-            }
-          ]
+          "showHeader": true
         },
         "fieldConfig": {
           "defaults": {
-            "custom": {
-              "align": "left",
-              "filterable": true
-            }
-          },
-          "overrides": [
-            {
-              "matcher": {"id": "byName", "options": "Risk Level"},
-              "properties": [
-                {
-                  "id": "custom.cellOptions",
-                  "value": {
-                    "type": "color-text"
-                  }
-                },
-                {
-                  "id": "mappings",
-                  "value": [
-                    {"type": "value", "value": "CRITICAL", "text": "🔴 CRITICAL"},
-                    {"type": "value", "value": "HIGH", "text": "🟠 HIGH"},
-                    {"type": "value", "value": "MEDIUM", "text": "🟡 MEDIUM"},
-                    {"type": "value", "value": "LOW", "text": "🟢 LOW"}
-                  ]
-                }
-              ]
-            }
-          ]
+            "custom": {"align": "left"}
+          }
         }
       },
       {
@@ -443,9 +281,8 @@
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT COALESCE(entity_name, 'Unknown') as metric, COUNT(*) as value FROM api_changes WHERE detected_at > NOW() - INTERVAL '7 days' GROUP BY entity_name ORDER BY COUNT(*) DESC LIMIT 10",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT COALESCE(entity_name, 'Unknown') as entity, COUNT(*) as count FROM api_changes WHERE detected_at > NOW() - INTERVAL '7 days' GROUP BY entity_name ORDER BY count DESC LIMIT 10",
+            "format": "table"
           }
         ],
         "options": {
@@ -456,14 +293,7 @@
         "fieldConfig": {
           "defaults": {
             "color": {"mode": "continuous-GrYlRd"},
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {"color": "green", "value": null},
-                {"color": "yellow", "value": 5},
-                {"color": "red", "value": 10}
-              ]
-            }
+            "unit": "short"
           }
         }
       },
@@ -475,9 +305,8 @@
         "targets": [
           {
             "refId": "A",
-            "rawSql": "SELECT COALESCE(http_method, 'N/A') as metric, COUNT(*) as value FROM api_changes WHERE detected_at > NOW() - INTERVAL '7 days' GROUP BY http_method ORDER BY COUNT(*) DESC",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "rawSql": "SELECT COALESCE(http_method, 'N/A') as method, COUNT(*) as count FROM api_changes WHERE detected_at > NOW() - INTERVAL '7 days' GROUP BY http_method ORDER BY count DESC",
+            "format": "table"
           }
         ],
         "options": {
@@ -487,84 +316,47 @@
         },
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "palette-classic"}
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
           }
         }
       },
       {
         "id": 13,
-        "gridPos": {"h": 10, "w": 12, "x": 0, "y": 38},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 38},
         "type": "table",
         "title": "Recent Alerts Sent",
         "targets": [
           {
             "refId": "A",
             "rawSql": "SELECT sent_at as \"Sent At\", title as \"Title\", severity as \"Severity\", notifiers_sent as \"Notifiers\", source as \"Source\" FROM alert_history ORDER BY sent_at DESC LIMIT 20",
-            "format": "table",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "format": "table"
           }
         ],
         "options": {
-          "showHeader": true,
-          "sortBy": [
-            {
-              "displayName": "Sent At",
-              "desc": true
-            }
-          ]
+          "showHeader": true
         },
         "fieldConfig": {
           "defaults": {
-            "custom": {
-              "align": "left",
-              "filterable": true
-            }
-          },
-          "overrides": [
-            {
-              "matcher": {"id": "byName", "options": "Severity"},
-              "properties": [
-                {
-                  "id": "custom.cellOptions",
-                  "value": {
-                    "type": "color-background"
-                  }
-                },
-                {
-                  "id": "mappings",
-                  "value": [
-                    {"type": "value", "value": "critical", "text": "CRITICAL", "color": "dark-red"},
-                    {"type": "value", "value": "high", "text": "HIGH", "color": "red"},
-                    {"type": "value", "value": "medium", "text": "MEDIUM", "color": "orange"},
-                    {"type": "value", "value": "low", "text": "LOW", "color": "green"},
-                    {"type": "value", "value": "info", "text": "INFO", "color": "blue"}
-                  ]
-                }
-              ]
-            }
-          ]
+            "custom": {"align": "left"}
+          }
         }
       },
       {
         "id": 14,
-        "gridPos": {"h": 10, "w": 12, "x": 12, "y": 38},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 38},
         "type": "timeseries",
         "title": "Alerts by Severity Over Time",
         "targets": [
           {
             "refId": "A",
             "rawSql": "SELECT DATE_TRUNC('hour', sent_at) as time, severity, COUNT(*) as count FROM alert_history WHERE $__timeFilter(sent_at) GROUP BY time, severity ORDER BY time",
-            "format": "time_series",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
+            "format": "time_series"
           }
         ],
         "options": {
-          "legend": {
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {"mode": "multi", "sort": "none"}
+          "legend": {"displayMode": "list", "placement": "bottom"},
+          "tooltip": {"mode": "multi"}
         },
         "fieldConfig": {
           "defaults": {
@@ -573,57 +365,9 @@
               "fillOpacity": 10,
               "lineWidth": 2
             }
-          },
-          "overrides": [
-            {
-              "matcher": {"id": "byName", "options": "critical"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "dark-red", "mode": "fixed"}}
-              ]
-            },
-            {
-              "matcher": {"id": "byName", "options": "high"},
-              "properties": [
-                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 15,
-        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 48},
-        "type": "timeseries",
-        "title": "Grafana Metrics Aggregation (From grafana_api_metrics table)",
-        "targets": [
-          {
-            "refId": "A",
-            "rawSql": "SELECT DATE_TRUNC('hour', metric_time) as time, SUM(total_count) as \"Total Changes\", SUM(breaking_count) as \"Breaking Changes\" FROM grafana_api_metrics WHERE $__timeFilter(metric_time) GROUP BY time ORDER BY time",
-            "format": "time_series",
-            "datasource": {"type": "postgres", "uid": "${DS_CROSSBRIDGE}"}
-          }
-        ],
-        "options": {
-          "legend": {
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {"mode": "multi", "sort": "none"}
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {"mode": "palette-classic"},
-            "custom": {
-              "fillOpacity": 10,
-              "lineWidth": 2
-            },
-            "unit": "short"
           }
         }
       }
     ]
-  },
-  "overwrite": true,
-  "message": "API Change Intelligence Dashboard v2 - Production Ready"
+  }
 }
