@@ -6,14 +6,18 @@ Manages the complete lifecycle of AI transformations:
 - Review and approval workflow
 - Rollback and diff management
 - Audit trail persistence
+
+Configuration is loaded from crossbridge.yml (runtime.ai_transformation section).
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime
 
 from core.logging import get_logger, LogCategory
+from core.config.loader import ConfigLoader
 from core.ai.transformation_validation import (
     AITransformation,
     AITransformationReview,
@@ -41,30 +45,63 @@ class AITransformationService:
     - Human review integration
     - Rollback capabilities
     - Audit trail persistence
+    
+    Configuration is automatically loaded from crossbridge.yml.
+    In migration mode, optimal defaults are automatically applied.
     """
     
     def __init__(
         self,
         storage_dir: Optional[Path] = None,
-        confidence_threshold: float = 0.8
+        confidence_threshold: Optional[float] = None,
+        config_loader: Optional[ConfigLoader] = None
     ):
         """
         Initialize transformation service
         
         Args:
-            storage_dir: Directory for storing transformation records
-            confidence_threshold: Minimum confidence for auto-apply
+            storage_dir: Directory for storing transformation records (overrides config)
+            confidence_threshold: Minimum confidence for auto-apply (overrides config)
+            config_loader: Optional config loader (for testing)
         """
-        self.storage_dir = storage_dir or Path(".crossbridge/transformations")
+        # Load configuration
+        if config_loader is None:
+            config_loader = ConfigLoader()
+        
+        self.config = config_loader.load()
+        self.ai_config = self.config.ai_transformation
+        
+        # Get effective configuration based on mode (migration vs observer)
+        effective = self.ai_config.get_effective_config(self.config.mode)
+        
+        # Use parameters or fall back to config
+        self.storage_dir = storage_dir or Path(self.ai_config.storage_directory)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         
-        self.confidence_threshold = confidence_threshold
+        self.confidence_threshold = confidence_threshold or effective['confidence_threshold']
+        self.require_reviewer = effective['require_reviewer']
+        self.git_commit = effective['git_commit']
+        self.verify_syntax = effective['verify_syntax']
+        self.audit_enabled = effective['audit_enabled']
+        
+        # Backup directory
+        if self.ai_config.backup_enabled:
+            self.backup_dir = Path(self.ai_config.backup_directory)
+            self.backup_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            self.backup_dir = None
+        
         self._transformations: Dict[str, AITransformation] = {}
         self._load_transformations()
         
-        logger.info(f"AITransformationService initialized", 
-                   storage_dir=str(self.storage_dir),
-                   confidence_threshold=confidence_threshold)
+        mode_info = f" (migration mode)" if self.config.mode == "migration" else ""
+        logger.info(
+            f"AITransformationService initialized{mode_info}", 
+            storage_dir=str(self.storage_dir),
+            confidence_threshold=self.confidence_threshold,
+            mode=self.config.mode,
+            config_file=self.config._config_file or "defaults"
+        )
     
     def _load_transformations(self) -> None:
         """Load existing transformations from storage"""

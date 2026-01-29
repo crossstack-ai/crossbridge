@@ -903,6 +903,153 @@ runtime:
 
 
   # ──────────────────────────────────────────────────────────────────────────
+  # AI TRANSFORMATION VALIDATION
+  # ──────────────────────────────────────────────────────────────────────────
+  # Validate AI-generated code changes with confidence scoring and human review
+  # Automatically enabled during migration mode with optimal defaults
+  
+  ai_transformation:
+    # Enable/disable AI transformation validation (DEFAULT: auto-enabled in migration mode)
+    enabled: ${AI_TRANSFORM_ENABLED:-auto}  # Options: true, false, auto
+    
+    # Storage configuration
+    storage:
+      # Directory for transformation JSON files
+      directory: ${AI_TRANSFORM_STORAGE:-.crossbridge/transformations}
+      
+      # Backup before applying transformations
+      backup_enabled: true
+      backup_directory: .crossbridge/transformations/backups
+    
+    # ── Confidence Scoring ──
+    # Multi-signal confidence computation for AI-generated code
+    confidence:
+      # Minimum confidence threshold for auto-apply (0.0-1.0)
+      # Transformations below this threshold REQUIRE human review
+      threshold: ${AI_CONFIDENCE_THRESHOLD:-0.8}
+      
+      # Confidence level boundaries
+      levels:
+        high: 0.8      # >= 0.8 = HIGH confidence (optional review)
+        medium: 0.5    # 0.5-0.79 = MEDIUM confidence (review required)
+        # < 0.5 = LOW confidence (review required)
+      
+      # Signal weights for confidence computation
+      signals:
+        model_confidence:
+          enabled: true
+          weight: 1.0              # Base multiplier
+        
+        diff_size:
+          enabled: true
+          # Penalties based on lines changed
+          small_threshold: 20      # <= 20 lines: no penalty
+          medium_threshold: 50     # 21-50 lines: -0.1
+          large_threshold: 100     # 51-100 lines: -0.2
+          very_large_penalty: -0.3 # > 100 lines: -0.3
+        
+        rule_violations:
+          enabled: true
+          penalty_per_violation: -0.1
+          max_penalty: -0.3
+        
+        similarity_to_existing:
+          enabled: true
+          low_threshold: 0.6       # < 0.6: -0.2 penalty
+          medium_threshold: 0.8    # < 0.8: -0.1 penalty
+        
+        syntax_validation:
+          enabled: true
+          penalty: -0.4            # Invalid syntax penalty
+        
+        test_coverage:
+          enabled: true
+          penalty: -0.2            # Coverage loss penalty
+    
+    # ── Review Workflow ──
+    # Human review process for low-confidence transformations
+    review:
+      # Require reviewer email for approvals/rejections
+      require_reviewer: true
+      
+      # Require comments when rejecting
+      require_rejection_reason: true
+      
+      # Allow re-review after rejection
+      allow_rereview: false
+      
+      # Auto-expire pending reviews after N days
+      expire_pending_days: 30
+    
+    # ── Apply & Rollback ──
+    # Configuration for applying and reverting transformations
+    apply:
+      # Create git commit when applying (if in git repo)
+      git_commit: ${AI_TRANSFORM_GIT_COMMIT:-true}
+      git_commit_prefix: "AI Transform:"
+      
+      # Verify syntax before applying
+      verify_syntax: true
+      
+      # Run linting before applying
+      run_linting: false
+      linting_command: "flake8"
+      
+      # Run tests before finalizing apply
+      run_tests: false
+      test_command: "pytest"
+    
+    rollback:
+      # Maximum rollback history to keep
+      max_history: 10
+      
+      # Require confirmation for rollback
+      require_confirmation: true
+      
+      # Create git commit when rolling back
+      git_commit: true
+      git_commit_prefix: "Rollback AI Transform:"
+    
+    # ── Audit & Compliance ──
+    # Tracking and logging for compliance requirements
+    audit:
+      # Enable comprehensive audit trail
+      enabled: true
+      
+      # Hash prompts for privacy (store hash, not full prompt)
+      hash_prompts: true
+      
+      # Log all transformation events
+      log_all_events: true
+      
+      # Export audit logs to separate file
+      export_logs: true
+      export_path: .crossbridge/transformations/audit.jsonl
+    
+    # ── CLI Defaults ──
+    # Default values for CLI commands
+    cli:
+      # Default output format (table, detailed, json)
+      default_format: table
+      
+      # Show diffs by default in 'show' command
+      show_diff_default: false
+      
+      # Auto-apply after approval by default
+      auto_apply_default: false
+    
+    # ── Migration Mode Auto-Configuration ──
+    # When crossbridge.mode = 'migration', these settings override above
+    migration_overrides:
+      enabled: true                    # Always enable in migration mode
+      confidence_threshold: 0.85       # Higher threshold for migrations
+      review_require_reviewer: true    # Require reviewer
+      apply_git_commit: true          # Always commit
+      apply_verify_syntax: true       # Always verify
+      audit_enabled: true             # Always audit
+
+
+  # ──────────────────────────────────────────────────────────────────────────
   # API CHANGE INTELLIGENCE
   # ──────────────────────────────────────────────────────────────────────────
   # Automatically enabled during migration for API test impact analysis

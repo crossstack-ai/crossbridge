@@ -99,6 +99,110 @@ class FlakyDetectionConfig:
 
 
 @dataclass
+class AITransformationConfig:
+    """AI Transformation Validation configuration"""
+    enabled: Union[bool, str] = "auto"  # true, false, auto (auto-enable in migration mode)
+    
+    # Storage
+    storage_directory: str = ".crossbridge/transformations"
+    backup_enabled: bool = True
+    backup_directory: str = ".crossbridge/transformations/backups"
+    
+    # Confidence scoring
+    confidence_threshold: float = 0.8
+    high_confidence_level: float = 0.8
+    medium_confidence_level: float = 0.5
+    
+    # Confidence signals
+    diff_size_small_threshold: int = 20
+    diff_size_medium_threshold: int = 50
+    diff_size_large_threshold: int = 100
+    diff_size_very_large_penalty: float = -0.3
+    rule_violations_penalty: float = -0.1
+    rule_violations_max_penalty: float = -0.3
+    similarity_low_threshold: float = 0.6
+    similarity_medium_threshold: float = 0.8
+    syntax_validation_penalty: float = -0.4
+    test_coverage_penalty: float = -0.2
+    
+    # Review workflow
+    require_reviewer: bool = True
+    require_rejection_reason: bool = True
+    allow_rereview: bool = False
+    expire_pending_days: int = 30
+    
+    # Apply & rollback
+    git_commit: bool = True
+    git_commit_prefix: str = "AI Transform:"
+    verify_syntax: bool = True
+    run_linting: bool = False
+    linting_command: str = "flake8"
+    run_tests: bool = False
+    test_command: str = "pytest"
+    
+    # Rollback
+    max_rollback_history: int = 10
+    require_rollback_confirmation: bool = True
+    rollback_git_commit: bool = True
+    rollback_git_commit_prefix: str = "Rollback AI Transform:"
+    
+    # Audit
+    audit_enabled: bool = True
+    hash_prompts: bool = True
+    log_all_events: bool = True
+    export_audit_logs: bool = True
+    audit_export_path: str = ".crossbridge/transformations/audit.jsonl"
+    
+    # CLI defaults
+    cli_default_format: str = "table"
+    cli_show_diff_default: bool = False
+    cli_auto_apply_default: bool = False
+    
+    # Migration mode overrides
+    migration_enabled: Optional[bool] = True
+    migration_confidence_threshold: Optional[float] = 0.85
+    migration_require_reviewer: Optional[bool] = True
+    migration_git_commit: Optional[bool] = True
+    migration_verify_syntax: Optional[bool] = True
+    migration_audit_enabled: Optional[bool] = True
+    
+    def is_enabled(self, mode: str = "observer") -> bool:
+        """Check if AI transformation is enabled based on mode"""
+        if self.enabled == "auto":
+            return mode == "migration"
+        return self.enabled
+    
+    def get_effective_config(self, mode: str = "observer") -> Dict[str, Any]:
+        """Get effective configuration with migration overrides applied"""
+        config = {
+            "enabled": self.is_enabled(mode),
+            "storage_directory": self.storage_directory,
+            "confidence_threshold": self.confidence_threshold,
+            "require_reviewer": self.require_reviewer,
+            "git_commit": self.git_commit,
+            "verify_syntax": self.verify_syntax,
+            "audit_enabled": self.audit_enabled,
+        }
+        
+        # Apply migration overrides if in migration mode
+        if mode == "migration":
+            if self.migration_enabled is not None:
+                config["enabled"] = self.migration_enabled
+            if self.migration_confidence_threshold is not None:
+                config["confidence_threshold"] = self.migration_confidence_threshold
+            if self.migration_require_reviewer is not None:
+                config["require_reviewer"] = self.migration_require_reviewer
+            if self.migration_git_commit is not None:
+                config["git_commit"] = self.migration_git_commit
+            if self.migration_verify_syntax is not None:
+                config["verify_syntax"] = self.migration_verify_syntax
+            if self.migration_audit_enabled is not None:
+                config["audit_enabled"] = self.migration_audit_enabled
+        
+        return config
+
+
+@dataclass
 class ObserverConfig:
     """Observer mode configuration"""
     auto_detect_new_tests: bool = True
@@ -175,6 +279,7 @@ class CrossBridgeConfig:
     sidecar_hooks: SidecarHooksConfig = field(default_factory=SidecarHooksConfig)
     translation: TranslationConfig = field(default_factory=TranslationConfig)
     ai: AIConfig = field(default_factory=AIConfig)
+    ai_transformation: AITransformationConfig = field(default_factory=AITransformationConfig)
     flaky_detection: FlakyDetectionConfig = field(default_factory=FlakyDetectionConfig)
     observer: ObserverConfig = field(default_factory=ObserverConfig)
     intelligence: IntelligenceConfig = field(default_factory=IntelligenceConfig)
@@ -250,6 +355,77 @@ class CrossBridgeConfig:
                 temperature=ai_data.get('temperature', 0.7),
                 max_tokens=ai_data.get('max_tokens', 2048),
                 timeout=ai_data.get('timeout', 60)
+            )
+        
+        # AI Transformation config
+        if 'ai_transformation' in data:
+            ai_trans_data = data['ai_transformation']
+            storage_data = ai_trans_data.get('storage', {})
+            confidence_data = ai_trans_data.get('confidence', {})
+            signals_data = confidence_data.get('signals', {})
+            review_data = ai_trans_data.get('review', {})
+            apply_data = ai_trans_data.get('apply', {})
+            rollback_data = ai_trans_data.get('rollback', {})
+            audit_data = ai_trans_data.get('audit', {})
+            cli_data = ai_trans_data.get('cli', {})
+            migration_data = ai_trans_data.get('migration_overrides', {})
+            
+            config.ai_transformation = AITransformationConfig(
+                enabled=ai_trans_data.get('enabled', 'auto'),
+                # Storage
+                storage_directory=storage_data.get('directory', '.crossbridge/transformations'),
+                backup_enabled=storage_data.get('backup_enabled', True),
+                backup_directory=storage_data.get('backup_directory', '.crossbridge/transformations/backups'),
+                # Confidence
+                confidence_threshold=confidence_data.get('threshold', 0.8),
+                high_confidence_level=confidence_data.get('levels', {}).get('high', 0.8),
+                medium_confidence_level=confidence_data.get('levels', {}).get('medium', 0.5),
+                # Signals
+                diff_size_small_threshold=signals_data.get('diff_size', {}).get('small_threshold', 20),
+                diff_size_medium_threshold=signals_data.get('diff_size', {}).get('medium_threshold', 50),
+                diff_size_large_threshold=signals_data.get('diff_size', {}).get('large_threshold', 100),
+                diff_size_very_large_penalty=signals_data.get('diff_size', {}).get('very_large_penalty', -0.3),
+                rule_violations_penalty=signals_data.get('rule_violations', {}).get('penalty_per_violation', -0.1),
+                rule_violations_max_penalty=signals_data.get('rule_violations', {}).get('max_penalty', -0.3),
+                similarity_low_threshold=signals_data.get('similarity_to_existing', {}).get('low_threshold', 0.6),
+                similarity_medium_threshold=signals_data.get('similarity_to_existing', {}).get('medium_threshold', 0.8),
+                syntax_validation_penalty=signals_data.get('syntax_validation', {}).get('penalty', -0.4),
+                test_coverage_penalty=signals_data.get('test_coverage', {}).get('penalty', -0.2),
+                # Review
+                require_reviewer=review_data.get('require_reviewer', True),
+                require_rejection_reason=review_data.get('require_rejection_reason', True),
+                allow_rereview=review_data.get('allow_rereview', False),
+                expire_pending_days=review_data.get('expire_pending_days', 30),
+                # Apply
+                git_commit=apply_data.get('git_commit', True),
+                git_commit_prefix=apply_data.get('git_commit_prefix', 'AI Transform:'),
+                verify_syntax=apply_data.get('verify_syntax', True),
+                run_linting=apply_data.get('run_linting', False),
+                linting_command=apply_data.get('linting_command', 'flake8'),
+                run_tests=apply_data.get('run_tests', False),
+                test_command=apply_data.get('test_command', 'pytest'),
+                # Rollback
+                max_rollback_history=rollback_data.get('max_history', 10),
+                require_rollback_confirmation=rollback_data.get('require_confirmation', True),
+                rollback_git_commit=rollback_data.get('git_commit', True),
+                rollback_git_commit_prefix=rollback_data.get('git_commit_prefix', 'Rollback AI Transform:'),
+                # Audit
+                audit_enabled=audit_data.get('enabled', True),
+                hash_prompts=audit_data.get('hash_prompts', True),
+                log_all_events=audit_data.get('log_all_events', True),
+                export_audit_logs=audit_data.get('export_logs', True),
+                audit_export_path=audit_data.get('export_path', '.crossbridge/transformations/audit.jsonl'),
+                # CLI
+                cli_default_format=cli_data.get('default_format', 'table'),
+                cli_show_diff_default=cli_data.get('show_diff_default', False),
+                cli_auto_apply_default=cli_data.get('auto_apply_default', False),
+                # Migration overrides
+                migration_enabled=migration_data.get('enabled', True),
+                migration_confidence_threshold=migration_data.get('confidence_threshold', 0.85),
+                migration_require_reviewer=migration_data.get('review_require_reviewer', True),
+                migration_git_commit=migration_data.get('apply_git_commit', True),
+                migration_verify_syntax=migration_data.get('apply_verify_syntax', True),
+                migration_audit_enabled=migration_data.get('audit_enabled', True)
             )
         
         # Flaky detection config

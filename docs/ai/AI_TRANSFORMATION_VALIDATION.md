@@ -8,11 +8,12 @@ The AI Transformation Validation System provides a comprehensive framework for m
 
 1. [Key Principles](#key-principles)
 2. [Architecture](#architecture)
-3. [Confidence Scoring](#confidence-scoring)
-4. [Workflows](#workflows)
-5. [CLI Reference](#cli-reference)
-6. [API Reference](#api-reference)
-7. [Integration Guide](#integration-guide)
+3. [Configuration](#configuration)
+4. [Confidence Scoring](#confidence-scoring)
+5. [Workflows](#workflows)
+6. [CLI Reference](#cli-reference)
+7. [API Reference](#api-reference)
+8. [Integration Guide](#integration-guide)
 
 ---
 
@@ -105,6 +106,155 @@ Every transformation records:
 2. **Review**: Human reviews → Approves/Rejects → Updates status
 3. **Application**: Apply approved → Writes to file system → Updates status
 4. **Rollback**: Restore previous state → Updates status → Logs event
+
+---
+
+## Configuration
+
+### YAML Configuration (crossbridge.yml)
+
+All AI transformation settings are configured in `crossbridge.yml` under the `runtime.ai_transformation` section:
+
+```yaml
+runtime:
+  ai_transformation:
+    # Enable/disable (auto = enable only in migration mode)
+    enabled: auto  # Options: true, false, auto
+    
+    # Storage
+    storage:
+      directory: .crossbridge/transformations
+      backup_enabled: true
+      backup_directory: .crossbridge/transformations/backups
+    
+    # Confidence scoring
+    confidence:
+      threshold: 0.8  # Minimum confidence for auto-apply
+      
+      levels:
+        high: 0.8     # >= 0.8 = HIGH (optional review)
+        medium: 0.5   # 0.5-0.79 = MEDIUM (review required)
+      
+      # Signal configuration
+      signals:
+        diff_size:
+          small_threshold: 20      # <= 20 lines: no penalty
+          medium_threshold: 50     # 21-50 lines: -0.1
+          large_threshold: 100     # 51-100 lines: -0.2
+          very_large_penalty: -0.3 # > 100 lines: -0.3
+        
+        rule_violations:
+          penalty_per_violation: -0.1
+          max_penalty: -0.3
+        
+        syntax_validation:
+          penalty: -0.4
+        
+        test_coverage:
+          penalty: -0.2
+    
+    # Review workflow
+    review:
+      require_reviewer: true
+      require_rejection_reason: true
+      allow_rereview: false
+      expire_pending_days: 30
+    
+    # Apply settings
+    apply:
+      git_commit: true
+      git_commit_prefix: "AI Transform:"
+      verify_syntax: true
+      run_linting: false
+      run_tests: false
+    
+    # Rollback settings
+    rollback:
+      max_history: 10
+      require_confirmation: true
+      git_commit: true
+    
+    # Audit trail
+    audit:
+      enabled: true
+      hash_prompts: true
+      log_all_events: true
+      export_logs: true
+      export_path: .crossbridge/transformations/audit.jsonl
+    
+    # CLI defaults
+    cli:
+      default_format: table
+      show_diff_default: false
+      auto_apply_default: false
+    
+    # Migration mode overrides (automatic!)
+    migration_overrides:
+      enabled: true                  # Always enable
+      confidence_threshold: 0.85     # Higher threshold
+      review_require_reviewer: true  # Require reviewer
+      apply_git_commit: true        # Always commit
+      apply_verify_syntax: true     # Always verify
+      audit_enabled: true           # Always audit
+```
+
+### Automatic Migration Mode Configuration
+
+When `crossbridge.mode: migration` is set, the system automatically applies optimized settings:
+
+- ✅ **Enabled**: Always on during migration
+- ✅ **Higher Threshold**: 0.85 instead of 0.8 (more conservative)
+- ✅ **Mandatory Review**: Requires reviewer attribution
+- ✅ **Git Integration**: Automatic commits for audit trail
+- ✅ **Syntax Verification**: Always validates before applying
+- ✅ **Audit Trail**: Complete logging enabled
+
+**Example:**
+```yaml
+crossbridge:
+  mode: migration  # This triggers migration_overrides automatically!
+```
+
+### Environment Variables
+
+Override configuration with environment variables:
+
+```bash
+# Enable/disable
+export AI_TRANSFORM_ENABLED=true
+
+# Storage location
+export AI_TRANSFORM_STORAGE=/custom/path/transformations
+
+# Confidence threshold
+export AI_CONFIDENCE_THRESHOLD=0.9
+
+# Git commits
+export AI_TRANSFORM_GIT_COMMIT=false
+```
+
+### Programmatic Configuration
+
+Initialize service with custom config:
+
+```python
+from pathlib import Path
+from core.ai.transformation_service import AITransformationService
+
+# Use specific storage and threshold
+service = AITransformationService(
+    storage_dir=Path("/custom/storage"),
+    confidence_threshold=0.9
+)
+```
+
+### Configuration Precedence
+
+1. **Programmatic parameters** (highest priority)
+2. **Environment variables**
+3. **YAML configuration file** (`crossbridge.yml`)
+4. **Migration mode overrides** (if mode=migration)
+5. **Default values** (lowest priority)
 
 ---
 
