@@ -671,7 +671,7 @@ Allows flexibility while maintaining secure defaults.
 - ✅ Grafana dashboard guide
 - ✅ Release Stage-6 documentation
 
-**Phase 7: Multi-Framework Expansion**
+**Future: Multi-Framework Expansion**
 - ✅ Robot Framework listener
 - ✅ Playwright reporter (Python + JavaScript)
 - ✅ Cypress plugin (JavaScript templates)

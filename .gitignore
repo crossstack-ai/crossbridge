@@ -1,12 +1,31 @@
-# Environment variables
+# ============================================================================
+# CrossBridge AI - .gitignore
+# Last Updated: January 29, 2026
+# ============================================================================
+
+# ============================================================================
+# Environment & Configuration
+# ============================================================================
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+crossbridge.yml
+!crossbridge.yaml.example
+
+# ============================================================================
+# Python
+# ============================================================================
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+*.pyd
+
+# C extensions
 *.so
 
 # Distribution / packaging
@@ -23,25 +42,73 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # PyInstaller
 *.manifest
 *.spec
 
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
+.pytest_cache/
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
-.pytest_cache/
+junit/
+test-results/
+test_output.log
+test_output.txt
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+docs/.doctrees/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
 
 # Environments
 .env
@@ -51,30 +118,277 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+pythonenv*/
 
-# IDEs
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# ============================================================================
+# IDEs & Editors
+# ============================================================================
 .vscode/
+!.vscode/settings.json.example
+!.vscode/launch.json.example
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+*.sublime-project
+*.sublime-workspace
+.vimrc
+.project
+.pydevproject
+.settings/
+*.code-workspace
 
-# Logs
-*.log
-
-# Database
+# ============================================================================
+# Database Files
+# ============================================================================
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
 
-# Temporary files
+# PostgreSQL
+*.dump
+*.sql.gz
+
+# ============================================================================
+# Logs & Temporary Files
+# ============================================================================
+*.log
+*.log.*
+logs/
 *.tmp
 temp/
 tmp/
+.temp/
+*.bak
+*.backup
+*_backup
+*_old
+*.orig
 
-# Node modules (for Cypress/Playwright)
+# ============================================================================
+# Node.js & JavaScript (for Cypress/Playwright)
+# ============================================================================
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.parcel-cache
+.next
+.nuxt
+dist-ssr
+*.local
 
-# Grafana
+# ============================================================================
+# Test Frameworks
+# ============================================================================
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+
+# Playwright
+playwright-report/
+playwright/.cache/
+test-results/
+
+# Robot Framework
+output.xml
+log.html
+report.html
+selenium-screenshot-*.png
+
+# ============================================================================
+# Grafana & Observability
+# ============================================================================
 grafana_data/
+grafana/data/
+*.rdb
+prometheus_data/
+
+# ============================================================================
+# AI & ML Models
+# ============================================================================
+*.h5
+*.pkl
+*.pickle
+*.joblib
+*.model
+*.onnx
+*.pt
+*.pth
+models/
+checkpoints/
+embeddings_cache/
+
+# ============================================================================
+# Generated Files & Artifacts
+# ============================================================================
+*.pyc
+*.pyo
+*.pdf
+!docs/**/*.pdf
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
+working_grafana_queries.txt
+
+# Generated PDFs (keep examples in docs)
+CrossBridge_*.pdf
+QA_Automation_*.pdf
+
+# ============================================================================
+# OS-Specific
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# Project-Specific
+# ============================================================================
+
+# CrossBridge internal
+.crossbridge/
+crossbridge_cache/
+.cb_temp/
+
+# Migration artifacts
+migration/backup/
+migration/rollback/
+
+# Search indices
+search/indices/
+search/cache/
+
+# Memory/embeddings
+memory/cache/
+memory/vectors/
+
+# Data directories (exclude sample data)
+data/temp/
+data/cache/
+data/uploads/
+
+# Script outputs
+scripts/output/
+scripts/temp/
+
+# Service artifacts
+services/temp/
+services/cache/
+
+# Backup files
+*.gitignore_org
+*.gitignore_org2
+*_backup.*
+*.bak.*
+
+# ============================================================================
+# Security & Credentials
+# ============================================================================
+*.pem
+*.key
+*.cert
+*.crt
+credentials.json
+secrets.yml
+secrets.yaml
+.secrets/
+auth_tokens.txt
+
+# ============================================================================
+# Documentation Build
+# ============================================================================
+docs/.build/
+docs/_static/generated/
+docs/_templates/generated/
+*.md.backup
+
+# ============================================================================
+# Miscellaneous
+# ============================================================================
+.cache/
+*.swn
+*.swo
+*.swp
+.*.sw[a-z]
+Session.vim
+.netrwhist
+tags
+.tags
+TAGS
+.TAGS
+*.iml
+.classpath
+.factorypath
+.springBeans
+
+# ============================================================================
+# End of .gitignore
+# ============================================================================

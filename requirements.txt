@@ -1,71 +1,167 @@
-# CrossBridge Framework Dependencies
-# Product: CrossBridge by CrossStack AI
-# Description: Framework-agnostic test automation migration and transformation platform
+# ============================================================================
+# CrossBridge AI - Requirements
+# ============================================================================
+# Product: CrossBridge by CrossStack AI (v0.2.0)
+# Description: AI-powered test automation modernization platform
+# Python Version: >=3.9, <3.15 (tested on 3.9-3.14)
+# Last Updated: January 29, 2026
+# ============================================================================
 
-# Core dependencies
-numpy>=1.21.0
-scikit-learn>=1.0.0
-SQLAlchemy>=1.4.0
-psycopg2-binary>=2.9.0
+# ============================================================================
+# CORE DEPENDENCIES (Required)
+# ============================================================================
 
-# CLI dependencies
-typer>=0.9.0  # Modern CLI framework
-rich>=13.0.0  # Beautiful terminal output
-questionary>=2.0.0  # Interactive prompts (future use)
-click>=8.0.0  # Command-line interface creation
-tabulate>=0.9.0  # Table formatting for console output
+# Data Science & ML
+numpy>=1.21.0,<2.0.0              # Array operations, numerical computing
+scikit-learn>=1.0.0,<2.0.0        # Machine learning (flaky detection)
 
-# Logging Framework (core/logging/)
-# - Uses Python standard library only (no external dependencies required)
-# - Features: CrossStack-AI branding, multiple verbosity levels, file/console output
-# - Modules: logger, formatters, handlers, filters
+# Database & ORM
+SQLAlchemy>=2.0.0,<3.0.0          # Database ORM (upgraded to 2.x for better async support)
+psycopg2-binary>=2.9.0,<3.0.0     # PostgreSQL adapter
+pgvector>=0.2.0,<1.0.0            # PostgreSQL vector extension (embeddings)
 
-# Development dependencies
-pytest>=7.0.0
-pytest-cov>=4.0.0
-pytest-anyio>=0.0.0  
-black>=23.0.0
-flake8>=6.0.0
-mypy>=1.0.0
+# Data Validation
+pydantic>=2.0.0,<3.0.0            # Data validation and settings management
 
-# Translation feature dependencies
-requests>=2.31.0  # For API test generation (pytest generator)
-playwright>=1.40.0  # For UI test translation and generation
+# Configuration & Environment
+python-dotenv>=1.0.0              # Environment variable management
+PyYAML>=6.0,<7.0                  # YAML configuration parsing
 
-# AI/LLM provider dependencies (optional - for AI-powered features)
-openai>=1.0.0  # For OpenAI GPT models and embeddings
-anthropic>=0.7.0  # For Anthropic Claude models
-ollama>=0.1.0  # For local Ollama embeddings (optional)
-sentence-transformers>=2.2.0  # For HuggingFace embeddings (optional)
+# HTTP & Networking
+requests>=2.31.0                  # HTTP client library
+urllib3>=1.26.0,<3.0.0            # HTTP client (used by connectors)
+certifi>=2023.0.0                 # SSL certificate bundle
 
-# Vector store dependencies (for Memory & Embeddings system)
-pgvector>=0.2.0  # PostgreSQL vector extension support
-faiss-cpu>=1.7.4  # FAISS vector similarity search (CPU version)
-# faiss-gpu>=1.7.4  # Uncomment for GPU support
+# ============================================================================
+# CLI & USER INTERFACE (Required)
+# ============================================================================
 
-# Repository integration (optional - for repo-native transformation)
-PyGithub>=2.0.0  # GitHub API integration
-python-gitlab>=4.0.0  # GitLab API integration
-atlassian-python-api>=3.41.0  # Bitbucket Cloud/Server API
-azure-devops>=7.0.0  # Azure DevOps / TFS integration
-msrest>=0.7.0  # Azure authentication support
+typer>=0.9.0,<1.0.0               # Modern CLI framework
+rich>=13.0.0,<14.0.0              # Beautiful terminal output
+click>=8.0.0,<9.0.0               # Command-line interface (typer dependency)
+tabulate>=0.9.0                   # Table formatting for console output
 
-# Additional utilities
-python-dotenv>=1.0.0  # Environment variable management
-PyYAML>=6.0  # YAML configuration parsing
-certifi>=2023.0.0  # SSL certificate bundle
-urllib3>=1.26.0  # HTTP client (used by repository connectors)
+# Interactive prompts (currently not actively used, but planned)
+# questionary>=2.0.0              # Uncomment when interactive features added
 
-# Note: External test framework dependencies (installed separately):
-# - Cypress: npm install cypress
-# - Robot Framework: pip install robotframework
-# - pytest plugins as needed
-# - Java/Maven/Gradle for Java adapters
-# - .NET SDK for SpecFlow adapter
+# ============================================================================
+# AI & LLM PROVIDERS (Optional - for AI-powered features)
+# ============================================================================
 
-# Note: External test framework dependencies (installed separately):
-# - Cypress: npm install cypress
-# - Robot Framework: pip install robotframework
-# - pytest plugins as needed
-# - Java/Maven/Gradle for Java adapters
-# - .NET SDK for SpecFlow adapter
+openai>=1.0.0,<2.0.0              # OpenAI GPT models and embeddings
+anthropic>=0.7.0,<1.0.0           # Anthropic Claude models
+
+# Local & Open Source AI (Optional)
+# ollama>=0.1.0                   # Uncomment for local Ollama embeddings
+# sentence-transformers>=2.2.0    # Uncomment for HuggingFace embeddings
+
+# ============================================================================
+# VECTOR STORES & EMBEDDINGS (Optional - for semantic search)
+# ============================================================================
+
+faiss-cpu>=1.7.4,<2.0.0           # FAISS vector similarity search (CPU)
+# faiss-gpu>=1.7.4                # Uncomment for GPU support (CUDA required)
+
+# ============================================================================
+# TEST AUTOMATION FRAMEWORKS (Optional - for translation)
+# ============================================================================
+
+playwright>=1.40.0                # Modern browser automation (Chromium/Firefox/WebKit)
+
+# Note: Framework-specific dependencies installed as needed:
+# - selenium>=4.0.0              # For Selenium translation/analysis
+# - robotframework>=6.0          # For Robot Framework support
+# - cypress (via npm)            # npm install cypress
+# - pytest plugins               # pytest-bdd, pytest-selenium, etc.
+
+# ============================================================================
+# SOURCE CONTROL & REPOSITORY INTEGRATION (Optional)
+# ============================================================================
+
+PyGithub>=2.0.0                   # GitHub API integration
+python-gitlab>=4.0.0              # GitLab API integration
+atlassian-python-api>=3.41.0      # Bitbucket Cloud/Server API
+azure-devops>=7.0.0               # Azure DevOps / TFS integration
+msrest>=0.7.0                     # Azure authentication support
+
+# ============================================================================
+# DEVELOPMENT & TESTING (Dev Only)
+# ============================================================================
+
+pytest>=9.0.0                     # Testing framework (latest)
+pytest-cov>=4.0.0                 # Coverage plugin
+pytest-asyncio>=0.23.0            # Async test support
+pytest-mock>=3.12.0               # Mocking support
+
+# Code Quality
+black>=23.0.0                     # Code formatter
+flake8>=6.0.0                     # Linting
+mypy>=1.0.0                       # Type checking
+isort>=5.12.0                     # Import sorting
+
+# ============================================================================
+# OPTIONAL STORAGE BACKENDS
+# ============================================================================
+
+# InfluxDB (time-series profiling data)
+# influxdb-client>=1.36.0         # Uncomment for InfluxDB support
+
+# Redis (caching and queuing)
+# redis>=4.5.0                    # Uncomment for Redis support
+
+# S3/MinIO (artifact storage)
+# boto3>=1.26.0                   # Uncomment for AWS S3 support
+# minio>=7.1.0                    # Uncomment for MinIO support
+
+# ============================================================================
+# TEMPLATE ENGINES & REPORTING (Optional)
+# ============================================================================
+
+# Jinja2>=3.1.0                   # Template engine (for prompt rendering)
+# reportlab>=4.0.0                # PDF generation
+# matplotlib>=3.7.0               # Charts and visualizations
+
+# ============================================================================
+# COMPATIBILITY NOTES
+# ============================================================================
+# 
+# Python Version Support:
+# - Minimum: Python 3.9 (EOL: October 2025)
+# - Recommended: Python 3.11+ (better performance)
+# - Tested: Python 3.9, 3.10, 3.11, 3.12, 3.13, 3.14
+# - Maximum: Python 3.14 (current)
+#
+# SQLAlchemy 2.x Migration:
+# - Upgraded from 1.4.x to 2.x for better async support
+# - Breaking changes handled in persistence/schema.py
+# - Uses new declarative_base and query syntax
+#
+# External Dependencies (Not in requirements.txt):
+# - PostgreSQL 12+ (database server)
+# - Grafana 9.0+ (visualization dashboards)
+# - Node.js 16+ (for Cypress tests)
+# - Java 11+ (for Java adapter support)
+# - .NET 6.0+ (for SpecFlow adapter support)
+#
+# ============================================================================
+
+# ============================================================================
+# INSTALLATION
+# ============================================================================
+#
+# Standard Installation (core features only):
+#   pip install -r requirements.txt
+#
+# Development Installation (includes dev tools):
+#   pip install -r requirements.txt
+#   pip install black flake8 mypy isort pytest-mock pytest-asyncio
+#
+# Full Installation (all optional features):
+#   pip install -r requirements.txt
+#   pip install selenium robotframework influxdb-client redis boto3
+#
+# Production Installation (pinned versions):
+#   pip install -r requirements.txt --no-deps
+#   # Review and pin specific versions for production
+#
+# ============================================================================

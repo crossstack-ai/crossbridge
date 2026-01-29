@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "CrossStack AI", email = "crossbridge@crossstack.ai"}
+    {name = "CrossStack AI", email = "vikas.sdet@gmail.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

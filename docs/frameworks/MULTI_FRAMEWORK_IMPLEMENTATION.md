@@ -192,7 +192,7 @@ During implementation, we fixed critical bugs:
 
 ### New Documentation
 
-1. **[PHASE2_EXTENDED_FRAMEWORKS.md](PHASE2_EXTENDED_FRAMEWORKS.md)**:
+1. **[EXTENDED_FRAMEWORKS_GUIDE.md](PHASE2_EXTENDED_FRAMEWORKS.md)**:
    - Complete extended framework guide (600+ lines)
    - Usage examples for all 6 new adapters
    - Architecture integration details
@@ -207,12 +207,12 @@ During implementation, we fixed critical bugs:
    - Extended NO MIGRATION MODE section
    - Updated MIGRATION MODE frameworks
 
-3. **[PHASE2_MULTI_FRAMEWORK_UPDATE.md](PHASE2_MULTI_FRAMEWORK_UPDATE.md)**:
+3. **[MULTI_FRAMEWORK_UPDATE.md](PHASE2_MULTI_FRAMEWORK_UPDATE.md)**:
    - Updated overview to mention 12 frameworks
    - Added Phase-2 Extended section
    - Updated test coverage numbers
 
-4. **[PHASE2_MULTI_FRAMEWORK_QUICK_REF.md](PHASE2_MULTI_FRAMEWORK_QUICK_REF.md)**:
+4. **[MULTI_FRAMEWORK_QUICK_REF.md](PHASE2_MULTI_FRAMEWORK_QUICK_REF.md)**:
    - Split framework table into Core (6) and Extended (6)
    - Added extended framework examples
    - Updated AdapterFactory usage examples
@@ -514,8 +514,8 @@ CrossBridge now provides **comprehensive test intelligence** across:
 
 ## References
 
-- **Extended Framework Guide**: [PHASE2_EXTENDED_FRAMEWORKS.md](PHASE2_EXTENDED_FRAMEWORKS.md)
-- **Quick Reference**: [PHASE2_MULTI_FRAMEWORK_QUICK_REF.md](PHASE2_MULTI_FRAMEWORK_QUICK_REF.md)
+- **Extended Framework Guide**: [EXTENDED_FRAMEWORKS_GUIDE.md](PHASE2_EXTENDED_FRAMEWORKS.md)
+- **Quick Reference**: [MULTI_FRAMEWORK_QUICK_REF.md](PHASE2_MULTI_FRAMEWORK_QUICK_REF.md)
 - **Implementation**: [core/intelligence/adapters.py](core/intelligence/adapters.py)
 - **Tests**: [tests/test_extended_adapters.py](tests/test_extended_adapters.py)
 - **Configuration**: [crossbridge.yml](crossbridge.yml)

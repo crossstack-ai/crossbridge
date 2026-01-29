@@ -6,7 +6,7 @@ Optional PostgreSQL persistence for test discovery metadata with append-only obs
 
 ✅ **Optional** - Works without database  
 ✅ **Append-Only** - Observational, not destructive  
-✅ **Phase-Compatible** - Supports Phase 1 (static), Phase 2 (coverage), Phase 3 (AI)  
+✅ **Feature-Complete** - Supports static discovery, coverage mapping, and AI inference  
 ✅ **BI-Ready** - Normalized schema for reporting  
 ✅ **Audit-Safe** - Complete history preservation  
 
@@ -349,9 +349,11 @@ WHERE discovery_run_id = 'your-run-id'
 GROUP BY source;
 ```
 
-## 🔄 Phase Compatibility
+## 🔄 Discovery Capabilities
 
-### Phase 1: Static Discovery (Current)
+The schema supports multiple discovery methods with confidence scoring:
+
+### Static Analysis
 
 ```python
 # AST-based discovery
@@ -359,7 +361,7 @@ run_id = persist_discovery(tests, project, "cli")
 # source="static_ast", confidence=0.8
 ```
 
-### Phase 2: Coverage Mapping (Future)
+### Coverage-Based Mapping
 
 ```python
 # Add coverage-based mappings
@@ -367,13 +369,13 @@ mapping_repo.insert_mapping(
     session,
     test_id,
     page_id,
-    source="coverage",  # New source!
+    source="coverage",  # Coverage analysis
     discovery_run_id=run_id,
     confidence=1.0  # Coverage is definitive
 )
 ```
 
-### Phase 3: AI Inference (Future)
+### AI-Powered Inference
 
 ```python
 # Add AI-inferred mappings
