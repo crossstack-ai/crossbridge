@@ -268,6 +268,67 @@ class LoggingConfig:
 
 
 @dataclass
+class SemanticSearchConfig:
+    """Semantic search (embeddings & vector similarity) configuration"""
+    # Enable/disable semantic search (auto = enable in migration mode)
+    enabled: Union[bool, str] = "auto"
+    
+    # Embedding provider: openai, anthropic, local
+    provider_type: str = "openai"
+    
+    # OpenAI configuration
+    openai_api_key: Optional[str] = None
+    openai_model: str = "text-embedding-3-large"
+    openai_dimensions: int = 3072
+    
+    # Anthropic configuration (Voyage AI)
+    anthropic_api_key: Optional[str] = None
+    anthropic_model: str = "voyage-large-2"
+    
+    # Local embedding configuration
+    local_model: str = "all-MiniLM-L6-v2"
+    local_device: str = "cpu"
+    
+    # Search configuration
+    max_tokens: int = 8000
+    min_similarity_score: float = 0.7
+    default_top_k: int = 10
+    api_timeout: int = 30
+    retry_attempts: int = 3
+    batch_size: int = 100
+    
+    # Vector store configuration
+    vector_store_type: str = "pgvector"
+    index_type: str = "ivfflat"
+    index_lists: int = 100
+    create_index_threshold: int = 1000
+    
+    # Migration mode overrides
+    migration_enabled: bool = True
+    migration_provider_type: str = "openai"
+    migration_model: str = "text-embedding-3-large"
+    migration_max_tokens: int = 8000
+    migration_min_similarity_score: float = 0.6
+    
+    def get_effective_config(self, mode: str) -> 'SemanticSearchConfig':
+        """Get effective configuration based on execution mode"""
+        if mode == "migration" and self.migration_enabled:
+            # Apply migration overrides
+            config = SemanticSearchConfig()
+            config.__dict__.update(self.__dict__)
+            config.enabled = True
+            config.provider_type = self.migration_provider_type
+            if self.migration_provider_type == "openai":
+                config.openai_model = self.migration_model
+            elif self.migration_provider_type == "anthropic":
+                config.anthropic_model = self.migration_model
+            config.max_tokens = self.migration_max_tokens
+            config.min_similarity_score = self.migration_min_similarity_score
+            return config
+        return self
+
+
+@dataclass
 class CrossBridgeConfig:
     """Complete CrossBridge configuration"""
     # Core settings
@@ -285,6 +346,7 @@ class CrossBridgeConfig:
     intelligence: IntelligenceConfig = field(default_factory=IntelligenceConfig)
     frameworks: FrameworksConfig = field(default_factory=FrameworksConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    semantic_search: SemanticSearchConfig = field(default_factory=SemanticSearchConfig)
     
     # Loaded from file flag
     _config_file: Optional[str] = None
@@ -499,6 +561,63 @@ class CrossBridgeConfig:
                 ai_level=log_data.get('ai_level'),
                 database_level=log_data.get('database_level'),
                 observer_level=log_data.get('observer_level')
+            )
+        
+        # Semantic search config
+        if 'semantic_search' in data:
+            sem_data = data['semantic_search']
+            
+            # Parse nested OpenAI config
+            openai_config = sem_data.get('openai', {})
+            openai_api_key = openai_config.get('api_key')
+            if openai_api_key and openai_api_key.startswith('${') and openai_api_key.endswith('}'):
+                env_var = openai_api_key[2:-1]
+                openai_api_key = os.environ.get(env_var)
+            
+            # Parse nested Anthropic config
+            anthropic_config = sem_data.get('anthropic', {})
+            anthropic_api_key = anthropic_config.get('api_key')
+            if anthropic_api_key and anthropic_api_key.startswith('${') and anthropic_api_key.endswith('}'):
+                env_var = anthropic_api_key[2:-1]
+                anthropic_api_key = os.environ.get(env_var)
+            
+            # Parse nested local config
+            local_config = sem_data.get('local', {})
+            
+            # Parse search config
+            search_config = sem_data.get('search', {})
+            
+            # Parse vector store config
+            vector_config = sem_data.get('vector_store', {})
+            
+            # Parse migration overrides
+            migration_config = sem_data.get('migration_overrides', {})
+            
+            config.semantic_search = SemanticSearchConfig(
+                enabled=sem_data.get('enabled', 'auto'),
+                provider_type=sem_data.get('provider_type', 'openai'),
+                openai_api_key=openai_api_key,
+                openai_model=openai_config.get('model', 'text-embedding-3-large'),
+                openai_dimensions=openai_config.get('dimensions', 3072),
+                anthropic_api_key=anthropic_api_key,
+                anthropic_model=anthropic_config.get('model', 'voyage-large-2'),
+                local_model=local_config.get('model', 'all-MiniLM-L6-v2'),
+                local_device=local_config.get('device', 'cpu'),
+                max_tokens=search_config.get('max_tokens', 8000),
+                min_similarity_score=search_config.get('min_similarity_score', 0.7),
+                default_top_k=search_config.get('default_top_k', 10),
+                api_timeout=search_config.get('api_timeout', 30),
+                retry_attempts=search_config.get('retry_attempts', 3),
+                batch_size=search_config.get('batch_size', 100),
+                vector_store_type=vector_config.get('type', 'pgvector'),
+                index_type=vector_config.get('index_type', 'ivfflat'),
+                index_lists=vector_config.get('index_lists', 100),
+                create_index_threshold=vector_config.get('create_index_threshold', 1000),
+                migration_enabled=migration_config.get('enabled', True),
+                migration_provider_type=migration_config.get('provider_type', 'openai'),
+                migration_model=migration_config.get('model', 'text-embedding-3-large'),
+                migration_max_tokens=migration_config.get('max_tokens', 8000),
+                migration_min_similarity_score=migration_config.get('min_similarity_score', 0.6)
             )
         
         # Core mode

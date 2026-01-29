@@ -37,6 +37,7 @@ from persistence.orchestrator import persist_discovery
 from cli.commands.coverage import add_coverage_commands, execute_coverage_command
 from cli.commands.api_diff import register_commands as register_api_diff_commands
 from cli.commands.ai_transform import ai_transform
+from cli.commands.semantic import semantic_group
 
 logger = logging.getLogger(__name__)
 
@@ -1166,6 +1167,16 @@ def main():
     
     # Add AI transformation commands
     subparsers.add_parser('ai-transform', add_help=False, parents=[ai_transform])
+    
+    # Add semantic search commands
+    semantic_parser = subparsers.add_parser(
+        'semantic',
+        help='Semantic search and similarity commands'
+    )
+    semantic_subparsers = semantic_parser.add_subparsers(dest='semantic_command')
+    
+    # Register semantic commands
+    semantic_parser.set_defaults(func=lambda args: semantic_parser.print_help())
     
     # Parse arguments
     args = parser.parse_args()

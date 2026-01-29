@@ -141,7 +141,60 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
 
-### 🔹 5. **Production Hardening & Runtime Protection** 🆕
+### 🔹 5. **Semantic Search & Test Intelligence** 🆕
+Unified system combining test normalization, AST extraction, and AI-powered semantic search:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Files        │         │  Normalization   │         │  UnifiedTestMemory  │
+│  (All Frameworks)   │────────▶│  + AST Extract   │────────▶│  + Structural Sigs  │
+└─────────────────────┘         └──────────────────┘         └──────────┬──────────┘
+                                                                          │
+                                                                          ▼
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Similar Tests     │         │   Embedding API  │         │   Text Builder      │
+│  + Recommendations  │◀────────│  Vector Search   │◀────────│  (Domain Context)   │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🔄 **Universal Normalization** - Convert all frameworks to UnifiedTestMemory format
+- 🌳 **AST Extraction** - Structural signals (imports, functions, assertions, API calls, UI interactions)
+- 🔍 **Natural Language Search** - Find tests using plain English queries
+- 🧠 **Multi-Provider Support** - OpenAI, Anthropic (Voyage AI), or local sentence-transformers
+- 📊 **Vector Database** - PostgreSQL + pgvector for production-scale similarity search
+- 🔄 **Versioned Embeddings** - Reindex with new models without losing old data
+- 🚀 **Auto-Enable in Migration** - Automatically enabled during framework migration
+
+**Quick Usage**:
+```bash
+# Index your tests (auto-normalizes + extracts AST)
+crossbridge semantic index -f pytest -p ./tests
+
+# Search using natural language
+crossbridge semantic search "login timeout error"
+
+# Find similar tests
+crossbridge semantic similar test_user_login
+
+# View statistics
+crossbridge semantic stats
+```
+
+**Use Cases:**
+- Find similar test failures to identify patterns
+- Discover tests affected by code changes
+- Map legacy tests to modern equivalents during migration
+- Recommend new tests based on existing patterns
+- Detect duplicate or redundant test coverage
+- Analyze structural patterns across frameworks
+
+**Configuration:**
+All settings in one place under `runtime.semantic_search` in [crossbridge.yml](crossbridge.yml)
+
+📖 See [SEMANTIC_SEARCH.md](docs/ai/SEMANTIC_SEARCH.md) and [Quick Start](docs/ai/SEMANTIC_SEARCH_QUICK_START.md)
+
+### 🔹 6. **Production Hardening & Runtime Protection**
 Enterprise-grade production runtime features for resilient test execution:
 
 ```

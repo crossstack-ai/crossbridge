@@ -59,47 +59,6 @@ crossbridge:
   
   
   # ──────────────────────────────────────────────────────────────────────────
-  # MEMORY & EMBEDDINGS
-  # ──────────────────────────────────────────────────────────────────────────
-  # Universal test normalization and semantic search
-  
-  memory:
-    # Enable memory & embedding features
-    enabled: true
-    
-    # Automatic normalization during test execution
-    # When true: tests are automatically normalized to UnifiedTestMemory
-    # When false: manual normalization required
-    auto_normalize: true
-    
-    # Generate embeddings for semantic search
-    generate_embeddings: false  # Set to true when embedding service is configured
-    
-    # Embedding provider (when generate_embeddings: true)
-    # Options: 'openai', 'huggingface', 'local', 'azure'
-    embedding_provider: openai
-    
-    # AST extraction settings
-    extract_structural_signals: true  # Extract imports, functions, assertions via AST
-    extract_ui_interactions: true     # Extract UI commands (cy.click, page.goto, etc.)
-    
-    # Supported frameworks (all enabled by default)
-    frameworks:
-      cypress: true
-      playwright: true
-      robot: true
-      pytest: true
-      junit: true
-      testng: true
-      restassured: true
-      selenium_java: true
-      selenium_python: true
-      cucumber: true
-      behave: true
-      specflow: true
-  
-  
-  # ──────────────────────────────────────────────────────────────────────────
   # SIDECAR OBSERVER HOOKS
   # ──────────────────────────────────────────────────────────────────────────
   # Automatic hook integration during test migration
@@ -221,60 +180,6 @@ crossbridge:
     # Flaky test failure rate threshold (0.0-1.0)
     # Tests with failure rate above this are flagged
     flaky_threshold: 0.15      # 15% failure rate
-  
-  
-  # ──────────────────────────────────────────────────────────────────────────
-  # MEMORY & EMBEDDINGS SYSTEM
-  # ──────────────────────────────────────────────────────────────────────────
-  # Semantic memory for tests, coverage, and execution intelligence
-  # Enables AI-powered search and similarity detection
-  
-  memory:
-    enabled: true
-    
-    # Embedding provider configuration
-    embedding_provider:
-      # Type: 'openai', 'local' (Ollama), 'huggingface'
-      type: openai
-      
-      # OpenAI settings
-      model: text-embedding-3-large  # Options: text-embedding-3-large, text-embedding-3-small, text-embedding-ada-002
-      api_key: ${OPENAI_API_KEY}     # Use environment variable
-      batch_size: 100                # Embeddings per API call
-      
-      # Local settings (Ollama)
-      # model: nomic-embed-text
-      # base_url: http://localhost:11434
-      
-      # HuggingFace settings
-      # model: sentence-transformers/all-MiniLM-L6-v2
-      # device: cpu                  # or 'cuda' for GPU
-    
-    # Vector store configuration
-    vector_store:
-      # Type: 'pgvector' (recommended), 'faiss' (local)
-      type: pgvector
-      
-      # PostgreSQL with pgvector
-      connection_string: postgresql://${CROSSBRIDGE_DB_USER:-postgres}:${CROSSBRIDGE_DB_PASSWORD:-admin}@${CROSSBRIDGE_DB_HOST:-10.55.12.99}:${CROSSBRIDGE_DB_PORT:-5432}/${CROSSBRIDGE_DB_NAME:-udp-native-webservices-automation}
-      dimension: 3072              # Must match embedding model (3072 for text-embedding-3-large, 1536 for text-embedding-3-small)
-      
-      # FAISS (local file-based storage)
-      # index_path: ./data/memory/faiss_index
-      # dimension: 1536
-    
-    # Ingestion settings
-    batch_size: 100                # Records to process per batch
-    auto_ingest_on_discovery: true # Automatically ingest after test discovery
-    update_on_change: true         # Re-embed when test code changes
-    
-    # Search settings
-    default_top_k: 10              # Default number of search results
-    min_similarity_score: 0.5      # Minimum score to include in results (0.0-1.0)
-    
-    # Memory lifecycle
-    ttl_days: 90                   # Delete records older than N days (0 = never)
-    cleanup_on_startup: false      # Clean old records on startup
   
   
   # ──────────────────────────────────────────────────────────────────────────
@@ -1198,3 +1103,91 @@ runtime:
       dashboard_path: grafana/dashboards/api_change_intelligence.json
       datasource: postgresql
       refresh_interval: 30s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SEMANTIC SEARCH & TEST INTELLIGENCE
+  # ──────────────────────────────────────────────────────────────────────────
+  # Unified configuration for:
+  # - Test normalization to UnifiedTestMemory format
+  # - AST/structural signal extraction
+  # - Vector embeddings and semantic similarity search
+  # - Intelligent test discovery and recommendations
+  semantic_search:
+    # Enable/disable semantic search (auto = enable in migration mode)
+    enabled: auto
+    
+    # ── Test Normalization & AST Extraction ──
+    # Automatic normalization to UnifiedTestMemory during test execution
+    normalization:
+      auto_normalize: true              # Auto-normalize tests to UnifiedTestMemory
+      extract_structural_signals: true  # Extract imports, functions, assertions via AST
+      extract_ui_interactions: true     # Extract UI commands (cy.click, page.goto, etc.)
+      extract_api_calls: true           # Extract API endpoints and HTTP methods
+      
+      # Supported frameworks (all enabled by default)
+      frameworks:
+        cypress: true
+        playwright: true
+        robot: true
+        pytest: true
+        junit: true
+        testng: true
+        restassured: true
+        selenium_java: true
+        selenium_python: true
+        cucumber: true
+        behave: true
+        specflow: true
+    
+    # ── Embedding Provider Configuration ──
+    # Embedding provider: openai, anthropic, local
+    provider_type: openai
+    
+    # OpenAI configuration (text-embedding-3-large/small)
+    openai:
+      api_key: ${OPENAI_API_KEY}  # Required for OpenAI
+      model: text-embedding-3-large  # 3072 dimensions, higher quality
+      # model: text-embedding-3-small  # 1536 dimensions, faster/cheaper
+      dimensions: 3072  # Match model dimensions
+    
+    # Anthropic configuration (Voyage AI)
+    anthropic:
+      api_key: ${ANTHROPIC_API_KEY}  # Required for Anthropic
+      model: voyage-large-2  # 1536 dimensions
+    
+    # Local embedding configuration (sentence-transformers)
+    local:
+      model: all-MiniLM-L6-v2  # Fast, 384 dimensions
+      device: cpu  # cpu or cuda
+    
+    # Search configuration
+    search:
+      max_tokens: 8000  # Maximum tokens for embedding text
+      min_similarity_score: 0.7  # Minimum cosine similarity (0-1)
+      default_top_k: 10  # Default number of results
+      api_timeout: 30  # API timeout in seconds
+      retry_attempts: 3  # Retry failed API calls
+      batch_size: 100  # Batch size for bulk indexing
+    
+    # Vector store configuration
+    vector_store:
+      type: pgvector  # Currently only pgvector supported
+      # Connection string from database.connection_string above
+      index_type: ivfflat  # pgvector index type
+      index_lists: 100  # Number of IVFFlat lists (tune based on data size)
+      create_index_threshold: 1000  # Auto-create index after N entities
+    
+    # ── Ingestion & Lifecycle ──
+    ingestion:
+      auto_ingest_on_discovery: true # Automatically ingest after test discovery
+      update_on_change: true         # Re-embed when test code changes
+      ttl_days: 90                   # Delete records older than N days (0 = never)
+      cleanup_on_startup: false      # Clean old records on startup
+    
+    # ── Migration Mode Overrides ──
+    migration_overrides:
+      enabled: true  # Always enable in migration mode
+      provider_type: openai  # Preferred provider for migration
+      model: text-embedding-3-large  # Best quality for migration analysis
+      max_tokens: 8000
+      min_similarity_score: 0.6  # Lower threshold for migration discovery
