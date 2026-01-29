@@ -36,6 +36,7 @@ from persistence.orchestrator import persist_discovery
 # Import CLI commands
 from cli.commands.coverage import add_coverage_commands, execute_coverage_command
 from cli.commands.api_diff import register_commands as register_api_diff_commands
+from cli.commands.ai_transform import ai_transform
 
 logger = logging.getLogger(__name__)
 
@@ -1162,6 +1163,9 @@ def main():
     
     # Add coverage mapping commands
     add_coverage_commands(subparsers)
+    
+    # Add AI transformation commands
+    subparsers.add_parser('ai-transform', add_help=False, parents=[ai_transform])
     
     # Parse arguments
     args = parser.parse_args()

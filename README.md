@@ -320,6 +320,117 @@ crossbridge:
 
 📖 **Learn More**: [Performance Profiling Documentation](docs/profiling/README.md)
 
+### 🔹 8. **AI Transformation Validation** 🆕
+Never auto-merge AI-generated code again! Comprehensive validation system with confidence scoring, human review workflows, and audit trails:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   AI Generation     │         │   Validation     │         │   Review & Apply    │
+│                     │         │   System         │         │                     │
+│  • Generate test    │────────▶│  • Confidence    │────────▶│  • Human review     │
+│  • Modify code      │  output │  • Diff analysis │ score   │  • Approve/Reject   │
+│  • Refactor         │         │  • Syntax check  │         │  • Apply to files   │
+│  • Auto-complete    │         │  • Multi-signal  │         │  • Rollback ready   │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Key Principles:**
+- 🚫 **Never Auto-Merge** - All AI output requires validation
+- 🎯 **Numeric Confidence Scoring** - Multi-signal algorithm (0.0-1.0)
+- 📸 **Full Snapshots** - Complete before/after state capture
+- 👤 **Mandatory Review** - Low confidence (<0.8) requires human approval
+- ↶ **Idempotent Rollback** - Safe, repeatable revert operations
+- 📋 **Complete Audit Trail** - Track model, prompt, reviewer, timestamps
+
+**Confidence Scoring Signals:**
+| Signal | Impact | Description |
+|--------|--------|-------------|
+| Model Confidence | Base multiplier | AI model's self-reported confidence |
+| Diff Size | -0.1 to -0.3 penalty | Lines changed (>100/-0.3, >50/-0.2, >20/-0.1) |
+| Rule Violations | -0.1 per violation | Linting/style issues (max -0.3) |
+| Similarity | -0.1 to -0.2 penalty | Cosine similarity to existing code |
+| Historical Rate | Multiplier | Previous approval rate for similar changes |
+| Syntax Valid | -0.4 penalty | Code parses successfully |
+| Coverage | -0.2 penalty | Test coverage maintained |
+
+**Confidence Levels:**
+- 🟢 **HIGH (≥0.8)**: Optional review, can auto-apply
+- 🟡 **MEDIUM (0.5-0.79)**: Requires human review
+- 🔴 **LOW (<0.5)**: Requires human review
+
+**Quick Enable:**
+```python
+from core.ai.transformation_service import AITransformationService
+from core.ai.transformation_validation import ConfidenceSignals
+
+# Initialize service
+service = AITransformationService()
+
+# Generate transformation with validation
+transformation = service.generate(
+    operation="generate",
+    artifact_type="test",
+    artifact_path="tests/test_login.py",
+    before_content="",
+    after_content=ai_generated_code,
+    model="gpt-4",
+    prompt="Generate login test",
+    signals=ConfidenceSignals(
+        model_confidence=0.92,
+        diff_size=45,
+        syntax_valid=True
+    )
+)
+
+# Handle based on confidence
+if transformation.requires_review:
+    print(f"⚠ Review required: crossbridge ai-transform show {transformation.id}")
+else:
+    service.apply(transformation.id)
+    print(f"✓ Applied automatically (confidence: {transformation.confidence})")
+```
+
+**CLI Workflow:**
+```bash
+# List transformations needing review
+$ crossbridge ai-transform list --needs-review
+
+# Review with diff
+$ crossbridge ai-transform show ai-abc123 --show-diff
+
+# Approve and apply
+$ crossbridge ai-transform approve ai-abc123 \
+    --reviewer john@example.com \
+    --comments "Looks good" \
+    --apply
+
+# Rollback if needed
+$ crossbridge ai-transform rollback ai-abc123
+
+# View audit trail
+$ crossbridge ai-transform audit ai-abc123
+
+# System statistics
+$ crossbridge ai-transform stats
+```
+
+**Features:**
+- ✓ Multi-signal confidence computation
+- ✓ Human review workflow (approve/reject)
+- ✓ Unified diff generation
+- ✓ Before/after snapshots
+- ✓ Idempotent rollback
+- ✓ Complete audit trail
+- ✓ CLI commands (8 commands)
+- ✓ JSON persistence
+- ✓ Custom apply/rollback functions
+- ✓ Analytics and statistics
+
+📖 **Learn More**: 
+- [AI Transformation Validation Guide](docs/ai/AI_TRANSFORMATION_VALIDATION.md)
+- [Quick Start](docs/ai/QUICK_START_AI_TRANSFORM.md)
+- [CLI Reference](docs/ai/AI_TRANSFORMATION_VALIDATION.md#cli-reference)
+
 ---
 
 ## 🎯 Who Should Use CrossBridge AI
