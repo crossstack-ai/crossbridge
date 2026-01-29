@@ -14,6 +14,7 @@ from core.ai.embeddings.text_builder import EmbeddingTextBuilder, EmbeddableEnti
 from core.ai.embeddings.provider import EmbeddingProvider, create_embedding_provider
 from core.ai.embeddings.vector_store import VectorStore, SimilarityResult
 from core.ai.embeddings.pgvector_store import PgVectorStore
+from core.profiling.context import profile
 from cli.errors import CrossBridgeError
 
 logger = get_logger(__name__, category=LogCategory.AI)
@@ -148,12 +149,14 @@ class SemanticSearchService:
             )
         """
         try:
-            # Build entity
-            entity = self.text_builder.build_entity(
-                entity_id=entity_id,
-                entity_type=entity_type,
-                **entity_data
-            )
+            # Profile the indexing operation
+            with profile("semantic_search.index_entity", {"entity_id": entity_id, "entity_type": entity_type}):
+                # Build entity
+                entity = self.text_builder.build_entity(
+                    entity_id=entity_id,
+                    entity_type=entity_type,
+                    **entity_data
+                )
             
             # Check token limit
             if self.semantic_config.max_tokens:
@@ -172,15 +175,15 @@ class SemanticSearchService:
                 model=self.provider.model_name(),
                 version=self.version
             )
-            
-            logger.debug(
-                f"Indexed entity",
-                entity_id=entity_id,
-                entity_type=entity_type,
-                text_length=len(entity.text)
-            )
-            
-            return entity_id
+                
+                logger.debug(
+                    f"Indexed entity",
+                    entity_id=entity_id,
+                    entity_type=entity_type,
+                    text_length=len(entity.text)
+                )
+                
+                return entity_id
             
         except Exception as e:
             logger.error(f"Failed to index entity", entity_id=entity_id, error=str(e))
@@ -285,9 +288,10 @@ class SemanticSearchService:
         if not query or not query.strip():
             raise SemanticSearchError("Search query cannot be empty")
         
-        try:
-            # Generate query embedding
-            query_embedding = self.provider.embed(query)
+        with profile("semantic_search.search", {"query_len": len(query), "top_k": top_k}):
+            try:
+                # Generate query embedding
+                query_embedding = self.provider.embed(query)
             
             # Search vector store
             min_score = min_score or self.semantic_config.min_similarity_score
@@ -298,20 +302,19 @@ class SemanticSearchService:
                 filters=filters,
                 min_score=min_score
             )
-            
-            logger.debug(
-                f"Search completed",
-                query=query[:50],
-                results=len(results),
-                entity_type=entity_type
-            )
-            
-            return results
-            
-        except Exception as e:
-            logger.error(f"Search failed", query=query[:50], error=str(e))
-            raise SemanticSearchError(f"Search failed: {e}")
-    
+                
+                logger.debug(
+                    f"Search completed",
+                    query=query[:50],
+                    results=len(results),
+                    entity_type=entity_type
+                )
+                
+                return results
+                
+            except Exception as e:
+                logger.error(f"Search failed", query=query[:50], error=str(e))
+                raise SemanticSearchError(f"Search failed: {e}")
     def find_similar(
         self,
         entity_id: str,

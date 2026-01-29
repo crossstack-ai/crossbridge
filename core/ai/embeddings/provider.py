@@ -11,6 +11,7 @@ from typing import List, Optional
 import time
 
 from core.logging import get_logger, LogCategory
+from core.profiling.context import profile
 from cli.errors import CrossBridgeError
 
 logger = get_logger(__name__, category=LogCategory.AI)

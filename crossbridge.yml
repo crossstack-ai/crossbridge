@@ -1240,3 +1240,135 @@ runtime:
         high: 0.8  # High confidence >= 0.8
         medium: 0.6  # Medium confidence >= 0.6
         low: 0.0  # Low confidence < 0.6
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # UNIFIED PERFORMANCE PROFILING
+  # ──────────────────────────────────────────────────────────────────────────
+  # Consolidated profiling for all use cases:
+  # - Runtime profiling (semantic search, embeddings, vector stores)
+  # - Test execution profiling (test lifecycle, commands, HTTP)
+  # - System profiling (CPU, memory, threads, GC)
+  # - Benchmarking (adapter comparison)
+  #
+  # Safe for production, zero cost when disabled
+  profiling:
+    # ─────────────────────────────────────────────────────────────────────
+    # RUNTIME PROFILING (default)
+    # ─────────────────────────────────────────────────────────────────────
+    # Profiles internal CrossBridge operations
+    runtime:
+      enabled: false
+      type: runtime  # runtime | test_execution | system | benchmark
+      mode: sampling  # sampling | full
+      level: basic  # basic (timing) | detailed (timing + memory)
+      
+      # Targets to profile (empty = all)
+      targets:
+        - semantic_search
+        - embedding_provider
+        - vector_store
+        - pgvector_store
+        - faiss_store
+      
+      # Thresholds
+      thresholds:
+        slow_call_ms: 500  # Alert if call > 500ms
+        memory_mb: 50  # Alert if memory > 50MB
+      
+      # Sampling
+      sample_rate: 0.1  # Profile 10% of requests
+      
+      # Output
+      output:
+        type: log  # log | file | prometheus | none
+        path: ./data/profiling/runtime.jsonl
+      
+      # Safety limits
+      max_records_per_minute: 100
+      include_metadata: true
+      include_stack_trace: false
+    
+    # ─────────────────────────────────────────────────────────────────────
+    # TEST EXECUTION PROFILING
+    # ─────────────────────────────────────────────────────────────────────
+    # Profiles test lifecycle, driver commands, HTTP requests
+    # Replaces legacy profiling system
+    test_execution:
+      enabled: false
+      type: test_execution
+      mode: full  # Usually full for test profiling
+      level: basic
+      
+      # What to capture
+      capture:
+        test_lifecycle: true  # Test start/end
+        commands: true  # Driver commands (Selenium, Playwright, etc.)
+        http: true  # HTTP requests
+        assertions: false  # Individual assertions (can be noisy)
+      
+      # Thresholds (only emit if exceeded)
+      thresholds:
+        slow_call_ms: 100  # Lower threshold for test commands
+        memory_mb: 50
+      
+      # Output (can use database for structured storage)
+      output:
+        type: database  # log | file | database | none
+        database_path: ./data/profiling/test_execution.db
+      
+      # Safety limits
+      max_records_per_minute: 1000  # Higher for test execution
+      include_metadata: true
+      include_stack_trace: false
+    
+    # ─────────────────────────────────────────────────────────────────────
+    # SYSTEM PROFILING
+    # ─────────────────────────────────────────────────────────────────────
+    # System-level monitoring (CPU, memory, threads, GC)
+    # Replaces sidecar LightweightProfiler
+    system:
+      enabled: false
+      type: system
+      level: system  # Use system level for system profiling
+      
+      # What to monitor
+      monitor:
+        cpu: true
+        memory: true
+        threads: true
+        gc: true  # Garbage collection
+      
+      # Sampling (background monitoring)
+      sampling_interval: 1.0  # Sample every 1 second
+      max_snapshots: 1000  # Keep last 1000 snapshots
+      
+      # Thresholds for alerts
+      thresholds:
+        cpu_percent: 80.0  # Alert if CPU > 80%
+        memory_mb: 500  # Alert if memory increase > 500MB
+      
+      # Output
+      output:
+        type: log  # log | file | prometheus
+        path: ./data/profiling/system.jsonl
+    
+    # ─────────────────────────────────────────────────────────────────────
+    # BENCHMARKING
+    # ─────────────────────────────────────────────────────────────────────
+    # Adapter performance comparison
+    # Replaces PerformanceBenchmark
+    benchmarking:
+      enabled: false
+      type: benchmark
+      
+      # Benchmark configuration
+      iterations: 10  # Iterations per benchmark
+      compare_baselines: true  # Compare against baselines
+      baseline_adapters:  # Baseline adapters for comparison
+        - selenium_python
+        - playwright_python
+      
+      # Output
+      output:
+        type: file  # file | log
+        path: ./data/profiling/benchmark_results.json
