@@ -12,7 +12,7 @@ It is a **continuous observability and intelligence layer** that remains active 
 
 ## Lifecycle Phases
 
-### Phase 1: Migration (Initial Graph Creation)
+### Release Stage: Migration (Initial Graph Creation)
 
 **Objective**: Create the initial coverage & intent graph
 
@@ -29,7 +29,7 @@ It is a **continuous observability and intelligence layer** that remains active 
 
 **Transition**: After migration completes, CrossBridge automatically switches to **observer mode**
 
-### Phase 2: Continuous Intelligence (Post-Migration)
+### Release Stage: Continuous Intelligence (Post-Migration)
 
 **Key Rule**: CrossBridge **never re-migrates** tests in this phase
 
@@ -43,7 +43,7 @@ It is a **continuous observability and intelligence layer** that remains active 
 
 **No Migration Required**: All intelligence is metadata-driven
 
-### Phase 3: Optimization & AI Evolution
+### Release Stage: Optimization & AI Evolution
 
 **Available Features**:
 - Flaky test detection

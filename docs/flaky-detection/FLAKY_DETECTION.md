@@ -403,7 +403,7 @@ When a flaky test is detected:
 - **No step-level analysis**: BDD scenarios analyzed as a whole
 - **No root cause identification**: System identifies flakiness but not causes
 
-### Planned Enhancements (Phase 2+)
+### Planned Enhancements (Release Stage+)
 
 - [ ] Auto-retraining when new data arrives
 - [ ] Per-framework feature tuning

@@ -115,7 +115,7 @@ Tests unified data model format and multi-phase support.
 
 **TestMappingSourceEnum** (2 tests)
 - `test_mapping_source_values`: Enum value verification
-- `test_mapping_source_phase_alignment`: Phase 1/2/3 source alignment
+- `test_mapping_source_phase_alignment`: Release Stage/2/3 source alignment
 
 **TestPageObjectReference** (3 tests)
 - `test_reference_creation`: Reference data class
@@ -135,9 +135,9 @@ Tests unified data model format and multi-phase support.
 - `test_get_statistics`: Statistics generation
 
 **TestMultiPhaseCompatibility** (3 tests)
-- `test_static_ast_phase`: Phase 1 static analysis
-- `test_coverage_phase`: Phase 2 code coverage
-- `test_ai_phase`: Phase 3 AI inference
+- `test_static_ast_phase`: Release Stage static analysis
+- `test_coverage_phase`: Release Stage code coverage
+- `test_ai_phase`: Release Stage AI inference
 - `test_multiple_phases_same_mapping`: Same mapping from different sources
 
 ### 5. [test_db_models.py](tests/unit/test_db_models.py)

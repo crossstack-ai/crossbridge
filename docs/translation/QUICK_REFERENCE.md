@@ -117,7 +117,7 @@ else:
 
 | Source | Target | Status |
 |--------|--------|--------|
-| selenium-java | playwright-python | ✅ Phase 1 |
+| selenium-java | playwright-python | ✅ Release Stage |
 | selenium-python | playwright-python | 🔄 Planned |
 | restassured | pytest | 🔄 Planned |
 | robot | pytest | 🔄 Planned |

@@ -421,7 +421,7 @@ Includes:
 
 ---
 
-**Test Author**: GitHub Copilot (AI Assistant)  
+**Test Author**: CrossStack AI  
 **Test Date**: January 25, 2026  
 **Test File**: `tests/test_profiling_grafana_integration.py`  
 **Total Lines**: 900+ lines of comprehensive validation

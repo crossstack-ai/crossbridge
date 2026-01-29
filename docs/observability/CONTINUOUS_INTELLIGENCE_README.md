@@ -512,7 +512,7 @@ ORDER BY detected_at DESC;
 
 ## 📖 Additional Resources
 
-- **ChatGPT Plan**: Original 15-step implementation guide
+- **CrossBridge Design Plan**: Original 15-step implementation guide
 - **Migration Guide**: `docs/CONTINUOUS_INTELLIGENCE_GUIDE.md`
 - **Database Schema**: `scripts/migrate_continuous_intelligence.py`
 - **Example Hooks**: `core/observability/hooks/`

@@ -71,7 +71,7 @@ The translation process follows 7 steps:
 
 ## Supported Translation Paths
 
-### Phase 1 (MVP)
+### Release Stage (MVP)
 
 | Source | Target | Status |
 |--------|--------|--------|
@@ -80,7 +80,7 @@ The translation process follows 7 steps:
 | RestAssured | Pytest | 🔄 Planned |
 | Robot Framework | Pytest | 🔄 Planned |
 
-### Phase 2 (Future)
+### Release Stage (Future)
 
 - Cypress → Playwright
 - Selenium → Cypress

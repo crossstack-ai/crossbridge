@@ -89,7 +89,7 @@ AI Intelligence: auto-analyzes
 
 ---
 
-### ✅ 2. Phase 3 – Optimization & AI Extensions
+### ✅ 2. Release Stage – Optimization & AI Extensions
 
 **Your Requirements:**
 > Once hooks + data exist, CrossBridge should enable:
@@ -264,7 +264,7 @@ Suggested: test_api_payments_refund
 2. [coverage_intelligence.py](d:\Future-work2\crossbridge\core\observability\coverage_intelligence.py) - Lines 120-250: `update_from_event()`
 3. [observer_service.py](d:\Future-work2\crossbridge\core\observability\observer_service.py) - Lines 180-220: Event pipeline
 
-### Phase 3 AI Features
+### Release Stage AI Features
 1. [ai_intelligence.py](d:\Future-work2\crossbridge\core\observability\ai_intelligence.py) - Complete implementation:
    - Lines 90-180: Flaky prediction
    - Lines 220-320: Coverage gaps
@@ -375,7 +375,7 @@ ORDER BY flake_count DESC;
    - No remigration needed ✅
    - No manual action ✅
 
-2. **Phase 3 AI Features**
+2. **Release Stage AI Features**
    - Flaky detection ✅
    - Coverage gaps ✅
    - Refactor recommendations ✅

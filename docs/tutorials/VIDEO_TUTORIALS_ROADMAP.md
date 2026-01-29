@@ -401,8 +401,8 @@ This roadmap outlines planned video tutorials to help users get started with Cro
 00:00 - Introduction & project overview
 03:00 - Initial assessment (framework analysis)
 06:00 - Migration plan (phases, timeline)
-10:00 - Phase 1: Smoke tests migration
-15:00 - Phase 2: Regression tests migration
+10:00 - Release Stage: Smoke tests migration
+15:00 - Release Stage: Regression tests migration
 20:00 - Parallel execution strategy
 23:00 - Team training and adoption
 26:00 - Challenges and solutions

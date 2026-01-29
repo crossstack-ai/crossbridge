@@ -354,7 +354,7 @@ All models work with:
 
 ---
 
-## 🔮 Future Enhancements (Phase 2)
+## 🔮 Future Enhancements (Release Stage)
 
 ### 1. TestRail API Sync
 ```bash
@@ -447,7 +447,7 @@ session = get_session()  # Should not raise error
 
 ## 📚 References
 
-**Specification Source:** ChatGPT conversation on Functional Coverage & Impact Analysis
+**Specification Source:** CrossBridge Design conversation on Functional Coverage & Impact Analysis
 
 **Key Concepts:**
 1. Functional Coverage Map - Code units ↔ Tests

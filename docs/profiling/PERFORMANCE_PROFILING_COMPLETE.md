@@ -522,7 +522,7 @@ collect_event(event)
 
 ## Next Steps (Optional Enhancements)
 
-### Phase 3 (Future):
+### Release Stage (Future):
 1. **Baseline & Regression Detection**
    - Automatic baseline calculation
    - Regression alerts

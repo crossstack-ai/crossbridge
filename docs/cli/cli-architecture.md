@@ -331,7 +331,7 @@ crossbridge migrate --dry-run
 
 ## Roadmap
 
-### Phase 1: Core (✅ Complete)
+### Release Stage: Core (✅ Complete)
 - [x] Orchestration engine with Pydantic models
 - [x] CLI branding and welcome screen
 - [x] Interactive prompts for configuration
@@ -339,13 +339,13 @@ crossbridge migrate --dry-run
 - [x] Dual-layer logging
 - [x] Error handling with codes
 
-### Phase 2: Enhancement (🚧 In Progress)
+### Release Stage: Enhancement (🚧 In Progress)
 - [ ] Config file persistence (`~/.crossbridge/config.yaml`)
 - [ ] Profile management (save/load configurations)
 - [ ] AI integration (OpenAI/Anthropic/On-prem)
 - [ ] Advanced file transformation
 
-### Phase 3: Platform (📋 Planned)
+### Release Stage: Platform (📋 Planned)
 - [ ] Web UI (FastAPI + React)
 - [ ] REST API
 - [ ] Webhook notifications

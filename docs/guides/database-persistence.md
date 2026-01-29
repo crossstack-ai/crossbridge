@@ -94,10 +94,10 @@ All mappings follow this format:
 
 ### Source Types
 
-- `static_ast`: Phase 1 - Static code analysis
-- `coverage`: Phase 2 - Code coverage data
-- `ai`: Phase 3 - AI-inferred mappings
-- `runtime_trace`: Phase 2 - Execution traces
+- `static_ast`: Release Stage - Static code analysis
+- `coverage`: Release Stage - Code coverage data
+- `ai`: Release Stage - AI-inferred mappings
+- `runtime_trace`: Release Stage - Execution traces
 - `manual`: User-defined mappings
 
 ## Schema
@@ -155,21 +155,21 @@ db = DatabaseManager(connection_string)
 The schema supports all mapping phases:
 
 ```python
-# Phase 1: Static AST
+# Release Stage: Static AST
 mapping = db.add_mapping(
     session, test_id, po_id,
     source="static_ast",
     confidence=0.85
 )
 
-# Phase 2: Code Coverage
+# Release Stage: Code Coverage
 mapping = db.add_mapping(
     session, test_id, po_id,
     source="coverage",
     confidence=0.95
 )
 
-# Phase 3: AI Inference
+# Release Stage: AI Inference
 mapping = db.add_mapping(
     session, test_id, po_id,
     source="ai",

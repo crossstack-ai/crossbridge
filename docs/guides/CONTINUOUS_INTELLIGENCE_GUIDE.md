@@ -38,7 +38,7 @@ Persistence   Coverage      Drift
  (events)   Intelligence  Detection
 ```
 
-## Phase 1: Database Setup
+## Release Stage: Database Setup
 
 ### 1. Run Migration
 
@@ -71,7 +71,7 @@ WHERE detected_at > NOW() - INTERVAL '7 days'
 GROUP BY signal_type;
 ```
 
-## Phase 2: Lifecycle Initialization
+## Release Stage: Lifecycle Initialization
 
 ### 3. Initialize Migration State
 
@@ -101,7 +101,7 @@ mode = manager.get_current_mode()
 print(f"Current mode: {mode}")  # CrossBridgeMode.OBSERVER
 ```
 
-## Phase 3: Observer Service
+## Release Stage: Observer Service
 
 ### 5. Start Observer Service
 
@@ -131,7 +131,7 @@ print(f"Processing errors: {health['processing_errors']}")
 print(f"Queue size: {health['queue_size']}")
 ```
 
-## Phase 4: Framework Hooks
+## Release Stage: Framework Hooks
 
 ### Option A: Pytest Plugin
 

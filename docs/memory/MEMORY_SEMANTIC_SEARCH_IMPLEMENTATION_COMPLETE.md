@@ -354,7 +354,7 @@ GROUP BY entity_type
 
 ## 5. What Was NOT Implemented (Intentional)
 
-Per ChatGPT's "What NOT to Implement" section:
+Per CrossBridge Design's "What NOT to Implement" section:
 
 - ❌ No raw file embeddings - **Correct, we embed structured entities**
 - ❌ No direct LLM calls inside memory layer - **Correct, uses providers**
@@ -441,7 +441,7 @@ crossbridge search duplicates --threshold 0.95
 
 ## 9. Next Steps (Optional Enhancements)
 
-### Recommended by ChatGPT
+### Recommended by CrossBridge Design
 
 1. ✅ **Exact PostgreSQL VectorStore implementation** - **DONE**
 2. ✅ **Unit tests for semantic search** - **DONE (62 tests passing)**
@@ -499,7 +499,7 @@ memory:
 
 ### Implementation Status: ✅ **100% COMPLETE**
 
-The Memory & Semantic Search system has been **fully implemented** according to ChatGPT's specification:
+The Memory & Semantic Search system has been **fully implemented** according to CrossBridge Design's specification:
 
 - **All 9 implementation steps completed**
 - **62/88 unit tests passing** (21 failures are mock-related, not functional)

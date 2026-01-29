@@ -39,9 +39,9 @@ CrossBridge's AI capabilities provide intelligent code transformation, test gene
    👉 PRIMARY USE CASE FOR AI
 
 2. TRANSFORMATION (.robot → .robot refresh)
-   🟡 LIMITED AI (Phase 2.5 only)
+   🟡 LIMITED AI
    • Tier-based formatting (no AI)
-   • Phase 2.5 locator modernization (AI optional)
+   • Advanced locator modernization (AI optional)
    👉 For refreshing already-migrated files
 
 3. MIGRATION (copy-only)
@@ -210,12 +210,12 @@ CrossBridge supports three main operation types with different AI applicability:
 | **Page Objects** | `*Page.java`, `@FindBy` | Locator extraction, keyword conversion |
 | **Locators** | `*Locator*.java`, `By.*` | Quality analysis, self-healing suggestions |
 
-### 2. TRANSFORMATION 🟡 **Limited AI (Phase 2.5 Only)**
+### 2. TRANSFORMATION 🟡 **Limited AI**
 
 **Re-transform existing Robot Framework files**
 
 - **What it does:** Re-processes already-migrated `.robot` files on target branch
-- **AI applies to:** Locator modernization (Phase 2.5) only
+- **AI applies to:** Advanced locator modernization only
 - **Primary method:** Tier-based formatting (no AI needed for .robot → .robot)
 - **When to use:** Refresh headers, validate syntax, apply new formatting
 - **Note:** Input files are already Robot Framework, so Java→Robot AI transformation doesn't apply
