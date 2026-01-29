@@ -34,11 +34,18 @@ For complex transformations and enhancements:
 - [Repository Native Transformation](REPO_NATIVE_TRANSFORMATION.md)
 - [Step Definition Enhancement](STEP_DEFINITION_TRANSFORMATION_ENHANCEMENT.md)
 
+## AI & Semantic Features
+
+- **[Semantic Search CLI](../../cli/semantic_search.py)** - Command-line tool for searching tests using natural language
+- **[Confidence Scoring](../../core/ai/confidence_scoring.py)** - AI transformation quality assessment with human feedback loop
+
 ## Related Documentation
 
 - **Configuration**: See [../configuration/](../configuration/) for environment setup
 - **Testing**: See [../testing/](../testing/) for testing guides
 - **Implementation**: See [../implementation/](../implementation/) for implementation status
+- **Feature Maturity**: See [../project/FEATURE_MATURITY_MATRIX.md](../project/FEATURE_MATURITY_MATRIX.md) for feature status
+- **Roadmap**: See [../project/IMPLEMENTATION_ROADMAP.md](../project/IMPLEMENTATION_ROADMAP.md) for development plan
 
 ---
 
