@@ -1191,3 +1191,52 @@ runtime:
       model: text-embedding-3-large  # Best quality for migration analysis
       max_tokens: 8000
       min_similarity_score: 0.6  # Lower threshold for migration discovery
+    
+    # ── Phase-2: Advanced Features ──
+    # AST augmentation for enhanced code structure understanding
+    ast_augmentation:
+      enabled: true  # Append AST summaries to embeddings
+      languages:
+        python: true  # Python stdlib ast
+        java: true  # Pattern matching (JavaParser in production)
+        javascript: true  # Pattern matching (tree-sitter in production)
+      extract_classes: true
+      extract_methods: true
+      extract_imports: true
+      extract_assertions: true
+      extract_control_flow: true  # if/loop/try counts
+      extract_decorators: true  # @pytest.mark, @Test, etc.
+    
+    # FAISS backend (alternative to pgvector for local/high-performance)
+    faiss:
+      enabled: false  # Set true to use FAISS instead of pgvector
+      index_type: flat  # flat (exact), ivf (approximate), hnsw (graph-based)
+      metric: cosine  # cosine, l2, ip (inner product)
+      n_lists: 100  # IVF: number of clusters
+      n_probe: 10  # IVF: clusters to search
+      persist_path: ./data/faiss_index  # Where to save index
+      auto_persist: true  # Save after each batch
+    
+    # Graph-based similarity (relationship-aware scoring)
+    graph_similarity:
+      enabled: true  # Enhance results with graph overlap
+      semantic_weight: 0.7  # Weight for semantic similarity
+      graph_weight: 0.3  # Weight for graph overlap
+      build_test_graph: true  # Build test relationship graph
+      edge_types:
+        uses_file: true  # test -> file relationships
+        calls_method: true  # test -> method relationships
+        imports_module: true  # test -> module relationships
+        occurs_in_test: true  # failure -> test relationships
+    
+    # Confidence calibration (trust scores for results)
+    confidence:
+      enabled: true  # Return confidence with every result
+      sample_threshold: 30  # Full confidence at N samples
+      min_confidence: 0.1  # Filter results below this
+      enable_multi_signal: true  # Use text + AST + graph agreement
+      show_reasons: true  # Include confidence reasons in results
+      confidence_levels:
+        high: 0.8  # High confidence >= 0.8
+        medium: 0.6  # Medium confidence >= 0.6
+        low: 0.0  # Low confidence < 0.6

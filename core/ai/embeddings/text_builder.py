@@ -3,11 +3,16 @@ Embeddable Entity and Text Builder
 
 Deterministic text construction for semantic embeddings.
 This is the most critical step - good text = good embeddings.
+
+Phase-2 Enhancement: AST augmentation support
 """
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
+
+from core.ai.embeddings.ast_extractor import ASTExtractorFactory, augment_text_with_ast
 
 
 @dataclass
@@ -45,10 +50,20 @@ class EmbeddingTextBuilder:
     - Normalize formatting
     - Keep token count reasonable
     - Be deterministic (same input = same text)
+    
+    Phase-2: AST augmentation
+    - Append structural code summaries to base text
+    - Never replace base text, only augment
     """
     
-    # Text-only strategy (Phase 1)
-    # AST augmentation comes in Phase 2
+    def __init__(self, enable_ast_augmentation: bool = True):
+        """
+        Initialize text builder
+        
+        Args:
+            enable_ast_augmentation: Enable AST-based text augmentation (default: True)
+        """
+        self.enable_ast_augmentation = enable_ast_augmentation
     
     def build_test_text(
         self,
@@ -352,3 +367,51 @@ class EmbeddingTextBuilder:
         # Truncate to max tokens (rough)
         max_chars = max_tokens * 4
         return text[:max_chars] + "\n... (truncated)"
+    
+    def build_with_ast_augmentation(
+        self,
+        base_text: str,
+        file_path: Optional[str] = None,
+        source_code: Optional[str] = None
+    ) -> str:
+        """
+        Build embedding text with AST augmentation.
+        
+        CRITICAL: AST summary is APPENDED, never replaces base text.
+        
+        Args:
+            base_text: Base embedding text (from build_test_text/build_scenario_text)
+            file_path: Path to source file (for AST extraction)
+            source_code: Source code (alternative to file_path)
+        
+        Returns:
+            Augmented text (base + AST summary)
+        
+        Example:
+            base = builder.build_test_text(...)
+            augmented = builder.build_with_ast_augmentation(base, file_path="test.py")
+        """
+        if not self.enable_ast_augmentation:
+            return base_text
+        
+        # Extract AST summary
+        ast_summary = None
+        if file_path:
+            ast_summary = ASTExtractorFactory.extract_from_file(file_path)
+        elif source_code:
+            # Try to detect language from code patterns
+            if 'import' in source_code and 'def ' in source_code:
+                extractor = ASTExtractorFactory.get_extractor('python')
+                if extractor:
+                    ast_summary = extractor.extract(source_code)
+            elif 'class ' in source_code and ('public' in source_code or 'private' in source_code):
+                extractor = ASTExtractorFactory.get_extractor('java')
+                if extractor:
+                    ast_summary = extractor.extract(source_code)
+            elif 'function' in source_code or 'const' in source_code:
+                extractor = ASTExtractorFactory.get_extractor('javascript')
+                if extractor:
+                    ast_summary = extractor.extract(source_code)
+        
+        # Augment text with AST summary
+        return augment_text_with_ast(base_text, ast_summary)
