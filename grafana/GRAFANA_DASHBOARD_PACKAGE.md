@@ -1,20 +1,22 @@
 # Grafana Dashboard Setup - Complete Package
 
 **Created:** January 29, 2026  
-**Dashboard Version:** 2.0  
-**Status:** ✅ Ready to Import
+**Dashboard Version:** 3.0  
+**Status:** ✅ Ready to Import  
+**Dashboard File:** `grafana/dashboards/api_change_intelligence_v3.json`
 
 ---
 
 ## 📦 Package Contents
 
 ### 1. Dashboard JSON File ⭐
-**File:** `grafana/dashboards/api_change_intelligence_v2.json`
-- **Size:** ~600 lines
-- **UID:** `api-change-intel-v2`
-- **Panels:** 15 comprehensive panels
+**File:** `grafana/dashboards/api_change_intelligence_v3.json`
+- **Size:** ~18KB (530 lines)
+- **UID:** Auto-assigned on import
+- **Panels:** 14 comprehensive panels
 - **Refresh:** Auto-refresh every 30 seconds
 - **Time Range:** Default last 24 hours
+- **✨ NEW:** Datasource dropdown for PostgreSQL selection
 
 ### 2. Setup Documentation
 - **Quick Start:** `QUICK_START_API_DASHBOARD.md` (5-minute setup)
@@ -32,7 +34,7 @@
 
 ---
 
-## 🎯 Dashboard Panels (15 Total)
+## 🎯 Dashboard Panels (14 Total)
 
 ### Key Metrics (Row 1)
 1. **Total API Changes (24h)** - Stat panel with thresholds
@@ -41,18 +43,18 @@
 4. **Alerts Sent (24h)** - Total alerts dispatched
 
 ### Time Series Analysis (Row 2)
-5. **API Changes Over Time** - Hourly trend with breaking changes overlay
-6. **Changes by Risk Level** - Stacked area chart (CRITICAL/HIGH/MEDIUM/LOW)
+5. **API Changes Over Time** - Hourly trend chart
+6. **Breaking vs Non-Breaking Changes** - Comparison with color coding
 
 ### Distribution Analysis (Row 3)
-7. **Risk Level Distribution (24h)** - Donut chart
+7. **Risk Level Distribution (24h)** - Donut chart with color coding
 8. **Change Types Distribution (24h)** - Pie chart (ADDED/MODIFIED/REMOVED)
 9. **Entity Types Distribution (24h)** - Pie chart (ENDPOINT/SCHEMA/etc.)
 
 ### Recent Activity (Row 4)
 10. **Recent API Changes (Last 50)** - Interactive table with:
     - Time, Entity, Change Type, Entity Type, Path, Method
-    - Breaking indicator (🔴/🟢)
+    - Breaking indicator (YES/NO)
     - Color-coded risk levels
 
 ### Top Changes (Row 5)
@@ -60,11 +62,10 @@
 12. **Changes by HTTP Method** - Method breakdown (GET/POST/PUT/DELETE/PATCH)
 
 ### Alert Monitoring (Row 6)
-13. **Recent Alerts Sent** - Alert history table with severity colors
+13. **Recent Alerts (Last 50)** - Alert history table with:
+    - Time, Title, Message, Severity, Source, Notifiers
+    - Fixed column names for alert_history table
 14. **Alerts by Severity Over Time** - Time series tracking alert frequency
-
-### Pre-Aggregated Metrics (Row 7)
-15. **Grafana Metrics Aggregation** - Fast queries using grafana_api_metrics table
 
 ---
 

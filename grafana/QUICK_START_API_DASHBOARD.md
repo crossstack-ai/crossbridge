@@ -161,5 +161,6 @@ See detailed guide: [API_CHANGE_DASHBOARD_SETUP.md](API_CHANGE_DASHBOARD_SETUP.m
 ---
 
 **Total Setup Time:** ~5 minutes  
-**Dashboard Version:** 2.0  
+**Dashboard Version:** 3.0  
+**Dashboard File:** `grafana/dashboards/api_change_intelligence_v3.json`  
 **Status:** ✅ Production Ready

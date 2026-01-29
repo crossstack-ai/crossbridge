@@ -1,9 +1,10 @@
 # Grafana Dashboard Setup Guide - API Change Intelligence
 
-**Dashboard Version:** 2.0  
+**Dashboard Version:** 3.0  
 **Date:** January 29, 2026  
 **Database:** PostgreSQL 16.11 @ 10.60.67.247:5432  
-**Database Name:** crossbridge_test
+**Database Name:** crossbridge_test  
+**Dashboard File:** `grafana/dashboards/api_change_intelligence_v3.json`
 
 ---
 
@@ -17,7 +18,8 @@ The **API Change Intelligence Dashboard** provides real-time monitoring of:
 - Change trends over time
 
 ### Dashboard Features:
-- ✅ 15 panels with comprehensive metrics
+- ✅ 14 panels with comprehensive metrics
+- ✅ **Datasource dropdown** - Select PostgreSQL database from dashboard
 - ✅ Real-time updates (30s refresh)
 - ✅ Time series charts for trend analysis
 - ✅ Pie charts for distribution analysis
@@ -25,6 +27,7 @@ The **API Change Intelligence Dashboard** provides real-time monitoring of:
 - ✅ Color-coded risk levels
 - ✅ Alert severity tracking
 - ✅ Breaking change annotations
+- ✅ Fixed alert_history queries with correct column names
 
 ---
 
