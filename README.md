@@ -6,12 +6,12 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Development Status](https://img.shields.io/badge/status-v0.2.0-green.svg)](https://github.com/crossstack-ai/crossbridge)
-[![Production Ready](https://img.shields.io/badge/production-98%25-brightgreen.svg)](V0.2.0_RELEASE_NOTES.md)
+[![Production Ready](https://img.shields.io/badge/production-98%25-brightgreen.svg)](docs/releases/V0.2.0_RELEASE_NOTES.md)
 [![CrossStack AI](https://img.shields.io/badge/by-CrossStack%20AI-blue)](https://crossstack.ai)
 
 CrossBridge AI is an open-source platform by **CrossStack AI** that helps organizations and teams **modernize, analyze, and optimize test automation** in a framework-agnostic way.
 
-**Latest Release:** v0.2.0 (January 29, 2026) - [Release Notes](V0.2.0_RELEASE_NOTES.md)
+**Latest Release:** v0.2.0 (January 29, 2026) - [Release Notes](docs/releases/V0.2.0_RELEASE_NOTES.md)
 
 ---
 
@@ -626,7 +626,7 @@ python tests/populate_flaky_test_db.py
       --fail-on-flaky
 ```
 
-📖 **See [FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md](FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md) and [docs/CI_CD_FLAKY_INTEGRATION.md](docs/CI_CD_FLAKY_INTEGRATION.md)**
+📖 **See [FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md](docs/flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md) and [CI_CD_FLAKY_INTEGRATION.md](docs/ci-cd/CI_CD_FLAKY_INTEGRATION.md)**
 
 ### 5. Memory & Embeddings System 🎯 NEW!
 
@@ -763,7 +763,7 @@ similar = engine.find_similar("test_login_valid", top_k=5)
 duplicates = [r for r in similar if r.score > 0.9]
 ```
 
-📖 **See [docs/MEMORY_EMBEDDINGS_SYSTEM.md](docs/MEMORY_EMBEDDINGS_SYSTEM.md) and [docs/MEMORY_QUICK_START.md](docs/MEMORY_QUICK_START.md)**
+📖 **See [MEMORY_EMBEDDINGS_SYSTEM.md](docs/memory/MEMORY_EMBEDDINGS_SYSTEM.md) and [MEMORY_QUICK_START.md](docs/memory/MEMORY_QUICK_START.md)**
 
 ### 6. Impact Analysis
 
@@ -1081,7 +1081,7 @@ We welcome contributions! This project needs help with:
 - 🧪 **Testing**: Unit tests, integration tests, real-world validations
 - 🌍 **Internationalization**: Non-English test support
 
-**See [CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines and [CLA.md](CLA.md) for contributor license agreement.
+**See [CONTRIBUTING.md](docs/community/CONTRIBUTING.md)** for guidelines and [CLA.md](docs/community/CLA.md) for contributor license agreement.
 
 ### Quick Contribution Guide
 
@@ -1147,8 +1147,8 @@ CrossBridge AI is **open source and community-driven**.
 We welcome contributions from developers, QA engineers, and organizations worldwide.
 
 ### How to Contribute
-- 📝 **Read** [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
-- 🔑 **Sign** [Contributor License Agreement](CLA.md)
+- 📝 **Read** [CONTRIBUTING.md](docs/community/CONTRIBUTING.md) for guidelines
+- 🔑 **Sign** [Contributor License Agreement](docs/community/CLA.md)
 - 💻 **Submit** pull requests for features or fixes
 - 🐛 **Report** bugs and issues
 - 📢 **Share** your experience
@@ -1158,7 +1158,7 @@ We welcome contributions from developers, QA engineers, and organizations worldw
 - **Email**: vikas.sdet@gmail.com
 - **Organization**: CrossStack AI
 
-See [AUTHORS.md](AUTHORS.md) and [GOVERNANCE.md](GOVERNANCE.md) for details.
+See [AUTHORS.md](docs/community/AUTHORS.md) and [GOVERNANCE.md](docs/community/GOVERNANCE.md) for details.
 
 ---
 
@@ -1224,9 +1224,9 @@ Built by **CrossStack AI** for the global QA and DevOps community. Special thank
 - **Embedding Tests**: Regression test suite for similarity calculations 🆕
 
 **Detailed Reports**:
-- [Unit Test Execution Report](UNIT_TEST_EXECUTION_REPORT.md)
+- [Unit Test Execution Report](docs/reports/UNIT_TEST_EXECUTION_REPORT.md)
 - [UUID Migration Guide](docs/testing/UUID_MIGRATION_GUIDE.md) 🆕
-- [Production Readiness Report](PRODUCTION_READINESS_FINAL_REPORT.md) 🆕
+- [Production Readiness Report](docs/reports/PRODUCTION_READINESS_FINAL_REPORT.md) 🆕
 
 **Run Tests**:
 ```bash
@@ -1256,7 +1256,7 @@ pytest tests/unit/persistence/ -v
 
 **Documentation**:
 - [UUID Migration Guide](docs/testing/UUID_MIGRATION_GUIDE.md) - Complete guide for fixing persistence tests
-- [Production Readiness Report](PRODUCTION_READINESS_FINAL_REPORT.md) - Remaining work and recommendations
+- [Production Readiness Report](docs/reports/PRODUCTION_READINESS_FINAL_REPORT.md) - Remaining work and recommendations
 
 ---
 
@@ -1331,7 +1331,7 @@ If CrossBridge AI helps your team modernize test automation, please:
 ## 📞 Support & Community
 
 ### Get Help
-- **📖 Documentation**: [docs/INDEX.md](docs/INDEX.md)
+- **📖 Documentation**: [docs/project/DOCUMENTATION_INDEX.md](docs/project/DOCUMENTATION_INDEX.md)
 - **🐛 Bug Reports**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
 - **📧 Email**: vikas.sdet@gmail.com
@@ -1365,7 +1365,7 @@ This project is:
 - ✅ Developed using personal time and resources
 - ✅ Open-source for the testing community
 
-For details, see [AUTHORS.md](AUTHORS.md) and [CLA.md](CLA.md).
+For details, see [AUTHORS.md](docs/community/AUTHORS.md) and [CLA.md](docs/community/CLA.md).
 
 ---
 
