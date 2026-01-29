@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import List, Set, Dict, Optional
 from enum import Enum
 from datetime import datetime
+import pytest
 
 
 class MappingSource(Enum):
@@ -45,6 +46,7 @@ class PageObjectReference:
         return self.page_object_class.split(".")[-1]
 
 
+@pytest.mark.skip(reason="Not a test class - domain model")
 @dataclass
 class TestToPageObjectMapping:
     """

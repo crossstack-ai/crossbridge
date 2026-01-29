@@ -243,7 +243,7 @@ class SpecFlowXUnitIntegration:
             try:
                 config = json.loads(config_file.read_text())
                 return config.get('parallelizeTestCollections', False)
-            except:
-                pass
+            except (IOError, json.JSONDecodeError) as e:
+                logger.debug(f"Failed to parse xunit config: {e}")
         
         return False

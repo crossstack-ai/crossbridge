@@ -810,7 +810,8 @@ class BitbucketConnector(RepoConnector):
         try:
             files = self.list_files(path, branch=branch)
             return len(files) > 0
-        except:
+        except (IOError, KeyError, ValueError) as e:
+            logger.debug(f"Failed to check path existence: {e}")
             return False
     
     def find_branch_with_content(self, candidate_branches: List[str] = None, path: str = "") -> str:

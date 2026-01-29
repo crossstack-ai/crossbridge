@@ -173,7 +173,8 @@ def setup_production_hardening(user_id: str):
             cursor.close()
             conn.close()
             return True
-        except:
+        except Exception as e:
+            logger.debug(f"Database health check failed: {e}")
             return False
     
     register_database_health_check(check_db, "postgresql")

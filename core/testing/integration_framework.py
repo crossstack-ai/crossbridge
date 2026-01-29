@@ -141,16 +141,16 @@ class IntegrationTestFramework:
             try:
                 source_content = source_file.read_text(encoding='utf-8')
                 metrics['source_lines'] = len(source_content.split('\n'))
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read source file: {e}")
         
         if target_file.exists():
             try:
                 target_content = target_file.read_text(encoding='utf-8')
                 metrics['target_lines'] = len(target_content.split('\n'))
                 metrics['syntax_valid'] = True  # Simplified check
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read target file: {e}")
         
         if metrics['source_lines'] > 0:
             metrics['preservation_ratio'] = metrics['target_lines'] / metrics['source_lines']

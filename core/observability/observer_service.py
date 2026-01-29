@@ -149,7 +149,7 @@ class CrossBridgeObserverService:
         # Queue for async processing
         try:
             self.event_queue.put(event, block=False)
-        except:
+        except queue.Full:
             self.metrics['events_dropped'] += 1
             logger.error("Event queue full - dropping event")
     
@@ -168,7 +168,7 @@ class CrossBridgeObserverService:
                 self.metrics['events_processed'] += 1
                 self.event_queue.task_done()
                 
-            except:
+            except queue.Empty:
                 # Timeout or empty queue - continue
                 continue
         
@@ -227,7 +227,7 @@ class CrossBridgeObserverService:
                 event = self.event_queue.get_nowait()
                 self._process_event(event)
                 self.event_queue.task_done()
-            except:
+            except queue.Empty:
                 break
     
     def _feed_ai_analyzers(self, event: CrossBridgeEvent, drift_signals: list):

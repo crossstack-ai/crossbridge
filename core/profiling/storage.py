@@ -109,8 +109,8 @@ class LocalStorageBackend(StorageBackend):
         if self.file_handle:
             try:
                 self.file_handle.close()
-            except:
-                pass
+            except (IOError, OSError) as e:
+                logger.debug(f"Error closing file handle: {e}")
 
 
 class PostgresStorageBackend(StorageBackend):
@@ -358,8 +358,8 @@ class PostgresStorageBackend(StorageBackend):
         if self.pool:
             try:
                 self.pool.closeall()
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Error closing PostgreSQL connection pool: {e}")
 
 
 class InfluxDBStorageBackend(StorageBackend):
@@ -431,8 +431,8 @@ class InfluxDBStorageBackend(StorageBackend):
         if self.client:
             try:
                 self.client.close()
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Error closing InfluxDB client: {e}")
 
 
 class StorageFactory:

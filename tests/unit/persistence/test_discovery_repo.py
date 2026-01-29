@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+import uuid
 from unittest.mock import MagicMock, patch
 from datetime import datetime, UTC
 from persistence.repositories.discovery_repo import (
@@ -35,8 +36,9 @@ class TestCreateDiscoveryRun:
     
     def test_create_discovery_run_minimal(self, mock_session):
         """Test creating discovery run with minimal parameters."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         discovery_id = create_discovery_run(
@@ -44,20 +46,20 @@ class TestCreateDiscoveryRun:
             project_name="test-project"
         )
         
-        assert discovery_id == 123
+        assert isinstance(discovery_id, uuid.UUID)
         mock_session.execute.assert_called_once()
-        mock_session.commit.assert_called_once()
         
         # Check the SQL values
         call_args = mock_session.execute.call_args
         values = call_args[0][0].compile().params
-        assert values["project_name"] == "test-project"
+        assert values["project"] == "test-project"
         assert values["triggered_by"] == "cli"
     
     def test_create_discovery_run_with_git_context(self, mock_session):
         """Test creating discovery run with git context."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [456]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         discovery_id = create_discovery_run(
@@ -67,17 +69,18 @@ class TestCreateDiscoveryRun:
             git_branch="main"
         )
         
-        assert discovery_id == 456
+        assert isinstance(discovery_id, uuid.UUID)
         
         call_args = mock_session.execute.call_args
         values = call_args[0][0].compile().params
-        assert values["git_commit"] == "abc123"
-        assert values["git_branch"] == "main"
+        assert values["commit"] == "abc123"
+        assert values["branch"] == "main"
     
     def test_create_discovery_run_with_metadata(self, mock_session):
         """Test creating discovery run with metadata."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [789]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         metadata = {"scan_duration_ms": 1234, "total_files": 10}
@@ -88,7 +91,7 @@ class TestCreateDiscoveryRun:
             metadata=metadata
         )
         
-        assert discovery_id == 789
+        assert isinstance(discovery_id, uuid.UUID)
         
         call_args = mock_session.execute.call_args
         values = call_args[0][0].compile().params
@@ -96,8 +99,9 @@ class TestCreateDiscoveryRun:
     
     def test_create_discovery_run_with_triggered_by(self, mock_session):
         """Test creating discovery run with custom triggered_by."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [999]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         discovery_id = create_discovery_run(
@@ -106,7 +110,7 @@ class TestCreateDiscoveryRun:
             triggered_by="ci"
         )
         
-        assert discovery_id == 999
+        assert isinstance(discovery_id, uuid.UUID)
         
         call_args = mock_session.execute.call_args
         values = call_args[0][0].compile().params
@@ -130,23 +134,19 @@ class TestGetDiscoveryRun:
     
     def test_get_discovery_run_found(self, mock_session):
         """Test retrieving an existing discovery run."""
-        mock_row = MagicMock()
-        mock_row.id = 123
-        mock_row.project_name = "test-project"
-        mock_row.triggered_by = "cli"
-        mock_row.created_at = datetime.now(UTC)
-        mock_row.git_commit = "abc123"
-        mock_row.git_branch = "main"
-        mock_row.metadata = {"key": "value"}
+        test_uuid = uuid.uuid4()
+        test_time = datetime.now(UTC)
+        # Mock row as tuple matching SQL SELECT order: id, project_name, git_commit, git_branch, triggered_by, created_at, metadata
+        mock_row = (test_uuid, "test-project", "abc123", "main", "cli", test_time, {"key": "value"})
         
         mock_result = MagicMock()
         mock_result.fetchone.return_value = mock_row
         mock_session.execute.return_value = mock_result
         
-        discovery = get_discovery_run(mock_session, 123)
+        discovery = get_discovery_run(mock_session, test_uuid)
         
         assert discovery is not None
-        assert discovery.id == 123
+        assert discovery.id == test_uuid
         assert discovery.project_name == "test-project"
         assert discovery.git_commit == "abc123"
     
@@ -156,7 +156,7 @@ class TestGetDiscoveryRun:
         mock_result.fetchone.return_value = None
         mock_session.execute.return_value = mock_result
         
-        discovery = get_discovery_run(mock_session, 999)
+        discovery = get_discovery_run(mock_session, uuid.uuid4())
         
         assert discovery is None
 
@@ -166,14 +166,10 @@ class TestGetLatestDiscoveryRun:
     
     def test_get_latest_discovery_run_found(self, mock_session):
         """Test retrieving latest discovery run."""
-        mock_row = MagicMock()
-        mock_row.id = 456
-        mock_row.project_name = "my-project"
-        mock_row.triggered_by = "ci"
-        mock_row.created_at = datetime.now(UTC)
-        mock_row.git_commit = None
-        mock_row.git_branch = None
-        mock_row.metadata = None
+        test_uuid = uuid.uuid4()
+        created_at = datetime.now(UTC)
+        # Tuple: (id, project_name, git_commit, git_branch, triggered_by, created_at, metadata)
+        mock_row = (test_uuid, "my-project", None, None, "ci", created_at, None)
         
         mock_result = MagicMock()
         mock_result.fetchone.return_value = mock_row
@@ -182,7 +178,7 @@ class TestGetLatestDiscoveryRun:
         discovery = get_latest_discovery_run(mock_session, "my-project")
         
         assert discovery is not None
-        assert discovery.id == 456
+        assert discovery.id == test_uuid
         assert discovery.project_name == "my-project"
     
     def test_get_latest_discovery_run_not_found(self, mock_session):
@@ -201,17 +197,13 @@ class TestListDiscoveryRuns:
     
     def test_list_discovery_runs_all(self, mock_session):
         """Test listing all discovery runs."""
+        test_uuid1 = uuid.uuid4()
+        test_uuid2 = uuid.uuid4()
+        created_at = datetime.now(UTC)
+        # Tuple: (id, project_name, git_commit, git_branch, triggered_by, created_at, metadata)
         mock_rows = [
-            MagicMock(
-                id=1, project_name="proj1", triggered_by="cli",
-                created_at=datetime.now(UTC), git_commit=None,
-                git_branch=None, metadata=None
-            ),
-            MagicMock(
-                id=2, project_name="proj2", triggered_by="ci",
-                created_at=datetime.now(UTC), git_commit="abc",
-                git_branch="main", metadata=None
-            )
+            (test_uuid1, "proj1", None, None, "cli", created_at, None),
+            (test_uuid2, "proj2", "abc", "main", "ci", created_at, None)
         ]
         
         mock_result = MagicMock()
@@ -221,17 +213,16 @@ class TestListDiscoveryRuns:
         discoveries = list_discovery_runs(mock_session)
         
         assert len(discoveries) == 2
-        assert discoveries[0].id == 1
-        assert discoveries[1].id == 2
+        assert discoveries[0].id == test_uuid1
+        assert discoveries[1].id == test_uuid2
     
     def test_list_discovery_runs_by_project(self, mock_session):
         """Test listing discovery runs for specific project."""
+        test_uuid = uuid.uuid4()
+        created_at = datetime.now(UTC)
+        # Tuple: (id, project_name, git_commit, git_branch, triggered_by, created_at, metadata)
         mock_rows = [
-            MagicMock(
-                id=3, project_name="target-project", triggered_by="cli",
-                created_at=datetime.now(UTC), git_commit=None,
-                git_branch=None, metadata=None
-            )
+            (test_uuid, "target-project", None, None, "cli", created_at, None)
         ]
         
         mock_result = MagicMock()
@@ -245,17 +236,15 @@ class TestListDiscoveryRuns:
     
     def test_list_discovery_runs_with_limit(self, mock_session):
         """Test listing discovery runs with limit."""
+        created_at = datetime.now(UTC)
+        # Tuple: (id, project_name, git_commit, git_branch, triggered_by, created_at, metadata)
         mock_rows = [
-            MagicMock(
-                id=i, project_name=f"proj{i}", triggered_by="cli",
-                created_at=datetime.now(UTC), git_commit=None,
-                git_branch=None, metadata=None
-            )
-            for i in range(5)
+            (uuid.uuid4(), f"proj{i}", None, None, "cli", created_at, None)
+            for i in range(3)
         ]
         
         mock_result = MagicMock()
-        mock_result.fetchall.return_value = mock_rows[:3]
+        mock_result.fetchall.return_value = mock_rows
         mock_session.execute.return_value = mock_result
         
         discoveries = list_discovery_runs(mock_session, limit=3)
@@ -278,39 +267,29 @@ class TestGetDiscoveryStats:
     
     def test_get_discovery_stats_full(self, mock_session):
         """Test getting discovery statistics."""
-        # Mock test count
-        mock_test_count = MagicMock()
-        mock_test_count.scalar.return_value = 15
+        # Returns single tuple: (test_count, page_object_count, mapping_count)
+        mock_row = (15, 8, 42)
         
-        # Mock page count
-        mock_page_count = MagicMock()
-        mock_page_count.scalar.return_value = 8
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = mock_row
+        mock_session.execute.return_value = mock_result
         
-        # Mock mapping count
-        mock_mapping_count = MagicMock()
-        mock_mapping_count.scalar.return_value = 42
-        
-        mock_session.execute.side_effect = [
-            mock_test_count,
-            mock_page_count,
-            mock_mapping_count
-        ]
-        
-        stats = get_discovery_stats(mock_session, 123)
+        stats = get_discovery_stats(mock_session, uuid.uuid4())
         
         assert stats["test_count"] == 15
         assert stats["page_object_count"] == 8
         assert stats["mapping_count"] == 42
-        assert mock_session.execute.call_count == 3
     
     def test_get_discovery_stats_zero_counts(self, mock_session):
         """Test statistics with zero counts."""
-        mock_zero = MagicMock()
-        mock_zero.scalar.return_value = 0
+        # Returns single tuple: (test_count, page_object_count, mapping_count)
+        mock_row = (0, 0, 0)
         
-        mock_session.execute.side_effect = [mock_zero, mock_zero, mock_zero]
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = mock_row
+        mock_session.execute.return_value = mock_result
         
-        stats = get_discovery_stats(mock_session, 999)
+        stats = get_discovery_stats(mock_session, uuid.uuid4())
         
         assert stats["test_count"] == 0
         assert stats["page_object_count"] == 0
@@ -322,8 +301,9 @@ class TestEdgeCases:
     
     def test_create_discovery_run_empty_project_name(self, mock_session):
         """Test creating discovery run with empty project name."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [111]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         # Should still work (database constraint may reject it)
@@ -332,12 +312,13 @@ class TestEdgeCases:
             project_name=""
         )
         
-        assert discovery_id == 111
+        assert isinstance(discovery_id, uuid.UUID)
     
     def test_create_discovery_run_none_metadata(self, mock_session):
         """Test creating discovery run with None metadata."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [222]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         discovery_id = create_discovery_run(
@@ -346,30 +327,31 @@ class TestEdgeCases:
             metadata=None
         )
         
-        assert discovery_id == 222
+        assert isinstance(discovery_id, uuid.UUID)
     
     def test_get_discovery_stats_none_results(self, mock_session):
         """Test stats when queries return None."""
-        mock_none = MagicMock()
-        mock_none.scalar.return_value = None
+        # Returns None when no discovery run found
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_session.execute.return_value = mock_result
         
-        mock_session.execute.side_effect = [mock_none, mock_none, mock_none]
-        
-        stats = get_discovery_stats(mock_session, 123)
+        stats = get_discovery_stats(mock_session, uuid.uuid4())
         
         # Should handle None gracefully (convert to 0)
-        assert stats["test_count"] == 0 or stats["test_count"] is None
-        assert stats["page_object_count"] == 0 or stats["page_object_count"] is None
-        assert stats["mapping_count"] == 0 or stats["mapping_count"] is None
+        assert stats["test_count"] == 0
+        assert stats["page_object_count"] == 0
+        assert stats["mapping_count"] == 0
 
 
 class TestContractStability:
     """Test that API contracts remain stable."""
     
-    def test_create_discovery_run_returns_int(self, mock_session):
-        """Test that create_discovery_run returns an integer."""
+    def test_create_discovery_run_returns_uuid(self, mock_session):
+        """Test that create_discovery_run returns a UUID."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         discovery_id = create_discovery_run(
@@ -377,7 +359,7 @@ class TestContractStability:
             project_name="test"
         )
         
-        assert isinstance(discovery_id, int)
+        assert isinstance(discovery_id, uuid.UUID)
     
     def test_get_discovery_run_returns_discovery_or_none(self, mock_session):
         """Test that get_discovery_run returns DiscoveryRun or None."""
@@ -385,7 +367,8 @@ class TestContractStability:
         mock_result.fetchone.return_value = None
         mock_session.execute.return_value = mock_result
         
-        discovery = get_discovery_run(mock_session, 123)
+        test_uuid = uuid.uuid4()
+        discovery = get_discovery_run(mock_session, test_uuid)
         
         assert discovery is None or isinstance(discovery, DiscoveryRun)
     

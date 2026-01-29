@@ -491,7 +491,8 @@ class VLLMProvider(LLMProvider):
         try:
             response = requests.get(f"{self.base_url}/models", timeout=5)
             return response.status_code == 200
-        except:
+        except (requests.RequestException, Exception) as e:
+            logger.debug(f"Self-hosted provider not available: {e}")
             return False
     
     def estimate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
@@ -507,8 +508,8 @@ class VLLMProvider(LLMProvider):
             if response.status_code == 200:
                 data = response.json()
                 return [model["id"] for model in data.get("data", [])]
-        except:
-            pass
+        except (requests.RequestException, json.JSONDecodeError, KeyError) as e:
+            logger.debug(f"Failed to fetch model list: {e}")
         
         return [self.model_name]
 
@@ -603,7 +604,8 @@ class OllamaProvider(LLMProvider):
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
             return response.status_code == 200
-        except:
+        except (requests.RequestException, Exception) as e:
+            logger.debug(f"Ollama provider not available: {e}")
             return False
     
     def estimate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
@@ -619,8 +621,8 @@ class OllamaProvider(LLMProvider):
             if response.status_code == 200:
                 data = response.json()
                 return [model["name"] for model in data.get("models", [])]
-        except:
-            pass
+        except (requests.RequestException, json.JSONDecodeError, KeyError) as e:
+            logger.debug(f"Failed to fetch Ollama model list: {e}")
         
         return [self.model_name]
 
@@ -682,15 +684,16 @@ def get_available_providers(config: Optional[Dict[str, Any]] = None) -> List[Pro
             azure_provider = AzureOpenAIProvider(config.get(AZURE_PROVIDER_KEY))
             if azure_provider.is_available():
                 available.append(ProviderType.OPENAI)  # Azure uses OPENAI type
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Azure provider initialization failed: {e}")
     
     for provider_type in PROVIDER_REGISTRY:
         try:
             provider = get_provider(provider_type, config)
             if provider.is_available():
                 available.append(provider_type)
-        except:
+        except Exception as e:
+            logger.debug(f"Provider {provider_type} check failed: {e}")
             continue
     
     return list(set(available))  # Deduplicate

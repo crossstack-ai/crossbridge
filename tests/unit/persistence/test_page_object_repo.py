@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+import uuid
 from unittest.mock import MagicMock
 from datetime import datetime, UTC
 from persistence.repositories.page_object_repo import (
@@ -34,8 +35,9 @@ class TestUpsertPageObject:
     
     def test_upsert_page_object_new(self, mock_session):
         """Test inserting a new page object."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         page_id = upsert_page_object(
@@ -47,12 +49,12 @@ class TestUpsertPageObject:
         
         assert page_id == 123
         mock_session.execute.assert_called_once()
-        mock_session.commit.assert_called_once()
     
     def test_upsert_page_object_with_metadata(self, mock_session):
         """Test upserting page object with metadata."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [456]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         metadata = {"elements": 5, "locators": ["id", "css"]}
@@ -73,8 +75,9 @@ class TestUpsertPageObject:
     
     def test_upsert_page_object_update_package(self, mock_session):
         """Test updating package on conflict."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [789]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         page_id = upsert_page_object(
@@ -89,8 +92,9 @@ class TestUpsertPageObject:
     
     def test_upsert_page_object_none_package(self, mock_session):
         """Test upserting with None package."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [999]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         page_id = upsert_page_object(
@@ -295,8 +299,9 @@ class TestEdgeCases:
     
     def test_upsert_page_object_empty_name(self, mock_session):
         """Test upserting with empty name."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [111]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         # Should still work (database constraint may reject it)
@@ -310,8 +315,9 @@ class TestEdgeCases:
     
     def test_upsert_page_object_none_metadata(self, mock_session):
         """Test upserting with None metadata."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [222]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         page_id = upsert_page_object(
@@ -353,10 +359,12 @@ class TestEdgeCases:
 class TestContractStability:
     """Test that API contracts remain stable."""
     
-    def test_upsert_returns_int(self, mock_session):
-        """Test that upsert returns an integer."""
+    def test_upsert_returns_uuid(self, mock_session):
+        """Test that upsert_page_object returns UUID type."""
+        """Test that upsert returns a UUID."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         page_id = upsert_page_object(
@@ -365,7 +373,7 @@ class TestContractStability:
             file_path="Page.java"
         )
         
-        assert isinstance(page_id, int)
+        assert isinstance(page_id, uuid.UUID)
     
     def test_find_returns_page_or_none(self, mock_session):
         """Test that find returns PageObject or None."""

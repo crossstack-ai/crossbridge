@@ -382,8 +382,8 @@ class ResultNormalizer:
                     data = json.load(f)
                     if 'pytest_version' in data or 'tests' in data:
                         return FrameworkType.PYTEST
-            except:
-                pass
+            except (IOError, json.JSONDecodeError, KeyError) as e:
+                self.logger.debug(f"Failed to parse JSON result file: {e}")
         
         elif filename.endswith('.xml'):
             # Parse XML and check root element
@@ -400,8 +400,8 @@ class ResultNormalizer:
                     return FrameworkType.JUNIT5  # Default to JUnit5
                 elif root.tag == 'testng-results':
                     return FrameworkType.TESTNG
-            except:
-                pass
+            except (IOError, ET.ParseError) as e:
+                self.logger.debug(f"Failed to parse XML result file: {e}")
         
         self.logger.warning(f"Could not detect framework for {result_file}")
         return None

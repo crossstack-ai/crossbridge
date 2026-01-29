@@ -513,7 +513,8 @@ class SeleniumBehaveDetector:
                         if 'from selenium' in content or 'import selenium' in content:
                             has_selenium = True
                             break
-                except:
+                except (IOError, UnicodeDecodeError) as e:
+                    logger.debug(f"Failed to read step file: {e}")
                     continue
         
         # Check requirements
@@ -527,7 +528,8 @@ class SeleniumBehaveDetector:
                             if 'selenium' in content and 'behave' in content:
                                 has_selenium = True
                                 break
-                    except:
+                    except (IOError, UnicodeDecodeError) as e:
+                        logger.debug(f"Failed to read requirements file: {e}")
                         continue
         
         return (has_features or has_feature_files) and (has_steps or has_environment or has_selenium)

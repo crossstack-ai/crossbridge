@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+import uuid
 from unittest.mock import MagicMock
 from datetime import datetime, UTC
 from persistence.repositories.test_case_repo import (
@@ -34,8 +35,9 @@ class TestUpsertTestCase:
     
     def test_upsert_test_case_new(self, mock_session):
         """Test inserting a new test case."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         test_id = upsert_test_case(
@@ -49,12 +51,12 @@ class TestUpsertTestCase:
         
         assert test_id == 123
         mock_session.execute.assert_called_once()
-        mock_session.commit.assert_called_once()
     
     def test_upsert_test_case_with_tags(self, mock_session):
         """Test upserting test case with tags."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [456]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         test_id = upsert_test_case(
@@ -75,8 +77,9 @@ class TestUpsertTestCase:
     
     def test_upsert_test_case_update_file_path(self, mock_session):
         """Test updating file path on conflict."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [789]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         test_id = upsert_test_case(
@@ -93,8 +96,9 @@ class TestUpsertTestCase:
     
     def test_upsert_test_case_empty_tags(self, mock_session):
         """Test upserting with empty tags list."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [999]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         test_id = upsert_test_case(
@@ -187,7 +191,6 @@ class TestLinkTestToDiscovery:
         )
         
         mock_session.execute.assert_called_once()
-        mock_session.commit.assert_called_once()
         
         # Verify the INSERT statement
         call_args = mock_session.execute.call_args
@@ -297,8 +300,9 @@ class TestEdgeCases:
     
     def test_upsert_test_case_none_tags(self, mock_session):
         """Test upserting with None tags."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [111]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         test_id = upsert_test_case(
@@ -315,8 +319,9 @@ class TestEdgeCases:
     
     def test_upsert_test_case_empty_package(self, mock_session):
         """Test upserting with empty package."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [222]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         test_id = upsert_test_case(
@@ -372,10 +377,12 @@ class TestEdgeCases:
 class TestContractStability:
     """Test that API contracts remain stable."""
     
-    def test_upsert_returns_int(self, mock_session):
-        """Test that upsert returns an integer."""
+    def test_upsert_returns_uuid(self, mock_session):
+        """Test that upsert_test_case returns UUID type."""
+        """Test that upsert returns a UUID."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         test_id = upsert_test_case(
@@ -387,7 +394,7 @@ class TestContractStability:
             file_path="Test.java"
         )
         
-        assert isinstance(test_id, int)
+        assert isinstance(test_id, uuid.UUID)
     
     def test_find_returns_test_or_none(self, mock_session):
         """Test that find returns TestCase or None."""

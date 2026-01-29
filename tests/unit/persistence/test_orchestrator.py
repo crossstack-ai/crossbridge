@@ -10,6 +10,7 @@ Tests cover:
 """
 
 import pytest
+import uuid
 from unittest.mock import MagicMock, patch
 from datetime import datetime, UTC
 from persistence.orchestrator import (
@@ -41,7 +42,7 @@ def sample_tests():
             file_path="src/test/java/com/example/LoginTest.java",
             tags=["smoke", "critical"],
             page_objects=[
-                PageObjectReference(name="LoginPage", package="com.example.pages")
+                PageObjectReference(page_object_class="com.example.pages.LoginPage", usage_type="field")
             ]
         ),
         TestMetadata(
@@ -49,8 +50,8 @@ def sample_tests():
             file_path="src/test/java/com/example/CartTest.java",
             tags=["regression"],
             page_objects=[
-                PageObjectReference(name="CartPage", package="com.example.pages"),
-                PageObjectReference(name="ProductPage", package="com.example.pages")
+                PageObjectReference(page_object_class="com.example.pages.CartPage", usage_type="field"),
+                PageObjectReference(page_object_class="com.example.pages.ProductPage", usage_type="field")
             ]
         )
     ]
@@ -88,7 +89,7 @@ class TestPersistDiscovery:
         )
         
         # Verify discovery run created
-        assert discovery_id == 100
+        assert isinstance(discovery_id, uuid.UUID)
         mock_create_discovery.assert_called_once_with(
             session=mock_session,
             project_name="test-project",
@@ -129,7 +130,7 @@ class TestPersistDiscovery:
         )
         
         # Should still create discovery run
-        assert discovery_id == 200
+        assert isinstance(discovery_id, uuid.UUID)
         mock_create_discovery.assert_called_once()
     
     @patch('persistence.orchestrator.create_discovery_run')
@@ -162,7 +163,7 @@ class TestPersistDiscovery:
             tests=tests
         )
         
-        assert discovery_id == 300
+        assert isinstance(discovery_id, uuid.UUID)
         mock_upsert_test.assert_called_once()
         mock_link_test.assert_called_once()
     
@@ -382,8 +383,8 @@ class TestEdgeCases:
                 file_path="Test.java",
                 tags=[],
                 page_objects=[
-                    PageObjectReference(name="Page1", package="com.example"),
-                    PageObjectReference(name="Page1", package="com.example")  # Duplicate
+                    PageObjectReference(page_object_class="com.example.Page1", usage_type="field"),
+                    PageObjectReference(page_object_class="com.example.Page1", usage_type="field")  # Duplicate
                 ]
             )
         ]
@@ -395,7 +396,7 @@ class TestEdgeCases:
             tests=tests
         )
         
-        assert discovery_id == 400
+        assert isinstance(discovery_id, uuid.UUID)
     
     @patch('persistence.orchestrator.create_discovery_run')
     @patch('persistence.orchestrator.get_git_commit')
@@ -416,7 +417,7 @@ class TestEdgeCases:
             framework_hint=None
         )
         
-        assert discovery_id == 500
+        assert isinstance(discovery_id, uuid.UUID)
         
         # Should not include framework_hint in metadata
         call_args = mock_create_discovery.call_args
@@ -430,11 +431,11 @@ class TestContractStability:
     @patch('persistence.orchestrator.create_discovery_run')
     @patch('persistence.orchestrator.get_git_commit')
     @patch('persistence.orchestrator.get_git_branch')
-    def test_persist_discovery_returns_int(
+    def test_persist_discovery_returns_uuid(
         self, mock_git_branch, mock_git_commit, mock_create_discovery,
         mock_session
     ):
-        """Test that persist_discovery returns an integer."""
+        """Test that persist_discovery returns a UUID."""
         mock_git_commit.return_value = None
         mock_git_branch.return_value = None
         mock_create_discovery.return_value = 123
@@ -445,7 +446,7 @@ class TestContractStability:
             tests=[]
         )
         
-        assert isinstance(discovery_id, int)
+        assert isinstance(discovery_id, uuid.UUID)
     
     @patch('persistence.orchestrator.get_latest_discovery_run')
     def test_get_latest_stats_returns_dict_or_none(

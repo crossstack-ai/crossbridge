@@ -59,8 +59,8 @@ class CostTracker:
                     self._daily_costs = data.get("daily", {})
                     self._monthly_costs = data.get("monthly", {})
                     self._total_cost = data.get("total", 0.0)
-            except:
-                pass
+            except (IOError, json.JSONDecodeError) as e:
+                logger.debug(f"Failed to load cost data: {e}")
     
     def _save_costs(self):
         """Save cost data to storage."""
@@ -267,7 +267,8 @@ class AuditLog:
                                 continue
                             
                             entries.append(self._parse_entry(data))
-                        except:
+                        except (json.JSONDecodeError, KeyError) as e:
+                            logger.debug(f"Failed to parse audit log entry: {e}")
                             continue
             
             current_date += timedelta(days=1)
@@ -388,8 +389,8 @@ class CreditManager:
                             daily_used=balance_data.get("daily_used", 0.0),
                             monthly_used=balance_data.get("monthly_used", 0.0),
                         )
-            except:
-                pass
+            except (IOError, json.JSONDecodeError) as e:
+                logger.debug(f"Failed to load balance data: {e}")
     
     def _save_balances(self):
         """Save credit balances to storage."""

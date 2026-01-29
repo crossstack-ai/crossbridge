@@ -348,7 +348,8 @@ class RobotDetector:
                         if 'robotframework' in content or 'robot-framework' in content:
                             has_robot_requirement = True
                             break
-                except:
+                except (IOError, UnicodeDecodeError) as e:
+                    logger.debug(f"Failed to read requirements file: {e}")
                     continue
         
         # Check for robot configuration files

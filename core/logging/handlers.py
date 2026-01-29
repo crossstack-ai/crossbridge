@@ -42,7 +42,8 @@ class ConsoleHandler(logging.StreamHandler):
                 kernel32 = ctypes.windll.kernel32
                 kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
                 return True
-            except:
+            except (AttributeError, OSError) as e:
+                logger.debug(f"Failed to enable ANSI colors on Windows: {e}")
                 return False
         
         return True

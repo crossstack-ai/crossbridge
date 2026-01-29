@@ -47,7 +47,8 @@ def register_flaky_db_health_check(connection_check_function, name: str = "flaky
             try:
                 session.execute("SELECT 1 FROM test_executions LIMIT 1")
                 return True
-            except:
+            except Exception as e:
+                logger.debug(f"Flaky DB health check failed: {e}")
                 return False
         
         register_flaky_db_health_check(check_flaky_db)

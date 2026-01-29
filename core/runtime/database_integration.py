@@ -131,7 +131,8 @@ def register_database_health_check(
             try:
                 db.execute("SELECT 1")
                 return True
-            except:
+            except Exception as e:
+                logger.debug(f"Database health check failed: {e}")
                 return False
         
         register_database_health_check(check_db_connection, "postgresql")
@@ -200,7 +201,8 @@ class HardenedDatabaseConnection:
                     cursor.execute("SELECT 1")
                     cursor.close()
                     return True
-                except:
+                except Exception as e:
+                    logger.debug(f"Database cursor health check failed: {e}")
                     return False
             
             register_database_health_check(_check, "database_connection")

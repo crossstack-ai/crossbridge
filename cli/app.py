@@ -294,8 +294,8 @@ def _run_operation(
                     _, _, _, _, cached_target_branch = get_test_bitbucket_creds(auto_cache=False)
                     if cached_target_branch:
                         console.print(f"\n[dim]💡 Using cached target branch: {cached_target_branch}[/dim]")
-                except:
-                    pass  # No cached credentials
+                except Exception as e:
+                    logger.debug(f"Failed to retrieve cached credentials: {e}")
                 
                 console.print("\n[bold yellow]═══ Target Branch Selection ═══[/bold yellow]")
                 console.print("[cyan]Specify the branch containing already migrated .robot files[/cyan]")

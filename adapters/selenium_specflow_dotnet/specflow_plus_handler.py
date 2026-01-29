@@ -45,8 +45,8 @@ class SpecFlowPlusHandler:
                     detection['has_specflow_plus'] = True
                     detection['has_specflow_plus_runner'] = True
                     detection['runner_config'] = config
-            except:
-                pass
+            except (IOError, json.JSONDecodeError) as e:
+                logger.debug(f"Failed to parse specflow.json: {e}")
         
         # Check for LivingDoc
         csproj_files = list(project_path.rglob("*.csproj"))
@@ -60,8 +60,8 @@ class SpecFlowPlusHandler:
                         detection['has_living_doc'] = True
                     if 'SpecFlow.Plus.Excel' in include:
                         detection['has_excel_integration'] = True
-            except:
-                pass
+            except (IOError, ET.ParseError) as e:
+                logger.debug(f"Failed to parse .csproj file: {e}")
         
         return detection
     
@@ -141,8 +141,8 @@ class SpecFlowPlusHandler:
                 tags = re.findall(r'@(\w+)', content)
                 metadata['tags_used'].update(tags)
                 
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to extract tags from feature file: {e}")
         
         metadata['tags_used'] = sorted(metadata['tags_used'])
         

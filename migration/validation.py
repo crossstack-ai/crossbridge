@@ -171,7 +171,7 @@ class PythonCodeValidator:
                             line_number=node.lineno,
                             suggestion="Add docstring for better documentation"
                         ))
-        except:
+        except SyntaxError:
             pass  # Already caught in syntax validation
 
 

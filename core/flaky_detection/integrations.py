@@ -346,7 +346,8 @@ class RobotIntegration:
                         end_dt = dt.strptime(end_time, '%Y%m%d %H:%M:%S.%f')
                         duration_ms = (end_dt - start_dt).total_seconds() * 1000
                         executed_at = start_dt
-                    except:
+                    except (ValueError, AttributeError) as e:
+                        logger.debug(f"Failed to parse Robot Framework timestamps: {e}")
                         duration_ms = 0.0
                         executed_at = datetime.now()
                     

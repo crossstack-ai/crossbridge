@@ -201,8 +201,8 @@ class PytestExecutor:
                 
                 report.duration = data.get("duration", duration)
                 return
-            except:
-                pass  # Fall back to text parsing
+            except (IOError, json.JSONDecodeError, KeyError) as e:
+                logger.debug(f"Failed to parse pytest JSON report: {e}")
         
         # Fallback: parse text output
         output = result.stdout
@@ -357,8 +357,8 @@ class RobotExecutor:
                 
                 report.duration = duration
                 return
-            except:
-                pass  # Fall back to text parsing
+            except (IOError, ET.ParseError, KeyError) as e:
+                logger.debug(f"Failed to parse Robot Framework XML report: {e}")
         
         # Fallback: parse text output
         output = result.stdout

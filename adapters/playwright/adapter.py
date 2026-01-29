@@ -164,8 +164,8 @@ class PlaywrightProjectDetector:
                             config_file=config_file,
                             project_root=self.project_root
                         )
-            except:
-                pass
+            except (IOError, UnicodeDecodeError, json.JSONDecodeError) as e:
+                logger.debug(f"Failed to parse playwright config: {e}")
         
         return None
     
@@ -190,7 +190,8 @@ class PlaywrightProjectDetector:
                 timeout=10
             )
             has_playwright = "pytest-playwright" in result.stdout or "playwright" in result.stdout
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+            logger.debug(f"Failed to check pip packages: {e}")
             has_playwright = False
         
         # Look for Python test files with Playwright
@@ -208,7 +209,8 @@ class PlaywrightProjectDetector:
                         config_file=None,
                         project_root=self.project_root
                     )
-            except:
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read Python test file: {e}")
                 continue
         
         return None
@@ -244,8 +246,8 @@ class PlaywrightProjectDetector:
                         config_file=pom_xml,
                         project_root=self.project_root
                     )
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read pom.xml: {e}")
         
         if build_gradle.exists():
             try:
@@ -268,11 +270,11 @@ class PlaywrightProjectDetector:
                         language=PlaywrightLanguage.JAVA,
                         framework=framework,
                         test_dir=test_dir,
-                        config_file=build_gradle,
+                        config_file=build.gradle,
                         project_root=self.project_root
                     )
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read build.gradle: {e}")
         
         return None
     
@@ -304,7 +306,8 @@ class PlaywrightProjectDetector:
                         config_file=csproj,
                         project_root=self.project_root
                     )
-            except:
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read .csproj file: {e}")
                 continue
         
         return None

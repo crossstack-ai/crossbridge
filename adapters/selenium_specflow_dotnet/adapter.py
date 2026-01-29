@@ -498,7 +498,8 @@ class SeleniumSpecFlowAdapter(BaseTestAdapter):
             
             total_ms = (hours * 3600 + minutes * 60 + seconds) * 1000
             return int(total_ms)
-        except:
+        except (ValueError, IndexError) as e:
+            logger.debug(f"Failed to parse duration: {e}")
             return 0
     
     def get_config_info(self) -> Dict[str, str]:

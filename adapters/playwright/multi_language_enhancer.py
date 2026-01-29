@@ -50,8 +50,8 @@ class PlaywrightMultiLanguageEnhancer:
                         test_framework = 'JUnit'
                     elif 'testng' in content.lower():
                         test_framework = 'TestNG'
-            except:
-                pass
+            except (IOError, UnicodeDecodeError, ET.ParseError) as e:
+                logger.debug(f"Failed to parse pom.xml: {e}")
         
         # Check Gradle
         for gradle in build_gradle_files:
@@ -70,8 +70,8 @@ class PlaywrightMultiLanguageEnhancer:
                         test_framework = 'JUnit'
                     elif 'testng' in content.lower():
                         test_framework = 'TestNG'
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read build.gradle: {e}")
         
         return {
             'has_playwright': has_playwright,
@@ -114,8 +114,8 @@ class PlaywrightMultiLanguageEnhancer:
                         test_framework = 'MSTest'
                     elif 'xunit' in content.lower():
                         test_framework = 'xUnit'
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read .csproj file: {e}")
         
         return {
             'has_playwright': has_playwright,
@@ -160,8 +160,8 @@ class PlaywrightMultiLanguageEnhancer:
                             'locator_count': locator_count,
                             'method_count': method_count,
                         })
-            except:
-                pass
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to analyze Java file: {e}")
         
         return page_objects
     

@@ -396,7 +396,8 @@ class SeleniumPytestDetector:
                     if 'from selenium' in content or 'import selenium' in content:
                         has_selenium = True
                         break
-            except:
+            except (IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Failed to read test file: {e}")
                 continue
         
         # Check requirements files
@@ -410,7 +411,8 @@ class SeleniumPytestDetector:
                             if 'selenium' in content.lower():
                                 has_selenium = True
                                 break
-                    except:
+                    except (IOError, UnicodeDecodeError) as e:
+                        logger.debug(f"Failed to read requirements file: {e}")
                         continue
         
         return has_pytest and has_selenium

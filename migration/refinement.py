@@ -102,8 +102,8 @@ class PythonCodeRefiner:
             if needs_improvement:
                 self.changes.append("Added missing docstrings")
             
-        except:
-            pass  # If parsing fails, return original
+        except (SyntaxError, ValueError) as e:
+            logger.debug(f"Failed to parse code for docstring improvement: {e}")
         
         return code
     

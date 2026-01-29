@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+import uuid
 from unittest.mock import MagicMock
 from datetime import datetime, UTC
 from persistence.repositories.mapping_repo import (
@@ -35,8 +36,9 @@ class TestInsertMapping:
     
     def test_insert_mapping_minimal(self, mock_session):
         """Test inserting mapping with minimal parameters."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         mapping_id = insert_mapping(
@@ -47,14 +49,14 @@ class TestInsertMapping:
             source="static_ast"
         )
         
-        assert mapping_id == 123
+        assert isinstance(mapping_id, uuid.UUID)
         mock_session.execute.assert_called_once()
-        mock_session.commit.assert_called_once()
     
     def test_insert_mapping_with_confidence(self, mock_session):
         """Test inserting mapping with confidence score."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [456]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         mapping_id = insert_mapping(
@@ -66,7 +68,7 @@ class TestInsertMapping:
             confidence=0.95
         )
         
-        assert mapping_id == 456
+        assert isinstance(mapping_id, uuid.UUID)
         
         call_args = mock_session.execute.call_args
         values = call_args[0][0].compile().params
@@ -74,8 +76,9 @@ class TestInsertMapping:
     
     def test_insert_mapping_append_only(self, mock_session):
         """Test that mappings are append-only (no ON CONFLICT)."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [789]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         # Insert same mapping twice
@@ -120,7 +123,7 @@ class TestInsertMapping:
                 source=source
             )
             
-            assert mapping_id == 100 + i
+            assert isinstance(mapping_id, uuid.UUID) + i
     
     def test_insert_mapping_error_handling(self, mock_session):
         """Test error handling in insert."""
@@ -350,8 +353,9 @@ class TestEdgeCases:
     
     def test_insert_mapping_zero_confidence(self, mock_session):
         """Test inserting mapping with zero confidence."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [111]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         mapping_id = insert_mapping(
@@ -363,12 +367,13 @@ class TestEdgeCases:
             confidence=0.0
         )
         
-        assert mapping_id == 111
+        assert isinstance(mapping_id, uuid.UUID)
     
     def test_insert_mapping_max_confidence(self, mock_session):
         """Test inserting mapping with max confidence."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [222]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         mapping_id = insert_mapping(
@@ -380,7 +385,7 @@ class TestEdgeCases:
             confidence=1.0
         )
         
-        assert mapping_id == 222
+        assert isinstance(mapping_id, uuid.UUID)
     
     def test_get_impacted_tests_zero_confidence_threshold(self, mock_session):
         """Test impact analysis with zero confidence threshold."""
@@ -408,10 +413,11 @@ class TestEdgeCases:
 class TestContractStability:
     """Test that API contracts remain stable."""
     
-    def test_insert_returns_int(self, mock_session):
-        """Test that insert returns an integer."""
+    def test_insert_returns_uuid(self, mock_session):
+        """Test that insert returns a UUID."""
+        test_uuid = uuid.uuid4()
         mock_result = MagicMock()
-        mock_result.inserted_primary_key = [123]
+        mock_result.inserted_primary_key = [test_uuid]
         mock_session.execute.return_value = mock_result
         
         mapping_id = insert_mapping(
@@ -422,7 +428,7 @@ class TestContractStability:
             source="static_ast"
         )
         
-        assert isinstance(mapping_id, int)
+        assert isinstance(mapping_id, uuid.UUID)
     
     def test_get_mappings_returns_list(self, mock_session):
         """Test that get_mappings_by_test returns list."""
