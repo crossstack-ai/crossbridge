@@ -9,6 +9,13 @@ Post-Migration System Components:
 - Coverage Intelligence (graph-based test-to-feature mapping)
 - AI Intelligence (Phase 3: flaky prediction, coverage gaps, refactor suggestions)
 
+Sidecar Resilience Components (Phase 3):
+- Circuit Breaker: Failure isolation and recovery
+- Performance Monitor: Overhead tracking (<5% target)
+- Failure Isolation: Prevent observer crashes from affecting tests
+- Async Processor: Non-blocking event processing
+- Health Monitor: Kubernetes/Docker liveness/readiness probes
+
 Design Contract:
 - CrossBridge NEVER owns test execution
 - CrossBridge NEVER regenerates tests post-migration
@@ -33,7 +40,45 @@ from .ai_intelligence import (
     TestGenerationSuggestion
 )
 
+# Sidecar Resilience (Phase 3)
+from .circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitState,
+    circuit_breaker_registry,
+    protected
+)
+from .performance_monitor import (
+    PerformanceMonitor,
+    PerformanceMetrics,
+    SamplingStrategy,
+    performance_monitor,
+    sampling_strategy
+)
+from .failure_isolation import (
+    IsolatedExecutor,
+    ObserverFailureHandler,
+    FailureRecord,
+    failure_handler,
+    safe_observer_call,
+    isolated_observer_operation
+)
+from .async_processor import (
+    AsyncProcessor,
+    ObserverEvent,
+    EventPriority,
+    async_processor
+)
+from .health_monitor import (
+    HealthMonitor,
+    HealthStatus,
+    HealthCheck,
+    health_monitor,
+    setup_default_health_checks
+)
+
 __all__ = [
+    # Core Observability
     'CrossBridgeEvent',
     'EventType',
     'CrossBridgeHookSDK',
@@ -53,4 +98,31 @@ __all__ = [
     'RefactorRecommendation',
     'RiskScore',
     'TestGenerationSuggestion',
+    
+    # Sidecar Resilience (Phase 3)
+    'CircuitBreaker',
+    'CircuitBreakerConfig',
+    'CircuitState',
+    'circuit_breaker_registry',
+    'protected',
+    'PerformanceMonitor',
+    'PerformanceMetrics',
+    'SamplingStrategy',
+    'performance_monitor',
+    'sampling_strategy',
+    'IsolatedExecutor',
+    'ObserverFailureHandler',
+    'FailureRecord',
+    'failure_handler',
+    'safe_observer_call',
+    'isolated_observer_operation',
+    'AsyncProcessor',
+    'ObserverEvent',
+    'EventPriority',
+    'async_processor',
+    'HealthMonitor',
+    'HealthStatus',
+    'HealthCheck',
+    'health_monitor',
+    'setup_default_health_checks',
 ]
