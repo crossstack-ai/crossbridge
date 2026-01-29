@@ -212,7 +212,67 @@ if not registry.is_healthy():
 - [All Gaps Fixed Summary](docs/hardening/PRODUCTION_HARDENING_ALL_GAPS_FIXED.md)
 - [Module Documentation](core/runtime/README.md)
 
-### 🔹 6. **Performance Profiling & Observability**
+### 🔹 6. **Debuggable Sidecar Runtime** 🆕
+Resilient, low-overhead observer that provides observability without impacting test execution:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Execution    │         │   Sidecar        │         │   Observability     │
+│   (No Changes!)     │         │   Runtime        │         │                     │
+│                     │         │                  │         │                     │
+│  • Existing tests   │────────▶│  • Sampler       │────────▶│  • Prometheus       │
+│  • Any framework    │  events │  • Observer      │ metrics │  • Grafana          │
+│  • Zero impact      │         │  • Profiler      │         │  • Health checks    │
+│                     │         │  • <5% CPU       │         │  • Alerts           │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Key Features:**
+- 🛡️ **Fail-Open Design** - Never breaks test execution
+- 📊 **Configurable Sampling** - 1-100% event sampling rates
+- ⚡ **Adaptive Sampling** - Auto-boost on anomalies (5x for 60s)
+- 💾 **Bounded Queues** - Graceful degradation under load
+- 📈 **Prometheus Metrics** - Export for Grafana dashboards
+- 🏥 **Health Monitoring** - Component status tracking
+- 🔧 **Runtime Configurable** - No rebuild/redeploy required
+- 🎯 **Resource Budgets** - <5% CPU, <100MB memory guaranteed
+
+**Quick Enable:**
+```yaml
+# crossbridge.yml
+runtime:
+  sidecar:
+    enabled: true
+    sampling:
+      events: 0.1          # 10% sampling
+      adaptive: enabled    # Auto-boost on anomalies
+    resources:
+      max_queue_size: 10000
+      max_cpu_percent: 5.0
+      max_memory_mb: 100
+```
+
+**Usage:**
+```python
+from core.sidecar import SidecarRuntime
+
+with SidecarRuntime() as sidecar:
+    # Observe events
+    sidecar.observe('test_event', {'test_id': 'test_123', 'status': 'passed'})
+    
+    # Get health
+    health = sidecar.get_health()  # {'status': 'healthy', 'components': {...}}
+    
+    # Export metrics (Prometheus format)
+    metrics = sidecar.export_metrics()
+```
+
+📖 **Learn More**: 
+- [Sidecar Runtime Guide](docs/sidecar/SIDECAR_RUNTIME.md)
+- [Configuration Reference](crossbridge.yml)
+- [Usage Examples](examples/sidecar_examples.py)
+
+### 🔹 7. **Performance Profiling & Observability**
 Passive, non-invasive performance profiling for all test executions:
 
 ```

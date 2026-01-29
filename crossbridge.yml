@@ -842,6 +842,67 @@ runtime:
 
 
   # ──────────────────────────────────────────────────────────────────────────
+  # DEBUGGABLE SIDECAR RUNTIME (NEW)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Resilient, low-overhead sidecar observer for test execution monitoring
+  # NEVER blocks or crashes the main process
+  
+  sidecar:
+    # Enable/disable sidecar runtime (DEFAULT: true)
+    enabled: true
+    
+    # ── Sampling Configuration ──
+    # Control what gets sampled and at what rate
+    sampling:
+      enabled: true
+      
+      # Global sampling rates (0.0 - 1.0)
+      events: 0.1              # 10% of events
+      traces: 0.05             # 5% of traces
+      profiling: 0.01          # 1% profiling samples
+      
+      # Per-signal sampling rates
+      test_events: 0.2         # 20% test events
+      perf_metrics: 0.05       # 5% performance metrics
+      debug_logs: 0.01         # 1% debug logs
+      
+      # Adaptive sampling (auto-boost on anomalies)
+      adaptive:
+        enabled: true
+        boost_factor: 5.0      # 5x increase on anomaly
+        boost_duration: 60     # Duration in seconds
+    
+    # ── Resource Budgets ──
+    # Hard limits to prevent sidecar from impacting main process
+    resources:
+      max_queue_size: 10000    # Maximum event queue size
+      max_cpu_percent: 5.0     # Maximum CPU usage (%)
+      max_memory_mb: 100       # Maximum memory usage (MB)
+      drop_on_full: true       # Drop events when queue full
+    
+    # ── Profiling Configuration ──
+    profiling:
+      enabled: true
+      sampling_interval: 1.0   # Sample every N seconds
+      
+      # Deep profiling (DEBUG ONLY - higher overhead)
+      deep_profiling: false
+      deep_duration_sec: 30    # Auto-disable after N seconds
+    
+    # ── Health Monitoring ──
+    health_checks:
+      enabled: true
+      interval_sec: 30         # Check interval
+      failure_threshold: 3     # Failures before marking unhealthy
+    
+    # ── Metrics Export ──
+    metrics:
+      enabled: true
+      prometheus_port: 9090    # Port for /metrics endpoint
+      export_interval: 15      # Export interval in seconds
+
+
+  # ──────────────────────────────────────────────────────────────────────────
   # API CHANGE INTELLIGENCE
   # ──────────────────────────────────────────────────────────────────────────
   # Automatically enabled during migration for API test impact analysis
