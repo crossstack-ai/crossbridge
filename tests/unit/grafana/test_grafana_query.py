@@ -49,7 +49,13 @@ row = cursor.fetchone()
 print(f"   Oldest: {row[0]}")
 print(f"   Newest: {row[1]}")
 print(f"   Current: {row[2]}")
-print(f"   Data age: {row[2] - row[1]}")
+if row[1] and row[2]:
+    try:
+        print(f"   Data age: {row[2] - row[1]}")
+    except TypeError:
+        # Handle timezone mismatch
+        print(f"   Data age: (timezone mismatch)")
+
 
 # Test 4: Version breakdown (exact query from dashboard)
 print("\n4. Version Breakdown (Dashboard Query):")

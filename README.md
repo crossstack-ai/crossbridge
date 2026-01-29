@@ -318,6 +318,35 @@ cd crossbridge
 pip install -r requirements.txt
 ```
 
+### ⚙️ Configuration
+
+CrossBridge uses a single configuration file for all features:
+
+**📄 Configuration File:**
+- **`crossbridge.yml`** - Main configuration file with all options
+
+**🔧 Setup:**
+```bash
+# Edit crossbridge.yml with your settings
+nano crossbridge.yml
+
+# Use environment variables for sensitive data
+export DATABASE_URL="postgresql://user:pass@host:5432/db"
+export OPENAI_API_KEY="sk-..."
+export CONFLUENCE_TOKEN="your-token"
+```
+
+**💡 Best Practice:** Use environment variables for secrets:
+```yaml
+database:
+  url: "${DATABASE_URL}"  # Reads from environment
+  
+api_change:
+  intelligence:
+    ai:
+      api_key: ${OPENAI_API_KEY}  # Secure!
+```
+
 ### 🎯 Option 1: NO MIGRATION MODE (Recommended!)
 
 Work with existing tests — **zero code changes required**.
@@ -547,7 +576,76 @@ Tier 3: Deep Regeneration → Full AI-powered rewrite
 - **Batch Commits**: Configurable commit sizes for large migrations
 - **Credential Caching**: Secure storage of API tokens
 
-### 4. Flaky Test Detection 🎯 NEW!
+### 4. API Change Intelligence 🆕
+
+**Automatic API change detection and documentation** for OpenAPI/Swagger specifications:
+
+```bash
+# Run API diff analysis
+crossbridge api-diff run
+
+# With AI-enhanced recommendations
+crossbridge api-diff run --ai
+
+# Check if oasdiff is installed
+crossbridge api-diff check-deps
+```
+
+**Key Features:**
+- ✅ **Automatic Change Detection**: Compare OpenAPI specs (file/URL/Git)
+- ✅ **Breaking Change Analysis**: Identify backward-incompatible changes
+- ✅ **Risk Classification**: Low/Medium/High/Critical risk levels
+- ✅ **Test Recommendations**: Rule-based + AI-powered test suggestions
+- ✅ **Incremental Documentation**: Auto-generated Markdown change logs
+- ✅ **Grafana Dashboards**: 8 panels for API change monitoring
+- ✅ **CI/CD Integration**: GitHub Actions, GitLab CI ready
+- ✅ **PostgreSQL Storage**: Full change history and analytics
+
+**Configuration Example:**
+```yaml
+crossbridge:
+  api_change:
+    enabled: true
+    spec_source:
+      type: file  # file | url | git
+      current: specs/openapi-v2.yaml
+      previous: specs/openapi-v1.yaml
+    
+    intelligence:
+      mode: hybrid  # rules | hybrid | ai-only
+      ai:
+        enabled: false  # Optional AI enhancement
+        provider: openai
+        model: gpt-4.1-mini
+    
+    documentation:
+      enabled: true
+      output_dir: docs/api-changes
+```
+
+**Output Example:**
+```markdown
+## API Changes – 2026-01-29
+
+**Summary:**
+- Total Changes: 5
+- Breaking Changes: 1  
+- High Risk: 2
+
+### ➕ Added
+#### `POST /api/v1/backup/jobs`
+- Risk: MEDIUM
+- Recommended Tests:
+  - Create positive test for POST /api/v1/backup/jobs
+  - Verify authentication/authorization
+  - Test error responses (400, 401, 403, 500)
+```
+
+📄 **Documentation**: [API Change Intelligence Spec](docs/implementation/API_CHANGE_INTELLIGENCE_SPEC.md) | [Setup Guide](docs/api-change/API_CHANGE_SETUP_GUIDE.md)
+
+---
+
+### 5. Flaky Test Detection 🎯
 
 **Machine Learning-powered flaky test detection** with comprehensive analytics:
 

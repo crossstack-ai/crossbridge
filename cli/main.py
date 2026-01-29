@@ -35,6 +35,7 @@ from persistence.orchestrator import persist_discovery
 
 # Import CLI commands
 from cli.commands.coverage import add_coverage_commands, execute_coverage_command
+from cli.commands.api_diff import register_commands as register_api_diff_commands
 
 logger = logging.getLogger(__name__)
 

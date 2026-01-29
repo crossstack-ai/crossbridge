@@ -840,3 +840,153 @@ runtime:
       #   slack_webhook: https://hooks.slack.com/...
       #   email: ops@example.com
 
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # API CHANGE INTELLIGENCE
+  # ──────────────────────────────────────────────────────────────────────────
+  # Automatically enabled during migration for API test impact analysis
+  
+  api_change:
+    enabled: false  # Set to true to enable API change intelligence
+    
+    # Spec source configuration
+    spec_source:
+      type: file  # Options: file, url, git
+      current: specs/openapi.yaml
+      previous: specs/openapi_prev.yaml
+      
+      # For URL-based specs:
+      # type: url
+      # current: https://api.example.com/v2/openapi.yaml
+      # previous: https://api.example.com/v1/openapi.yaml
+      # auth:
+      #   type: bearer  # or 'basic'
+      #   token: ${API_TOKEN}
+      
+      # For Git-based specs:
+      # type: git
+      # repository: https://github.com/example/api-specs.git
+      # current_branch: main
+      # previous_branch: release-1.0
+      # spec_path: specs/openapi.yaml
+    
+    # Intelligence configuration
+    intelligence:
+      mode: hybrid  # Options: rules, hybrid, ai-only
+      
+      rules:
+        enabled: true  # Rule-based intelligence (no AI required)
+        
+      ai:
+        enabled: false  # Optional AI enhancement
+        provider: openai  # Options: openai, anthropic
+        model: gpt-4.1-mini  # or claude-3-5-sonnet-20240620
+        api_key: ${OPENAI_API_KEY}  # Use environment variable
+        max_tokens_per_month: 100000
+        cost_limit_usd: 10.0
+        max_retries: 3
+        retry_backoff: 2
+    
+    # Impact analysis configuration
+    impact_analysis:
+      enabled: true
+      test_directories:
+        - tests/
+        - test/
+        - src/test/
+      framework: pytest  # Options: pytest, robot, selenium, playwright, cypress, jest
+      
+      # Custom test-to-endpoint mappings
+      custom_mappings:
+        "GET /api/users":
+          - test_file: tests/api/test_users.py
+            test_name: test_get_users
+        "POST /api/orders":
+          - test_file: tests/api/test_orders.py
+            test_name: test_create_order
+      
+      coverage_file: coverage/api-coverage.json
+      min_confidence: 0.5
+    
+    # CI/CD integration
+    ci_integration:
+      enabled: true
+      min_confidence: 0.5
+      max_tests: 100
+      frameworks:
+        - pytest
+        - robot
+      exclude_patterns:
+        - "**/integration/**"
+        - "**/*slow*.py"
+    
+    # Alert configuration
+    alerts:
+      enabled: true
+      
+      # Email alerts
+      email:
+        enabled: false
+        smtp_host: smtp.gmail.com
+        smtp_port: 587
+        smtp_user: alerts@example.com
+        smtp_password: ${SMTP_PASSWORD}
+        use_tls: true
+        from_email: crossbridge@example.com
+        to_emails:
+          - qa-team@example.com
+        subject_prefix: "[CrossBridge API Alert]"
+        min_severity: high
+        max_retries: 3
+        retry_backoff: 2
+      
+      # Slack alerts
+      slack:
+        enabled: false
+        webhook_url: ${SLACK_WEBHOOK_URL}
+        channel: "#api-alerts"
+        username: "CrossBridge AI"
+        icon_emoji: ":robot_face:"
+        mention_users:
+          - U12345678
+        min_severity: critical
+        max_retries: 3
+        retry_backoff: 2
+      
+      # Confluence alerts
+      confluence:
+        enabled: false
+        url: https://your-domain.atlassian.net
+        username: your-email@example.com
+        auth_token: ${CONFLUENCE_TOKEN}
+        space_key: API
+        parent_page_id: 123456
+        page_title_prefix: "API Change Alert"
+        update_mode: create  # 'create' or 'update'
+        max_retries: 3
+        retry_backoff: 2
+        min_severity: high
+      
+      # Microsoft Teams (planned)
+      # teams:
+      #   enabled: false
+      #   webhook_url: ${TEAMS_WEBHOOK_URL}
+    
+    # Documentation generation
+    documentation:
+      enabled: true
+      output_dir: docs/api-changes
+      
+      formats:
+        markdown:
+          enabled: true
+          mode: incremental
+          include_tests: true
+          include_risk_badges: true
+    
+    # Grafana observability
+    grafana:
+      enabled: false
+      dashboard_path: grafana/dashboards/api_change_intelligence.json
+      datasource: postgresql
+      refresh_interval: 30s

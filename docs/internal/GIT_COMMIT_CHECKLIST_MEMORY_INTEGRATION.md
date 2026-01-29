@@ -78,7 +78,7 @@
 - `grafana/dashboards/crossbridge_overview.json.backup`
 
 ### ❌ Configuration Examples (Separate Commit)
-- `crossbridge.yaml.example`
+- `crossbridge.yml`
 
 ### ❌ Report Generation Scripts (Separate Feature)
 - `generate_framework_analysis_pdf.py`

@@ -12,7 +12,9 @@
 .env.production
 .env.development
 crossbridge.yml
-!crossbridge.yaml.example
+
+# Note: crossbridge.yml contains secrets and is gitignored
+# Use environment variables for sensitive data: ${VAR_NAME}
 
 # ============================================================================
 # Python

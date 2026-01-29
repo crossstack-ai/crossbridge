@@ -1,82 +1,397 @@
-# CrossBridge Configuration
-# Continuous Intelligence Layer Configuration
+# ============================================================================
+# CrossBridge AI - Complete Configuration Template
+# ============================================================================
+# This is the master configuration file with ALL available options.
+# Copy this to crossbridge.yml and customize for your project.
+# ============================================================================
 
 crossbridge:
-  # Lifecycle mode: migration | observer
-  # - migration: Initial test discovery and migration
-  # - observer: Post-migration continuous intelligence (default)
-  mode: observer
+  # ============================================================================
+  # GENERAL SETTINGS
+  # ============================================================================
+  project_name: "My Test Automation Project"
+  version: "1.0.0"
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
   
-  # Application/Product Version Tracking
-  # Used for coverage-by-version analysis in Grafana
-  application:
-    # Product/application name (e.g., "MyWebApp", "PaymentAPI")
-    # Can be overridden by PRODUCT_NAME or CROSSBRIDGE_PRODUCT_NAME env var
-    product_name: ${PRODUCT_NAME:-MyApplication}
-    
-    # Application version being tested (e.g., "2.1.0", "v3.0.0-beta")
-    # Can be overridden by APP_VERSION or CROSSBRIDGE_APP_VERSION env var
-    # CI/CD Tip: Set from git tag - export APP_VERSION=$(git describe --tags)
-    application_version: ${APP_VERSION:-1.0.0}
-    
-    # Environment name (e.g., "dev", "staging", "production")
-    # Can be overridden by ENVIRONMENT or CROSSBRIDGE_ENVIRONMENT env var
-    environment: ${ENVIRONMENT:-dev}
+  # ============================================================================
+  # DATABASE CONFIGURATION (Required for most features)
+  # ============================================================================
+  database:
+    url: "postgresql://user:password@localhost:5432/crossbridge"
+    # Or use environment variable:
+    # url: "${DATABASE_URL}"
+    pool_size: 10
+    max_overflow: 20
+    echo: false  # Set true for SQL debugging
   
-  # Hook configuration
-  hooks:
-    enabled: true  # Enable/disable framework hooks
+  # ============================================================================
+  # API CHANGE INTELLIGENCE (Auto-enabled during migration)
+  # ============================================================================
+  api_change:
+    enabled: true  # Automatically enabled on first migration
     
-  # Persistence configuration
-  persistence:
-    postgres:
+    # Spec source configuration
+    spec_source:
+      type: file  # Options: file, url, git
+      current: specs/openapi.yaml
+      previous: specs/openapi_prev.yaml
+      
+      # For URL-based specs:
+      # type: url
+      # current: https://api.example.com/v2/openapi.yaml
+      # previous: https://api.example.com/v1/openapi.yaml
+      # auth:
+      #   type: bearer  # or 'basic'
+      #   token: ${API_TOKEN}
+      
+      # For Git-based specs:
+      # type: git
+      # repository: https://github.com/example/api-specs.git
+      # current_branch: main
+      # previous_branch: release-1.0
+      # spec_path: specs/openapi.yaml
+    
+    # Intelligence configuration
+    intelligence:
+      mode: hybrid  # Options: rules, hybrid, ai-only
+      
+      rules:
+        enabled: true  # Rule-based intelligence (no AI required)
+        
+      ai:
+        enabled: false  # Optional AI enhancement
+        provider: openai  # Options: openai, anthropic
+        model: gpt-4.1-mini  # or claude-3-5-sonnet-20240620
+        api_key: ${OPENAI_API_KEY}  # Use environment variable
+        max_tokens_per_month: 100000
+        cost_limit_usd: 10.0
+        # Retry configuration for AI calls
+        max_retries: 3
+        retry_backoff: 2  # Exponential backoff factor
+    
+    # Impact analysis configuration
+    impact_analysis:
       enabled: true
-      host: ${CROSSBRIDGE_DB_HOST:-10.60.67.247}
-      port: ${CROSSBRIDGE_DB_PORT:-5432}
-      database: ${CROSSBRIDGE_DB_NAME:-cbridge-unit-test-db}
-      user: ${CROSSBRIDGE_DB_USER:-postgres}
-      password: ${CROSSBRIDGE_DB_PASSWORD:-admin}
+      test_directories:
+        - tests/
+        - test/
+        - src/test/
+      framework: pytest  # Options: pytest, robot, selenium, playwright, cypress, jest
+      
+      # Custom test-to-endpoint mappings
+      custom_mappings:
+        "GET /api/users":
+          - test_file: tests/api/test_users.py
+            test_name: test_get_users
+        "POST /api/orders":
+          - test_file: tests/api/test_orders.py
+            test_name: test_create_order
+      
+      # Coverage data (optional)
+      coverage_file: coverage/api-coverage.json
+      
+      # Confidence thresholds
+      min_confidence: 0.5
+    
+    # CI/CD integration
+    ci_integration:
+      enabled: true
+      min_confidence: 0.5  # Only run tests with >50% confidence
+      max_tests: 100       # Limit number of tests (0 = unlimited)
+      frameworks:          # Filter by specific frameworks
+        - pytest
+        - robot
+      exclude_patterns:    # Patterns to exclude
+        - "**/integration/**"
+        - "**/*slow*.py"
+    
+    # Alert configuration
+    alerts:
+      enabled: true
+      
+      # Email alerts
+      email:
+        enabled: true
+        smtp_host: smtp.gmail.com
+        smtp_port: 587
+        smtp_user: alerts@example.com
+        smtp_password: ${SMTP_PASSWORD}  # Use environment variable
+        use_tls: true
+        from_email: crossbridge@example.com
+        to_emails:
+          - qa-team@example.com
+          - engineering-leads@example.com
+        subject_prefix: "[CrossBridge Alert]"
+        min_severity: high  # Options: info, low, medium, high, critical
+        # Retry configuration
+        max_retries: 3
+        retry_backoff: 2
+      
+      # Slack alerts
+      slack:
+        enabled: true
+        webhook_url: ${SLACK_WEBHOOK_URL}
+        channel: "#api-alerts"  # Optional channel override
+        username: "CrossBridge AI"
+        icon_emoji: ":robot_face:"
+        mention_users:  # Slack user IDs for critical alerts
+          - U12345678
+          - U87654321
+        min_severity: critical
+        # Retry configuration
+        max_retries: 3
+        retry_backoff: 2
+      
+      # Confluence alerts
+      confluence:
+        enabled: false
+        url: https://your-domain.atlassian.net  # Confluence base URL
+        username: your-email@example.com         # Confluence username/email
+        auth_token: ${CONFLUENCE_TOKEN}          # Confluence API token (use env var)
+        space_key: API                           # Confluence space key
+        parent_page_id: 123456                   # Parent page ID (optional)
+        page_title_prefix: "API Change Alert"   # Page title prefix
+        update_mode: create                      # 'create' (new pages) or 'update' (append)
+        max_retries: 3                           # Retry attempts
+        retry_backoff: 2                         # Exponential backoff factor
+        min_severity: high                       # Only send alerts >= this severity
+      
+      # Microsoft Teams (planned)
+      # teams:
+      #   enabled: false
+      #   webhook_url: ${TEAMS_WEBHOOK_URL}
+    
+    # Documentation generation
+    documentation:
+      enabled: true
+      output_dir: docs/api-changes
+      
+      formats:
+        markdown:
+          enabled: true
+          mode: incremental  # Options: incremental, full
+          include_tests: true
+          include_risk_badges: true
+        
+        # HTML (planned)
+        # html:
+        #   enabled: false
+        #   template: custom_template.html
+        
+        # Confluence
+        confluence:
+          enabled: false
+          url: https://your-domain.atlassian.net  # Confluence base URL
+          username: your-email@example.com         # Confluence username/email
+          auth_token: ${CONFLUENCE_TOKEN}          # Confluence API token (use env var)
+          space_key: API                           # Confluence space key
+          parent_page_id: 123456                   # Parent page ID (optional)
+          page_title_prefix: "API Change Alert"   # Page title prefix
+          update_mode: create                      # 'create' (new pages) or 'update' (append)
+          max_retries: 3                           # Retry attempts
+          retry_backoff: 2                         # Exponential backoff factor
+          min_severity: high                       # Only send alerts >= this severity
+    
+    # Grafana observability
+    grafana:
+      enabled: true
+      dashboard_path: grafana/dashboards/api_change_intelligence.json
+      datasource: postgresql
+      refresh_interval: 30s
   
-  # Observer mode settings
-  observer:
-    # Automatically detect new tests
-    auto_detect_new_tests: true
+  # ============================================================================
+  # FLAKY TEST DETECTION
+  # ============================================================================
+  flaky_detection:
+    enabled: true
     
-    # Update coverage graph continuously
-    update_coverage_graph: true
+    # Detection thresholds
+    min_runs: 5  # Minimum runs before marking as flaky
+    failure_rate_threshold: 0.3  # 30% failure rate = flaky
     
-    # Detect test drift and changes
-    detect_drift: true
+    # ML-based detection
+    ml:
+      enabled: true
+      model: sklearn_random_forest
+      retrain_interval_days: 7
     
-    # Flaky test detection threshold
-    flaky_threshold: 0.15  # 15% failure rate
+    # Alerting
+    alerts:
+      enabled: true
+      notify_on_new_flaky: true
+      notify_on_fixed: true
+  
+  # ============================================================================
+  # TEST COVERAGE ANALYSIS
+  # ============================================================================
+  coverage:
+    enabled: true
     
-  # AI & Intelligence features
-  intelligence:
-    # Enable AI-powered analysis
-    ai_enabled: true
+    # Coverage types
+    types:
+      - behavioral
+      - functional
+      - integration
     
-    # Missing coverage detection
-    detect_coverage_gaps: true
+    # Reporting
+    reports:
+      output_dir: reports/coverage
+      formats:
+        - html
+        - json
+        - markdown
+  
+  # ============================================================================
+  # FRAMEWORK-SPECIFIC ADAPTERS
+  # ============================================================================
+  adapters:
+    pytest:
+      enabled: true
+      discover_tests: true
+      
+    robot:
+      enabled: true
+      discover_tests: true
+      
+    selenium:
+      enabled: true
+      implicit_wait: 10
+      page_load_timeout: 30
     
-    # Redundant test detection
-    detect_redundant_tests: true
+    playwright:
+      enabled: true
+      headless: true
+      slow_mo: 0
+  
+  # ============================================================================
+  # TEST TRANSFORMATION (Migration Features)
+  # ============================================================================
+  transformation:
+    # Source framework
+    source:
+      framework: selenium_python
+      test_directory: old_tests/
     
-    # Risk-based execution recommendations
-    risk_based_recommendations: true
+    # Target framework
+    target:
+      framework: playwright
+      output_directory: new_tests/
+    
+    # Transformation options
+    options:
+      preserve_structure: true
+      improve_locators: true
+      add_comments: true
+      ai_enhancement: false  # Requires AI enabled
+    
+    # Validation
+    validation:
+      enabled: true
+      run_original: true
+      run_transformed: true
+      compare_results: true
+  
+  # ============================================================================
+  # LOGGING & OBSERVABILITY
+  # ============================================================================
+  logging:
+    level: INFO
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    # File logging
+    file:
+      enabled: true
+      path: logs/crossbridge.log
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+    
+    # Console logging
+    console:
+      enabled: true
+      color: true
+    
+    # Structured logging (JSON)
+    json:
+      enabled: false
+      path: logs/crossbridge.json
+  
+  # ============================================================================
+  # PERFORMANCE & RELIABILITY
+  # ============================================================================
+  performance:
+    # Connection pooling
+    pool_size: 10
+    max_overflow: 20
+    
+    # Timeouts
+    default_timeout: 30
+    command_timeout: 300  # For long-running commands like oasdiff
+    
+    # Retry configuration (global defaults)
+    retry:
+      max_attempts: 3
+      backoff_factor: 2  # Exponential: 1s, 2s, 4s
+      backoff_max: 30    # Maximum wait time
+    
+    # Caching
+    cache:
+      enabled: true
+      ttl: 3600  # 1 hour
+      backend: memory  # Options: memory, redis
+  
+  # ============================================================================
+  # SECURITY & AUTHENTICATION
+  # ============================================================================
+  security:
+    # API authentication (for URL-based specs)
+    api_auth:
+      type: bearer  # Options: bearer, basic, api_key
+      token: ${API_TOKEN}
+    
+    # Database encryption
+    encrypt_sensitive_data: true
+    
+    # Secrets management
+    secrets:
+      provider: environment  # Options: environment, vault, aws_secrets
+  
+  # ============================================================================
+  # PLUGINS & EXTENSIONS
+  # ============================================================================
+  plugins:
+    enabled: true
+    directory: plugins/
+    auto_discover: true
+  
+  # ============================================================================
+  # MIGRATION SETTINGS (Auto-configuration)
+  # ============================================================================
+  migration:
+    # Auto-enable features during migration
+    auto_enable:
+      - api_change
+      - flaky_detection
+      - coverage
+    
+    # Create default configurations
+    create_defaults: true
+    
+    # Backup before migration
+    backup:
+      enabled: true
+      directory: backups/
+    
+    # Validation before migration
+    validate_schema: true
+    validate_connectivity: true
 
-# Framework-specific configurations
-frameworks:
-  pytest:
-    enabled: true
-    auto_instrument_api_calls: true
-    auto_instrument_ui_interactions: false
-    
-  playwright:
-    enabled: true
-    capture_network_traffic: true
-    
-  robot:
-    enabled: true
-    track_keywords: true
-    track_api_calls: true
+# ============================================================================
+# ENVIRONMENT-SPECIFIC OVERRIDES
+# ============================================================================
+# You can create environment-specific files:
+# - crossbridge.dev.yml
+# - crossbridge.staging.yml
+# - crossbridge.prod.yml
+#
+# Load with: crossbridge --config crossbridge.prod.yml
+# ============================================================================

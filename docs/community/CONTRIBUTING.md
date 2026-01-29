@@ -105,7 +105,7 @@ pip install -r requirements-dev.txt
 
 ```bash
 # Copy example configuration
-cp crossbridge.yaml.example crossbridge.yml
+# Edit crossbridge.yml with your settings
 
 # Set up environment variables
 export OPENAI_API_KEY="your_key_here"

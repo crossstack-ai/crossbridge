@@ -205,7 +205,7 @@ CROSSBRIDGE_MAX_WORKERS=4
 pip install -r requirements.txt
 
 # Configure environment
-cp crossbridge.yaml.example crossbridge.yaml
+# Edit crossbridge.yaml with your settings
 # Edit crossbridge.yaml with your settings
 
 # Run migrations
