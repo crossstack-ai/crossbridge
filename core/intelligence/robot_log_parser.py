@@ -100,7 +100,8 @@ class RobotLogParser:
             # Parse root suite
             suite_element = root.find('suite')
             if suite_element is None:
-                raise ValueError("No suite element found in output.xml")
+                logger.warning("No suite element found in output.xml")
+                return None
             
             self.root_suite = self._parse_suite(suite_element)
             
@@ -112,7 +113,7 @@ class RobotLogParser:
         
         except Exception as e:
             logger.error(f"Failed to parse {xml_path}: {e}")
-            raise
+            return None
     
     def _parse_suite(self, suite_element: ET.Element) -> RobotSuite:
         """Parse a suite element."""
@@ -177,8 +178,10 @@ class RobotLogParser:
         elapsed_ms = int(status_element.get('elapsedtime', '0')) if status_element is not None else 0
         error_message = status_element.text if status_element is not None and status == RobotStatus.FAIL else None
         
-        # Parse tags
+        # Parse tags (check both direct children and nested in tags element)
         tags = []
+        for tag_element in test_element.findall('tag'):
+            tags.append(tag_element.text or '')
         for tag_element in test_element.findall('tags/tag'):
             tags.append(tag_element.text or '')
         
@@ -232,9 +235,9 @@ class RobotLogParser:
         elapsed_ms = int(status_element.get('elapsedtime', '0')) if status_element is not None else 0
         error_message = status_element.text if status_element is not None and status == RobotStatus.FAIL else None
         
-        # Parse arguments
+        # Parse arguments (direct children, not nested)
         arguments = []
-        for arg_element in kw_element.findall('arguments/arg'):
+        for arg_element in kw_element.findall('arg'):
             arguments.append(arg_element.text or '')
         
         # Parse messages

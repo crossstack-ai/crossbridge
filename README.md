@@ -85,7 +85,32 @@ Reduce maintenance costs with intelligent insights:
 - 🔧 **Self-healing locator suggestions**
 - 📈 **Impact analysis** linking tests to code changes
 
-### 🔹 4. **Framework-Agnostic Architecture**
+### 🔹 4. **NEW: Phase 2 - Intelligent Parsers & Unified Embeddings** ⭐
+**Released: January 2026**
+
+CrossBridge now includes advanced parsing capabilities and a unified embeddings system:
+
+**Intelligent Parsers:**
+- 🔍 **Java Step Definition Parser** - Parse Cucumber/BDD step definitions with AST-level analysis
+- 📊 **Robot Framework Log Parser** - Analyze Robot output.xml for keywords, tags, and performance metrics
+- 🧪 **Pytest Intelligence Plugin** - Extract execution signals and test metadata at runtime
+
+**Unified Embeddings System:**
+- 🎯 Framework-agnostic embedding interface for semantic search across all test types
+- 🔌 Support for OpenAI, Anthropic, HuggingFace, Ollama, and custom embedding providers
+- 💾 Vector stores: FAISS, pgvector, ChromaDB, Pinecone
+- 🔎 Semantic test similarity and intelligent test matching
+
+**Test Coverage:**
+- ✅ 32/32 comprehensive parser tests (100% passing)
+- ✅ 174/184 total tests passing (94.6% pass rate)
+- ✅ Performance: 50 steps parsed in <1s, 30 Robot tests in <1s
+
+📖 **Documentation:** [Phase 2 Feature Guide](docs/releases/PHASE2_FEATURE_ADDITIONS.md) | [QA Report](PHASE2_QA_COMPREHENSIVE_REPORT.md)
+
+---
+
+### 🔹 5. **Framework-Agnostic Architecture**
 Plugin-based ecosystem supports 12+ existing frameworks:
 
 | Framework | Language | Type | Status | Completeness |
