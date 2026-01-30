@@ -39,7 +39,7 @@ Feature demonstration scripts showcasing CrossBridge capabilities:
 - `demo_continuous_intelligence.py` - Continuous intelligence system
 - `demo_flaky_detection.py` - Flaky test detection demo
 - `demo_new_test_quick.py` - Quick new test demonstration
-- `demo_phase3_ai.py` - Advanced AI capabilities demonstration
+- `demo_ai_intelligence.py` - AI intelligence layer demonstration
 - `demo_production_profiling.py` - Production profiling demo
 - `demo_transformation_improvement.py` - Transformation improvements
 

@@ -1,5 +1,5 @@
 """
-Demo: Phase 3 AI Intelligence Layer
+Demo: AI Intelligence Layer
 
 Demonstrates AI-powered features that operate on metadata, NOT code:
 1. Flaky test prediction
@@ -30,13 +30,13 @@ def print_section(title):
     print("=" * 80 + "\n")
 
 
-def demo_phase3_ai():
-    """Demonstrate Phase 3 AI features"""
+def demo_ai_intelligence():
+    """Demonstrate AI intelligence features"""
     
     print("""
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║                     Phase 3: AI Intelligence Layer                          ║
+║                        AI Intelligence Layer                                 ║
 ║                                                                              ║
 ║  AI-powered features that analyze test metadata to provide:                 ║
 ║  • Flaky test predictions                                                   ║
@@ -239,9 +239,9 @@ def demo_phase3_ai():
     print("   • Reduce manual test writing effort\n")
     
     # =========================================================================
-    # SUMMARY: Phase 3 AI Capabilities
+    # SUMMARY: AI Intelligence Capabilities
     # =========================================================================
-    print_section("SUMMARY: Phase 3 AI Capabilities")
+    print_section("SUMMARY: AI Intelligence Capabilities")
     
     print("""
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -312,4 +312,4 @@ Next Steps:
 
 
 if __name__ == "__main__":
-    demo_phase3_ai()
+    demo_ai_intelligence()

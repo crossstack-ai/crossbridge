@@ -85,7 +85,7 @@ Reduce maintenance costs with intelligent insights:
 - 🔧 **Self-healing locator suggestions**
 - 📈 **Impact analysis** linking tests to code changes
 
-### 🔹 4. **NEW: Phase 2 - Intelligent Parsers & Unified Embeddings** ⭐
+### 🔹 4. **Intelligent Parsers & Unified Embeddings** ⭐
 **Released: January 2026**
 
 CrossBridge now includes advanced parsing capabilities and a unified embeddings system:
@@ -106,7 +106,7 @@ CrossBridge now includes advanced parsing capabilities and a unified embeddings 
 - ✅ 174/184 total tests passing (94.6% pass rate)
 - ✅ Performance: 50 steps parsed in <1s, 30 Robot tests in <1s
 
-📖 **Documentation:** [Phase 2 Feature Guide](docs/releases/PHASE2_FEATURE_ADDITIONS.md) | [QA Report](PHASE2_QA_COMPREHENSIVE_REPORT.md)
+📖 **Documentation:** [Feature Guide](docs/releases/historical/phase2_feature_additions.md) | [QA Report](docs/releases/historical/phase2_qa_report.md)
 
 ---
 

@@ -8,9 +8,9 @@ This directory contains release notes and feature completion reports for CrossBr
 - **[V0.2.0_RELEASE_NOTES.md](V0.2.0_RELEASE_NOTES.md)** - Version 0.2.0 release notes with features, improvements, and migration guide
 
 ### Feature Completion Reports
-- **[ADVANCED_ADAPTER_FEATURES_REPORT.md](PHASE2_SUCCESS_REPORT.md)** - Advanced adapter features completion
-- **[AI_TRANSFORMATION_ENHANCEMENTS_REPORT.md](PHASE3_SUCCESS_REPORT.md)** - AI transformation enhancements completion  
-- **[PRODUCTION_HARDENING_REPORT.md](PHASE4_SUCCESS_SUMMARY.md)** - Production hardening completion
+- **[ADVANCED_ADAPTER_FEATURES_REPORT.md](historical/phase2_success_report.md)** - Advanced adapter features completion
+- **[AI_TRANSFORMATION_ENHANCEMENTS_REPORT.md](historical/phase3_success_report.md)** - AI transformation enhancements completion  
+- **[PRODUCTION_HARDENING_REPORT.md](historical/phase4_success_summary.md)** - Production hardening completion
 
 ## Release Schedule
 
