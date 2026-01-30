@@ -150,16 +150,16 @@ This creates `target/java-test-parser-1.0.jar` which is used by `ast_parser.py`.
 
 ## Migration Path
 
-### Phase 1: Parallel Execution (Current)
+### Current: Parallel Execution (Hybrid Approach)
 - Keep regex-based parsing as fallback
 - Use AST when JAR is available
 - Compare results for validation
 
-### Phase 2: AST Primary
+### Next: AST Primary
 - Make AST the primary method
 - Regex as fallback only
 
-### Phase 3: AST Only
+### Future: AST Only
 - Remove regex-based parsing
 - Full AST coverage
 

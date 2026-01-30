@@ -106,7 +106,7 @@ CrossBridge now includes advanced parsing capabilities and a unified embeddings 
 - ✅ 174/184 total tests passing (94.6% pass rate)
 - ✅ Performance: 50 steps parsed in <1s, 30 Robot tests in <1s
 
-📖 **Documentation:** [Feature Guide](docs/releases/historical/phase2_feature_additions.md) | [QA Report](docs/releases/historical/phase2_qa_report.md)
+📖 **Documentation:** [Feature Guide](docs/releases/historical/intelligence_features.md) | [QA Report](docs/releases/historical/intelligence_qa_report.md)
 
 ---
 

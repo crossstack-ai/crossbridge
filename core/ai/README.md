@@ -614,24 +614,24 @@ class MyProvider(LLMProvider):
 
 ## 🚧 Roadmap
 
-### Phase 1: Core (✅ Complete)
+### Core AI Framework (✅ Complete)
 - ✅ Provider abstraction
 - ✅ Prompt templates
 - ✅ AI skills
 - ✅ Governance layer
 - ✅ Orchestration engine
 
-### Phase 2: MCP Integration (Planned)
+### MCP Integration (Planned)
 - ⏳ MCP client (consume tools)
 - ⏳ MCP server (expose tools)
 - ⏳ Tool schemas
 
-### Phase 3: Intelligence (Planned)
+### Intelligence Features (Planned)
 - ⏳ Vector embeddings
 - ⏳ Memory/retrieval
 - ⏳ Learning from history
 
-### Phase 4: CLI & UI (Planned)
+### CLI & UI Enhancements (Planned)
 - ⏳ CLI commands
 - ⏳ Interactive mode
 - ⏳ Web dashboard
