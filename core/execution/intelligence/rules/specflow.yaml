@@ -1,0 +1,233 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         specflow:
+#           - id: SPEC_001
+#             description: Step binding issues
+#             match_any:
+#               - "binding"
+#               - "step definition"
+#             failure_type: AUTOMATION_DEFECT
+#             confidence: 0.90
+#             priority: 10
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# SpecFlow Framework Classification Rules
+# For .NET BDD testing with SpecFlow
+
+# ============================================================================
+# AUTOMATION DEFECTS - SpecFlow-specific test automation issues
+# ============================================================================
+
+- id: SPEC_001
+  description: Undefined or missing step bindings
+  match_any:
+    - "No matching step definition found"
+    - "MissingStepDefinitionException"
+    - "Undefined step"
+    - "Step not implemented"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.95
+  priority: 5
+
+- id: SPEC_002
+  description: Step binding parameter conversion failures
+  match_any:
+    - "BindingException"
+    - "StepArgumentTransformationException"
+    - "Parameter mismatch"
+    - "Could not convert"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 11
+
+- id: SPEC_003
+  description: Hook execution failures
+  match_any:
+    - "[BeforeScenario]"
+    - "[AfterScenario]"
+    - "[BeforeFeature]"
+    - "[AfterFeature]"
+    - "Hook failed"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 14
+
+- id: SPEC_004
+  description: ScenarioContext or FeatureContext issues
+  match_any:
+    - "ScenarioContext"
+    - "FeatureContext"
+    - "Context is null"
+    - "NullReferenceException.*Context"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.83
+  priority: 16
+
+- id: SPEC_005
+  description: Table or data handling issues
+  match_any:
+    - "Table"
+    - "CreateInstance"
+    - "CreateSet"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.82
+  priority: 17
+
+- id: SPEC_006
+  description: Element locator or UI interaction failures
+  match_any:
+    - "NoSuchElementException"
+    - "ElementNotVisibleException"
+    - "element not found"
+    - "StaleElementReferenceException"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.87
+  priority: 12
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: SPEC_ENV_001
+  description: Browser or WebDriver initialization failures
+  match_any:
+    - "WebDriverException"
+    - "Could not start browser"
+    - "driver"
+    - "browser launch"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 9
+
+- id: SPEC_ENV_002
+  description: Database or external service connectivity
+  match_any:
+    - "SqlException"
+    - "Connection"
+    - "Database"
+    - "Could not connect"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: SPEC_ENV_003
+  description: File or resource not found
+  match_any:
+    - "FileNotFoundException"
+    - "DirectoryNotFoundException"
+    - "test data"
+    - "config file"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.83
+  priority: 15
+
+- id: SPEC_ENV_004
+  description: Network or HTTP connectivity issues
+  match_any:
+    - "HttpRequestException"
+    - "WebException"
+    - "Network"
+    - "Connection refused"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.85
+  priority: 13
+
+# ============================================================================
+# PRODUCT DEFECTS - Application under test failures
+# ============================================================================
+
+- id: SPEC_PROD_001
+  description: Server errors (5xx responses)
+  match_any:
+    - "500 Internal Server Error"
+    - "502 Bad Gateway"
+    - "503 Service Unavailable"
+    - "504 Gateway Timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.95
+  priority: 3
+
+- id: SPEC_PROD_002
+  description: Assertion failures on expected behavior
+  match_any:
+    - "AssertionException"
+    - "Assert.AreEqual"
+    - "Assert.IsTrue"
+    - "Should().Be"
+    - "expected"
+  excludes:
+    - "Undefined"
+    - "timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.92
+  priority: 5
+
+- id: SPEC_PROD_003
+  description: Application null reference exceptions
+  match_any:
+    - "NullReferenceException"
+  excludes:
+    - "Context"
+    - "binding"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 8
+
+- id: SPEC_PROD_004
+  description: Application business logic exceptions
+  match_any:
+    - "ArgumentException"
+    - "InvalidOperationException"
+    - "ApplicationException"
+  excludes:
+    - "SpecFlow"
+    - "Binding"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.85
+  priority: 10
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration problems
+# ============================================================================
+
+- id: SPEC_CONFIG_001
+  description: SpecFlow configuration errors
+  match_any:
+    - "specflow.json"
+    - "app.config"
+    - "Configuration"
+    - "No feature files found"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.90
+  priority: 10
+
+- id: SPEC_CONFIG_002
+  description: Plugin or generator errors
+  match_any:
+    - "GeneratorException"
+    - "Plugin"
+    - "SpecFlow.Tools"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: SPEC_CONFIG_003
+  description: Assembly or dependency loading issues
+  match_any:
+    - "FileLoadException"
+    - "Could not load"
+    - "assembly"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.87
+  priority: 12

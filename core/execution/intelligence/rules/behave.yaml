@@ -1,0 +1,224 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         behave:
+#           - id: BHV_001
+#             description: Step implementation issues
+#             match_any:
+#               - "step"
+#               - "undefined"
+#             failure_type: AUTOMATION_DEFECT
+#             confidence: 0.88
+#             priority: 12
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# Behave Framework Classification Rules
+# For Python BDD testing with Behave
+
+# ============================================================================
+# AUTOMATION DEFECTS - Behave-specific test automation issues
+# ============================================================================
+
+- id: BEH_001
+  description: Undefined step implementations
+  match_any:
+    - "No step definition for"
+    - "NotImplementedError"
+    - "Step not implemented"
+    - "undefined step"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.95
+  priority: 5
+
+- id: BEH_002
+  description: Step parameter or type conversion failures
+  match_any:
+    - "TypeError"
+    - "use_step_matcher"
+    - "parameter mismatch"
+    - "Wrong number of arguments"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.87
+  priority: 11
+
+- id: BEH_003
+  description: Context object or fixture issues
+  match_any:
+    - "context."
+    - "AttributeError.*context"
+    - "fixture"
+    - "use_fixture"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.83
+  priority: 15
+
+- id: BEH_004
+  description: Hook execution failures
+  match_any:
+    - "before_"
+    - "after_"
+    - "hook failed"
+  requires_all:
+    - "scenario"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 14
+
+- id: BEH_005
+  description: Element locator or selector issues
+  match_any:
+    - "NoSuchElementException"
+    - "element not found"
+    - "could not find"
+    - "TimeoutException.*element"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 12
+
+- id: BEH_006
+  description: Wait or timing issues in steps
+  match_any:
+    - "TimeoutException"
+    - "wait timeout"
+    - "Timed out waiting"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.82
+  priority: 17
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: BEH_ENV_001
+  description: Browser or WebDriver initialization failures
+  match_any:
+    - "WebDriverException"
+    - "selenium"
+    - "browser"
+    - "driver"
+  requires_all:
+    - "launch"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 9
+
+- id: BEH_ENV_002
+  description: Database or external service connectivity
+  match_any:
+    - "DatabaseError"
+    - "ConnectionError"
+    - "Connection refused"
+    - "Could not connect"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: BEH_ENV_003
+  description: Module or import errors
+  match_any:
+    - "ModuleNotFoundError"
+    - "ImportError"
+    - "No module named"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.92
+  priority: 8
+
+- id: BEH_ENV_004
+  description: File or resource not found
+  match_any:
+    - "FileNotFoundError"
+    - "IOError"
+    - "test data"
+    - "config file"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.83
+  priority: 15
+
+# ============================================================================
+# PRODUCT DEFECTS - Application under test failures
+# ============================================================================
+
+- id: BEH_PROD_001
+  description: Server errors (5xx responses)
+  match_any:
+    - "500 Internal Server Error"
+    - "502 Bad Gateway"
+    - "503 Service Unavailable"
+    - "504 Gateway Timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.95
+  priority: 3
+
+- id: BEH_PROD_002
+  description: Assertion failures on expected outcomes
+  match_any:
+    - "AssertionError"
+    - "assert "
+    - "expected"
+  excludes:
+    - "Not implemented"
+    - "timeout"
+    - "element"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.90
+  priority: 6
+
+- id: BEH_PROD_003
+  description: Application exceptions and runtime errors
+  match_any:
+    - "ValueError"
+    - "KeyError"
+    - "IndexError"
+  excludes:
+    - "context"
+    - "step"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.85
+  priority: 11
+
+- id: BEH_PROD_004
+  description: API response validation failures
+  match_any:
+    - "status code"
+    - "response"
+    - "JSON"
+  requires_all:
+    - "expected"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 8
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration problems
+# ============================================================================
+
+- id: BEH_CONFIG_001
+  description: Behave configuration or feature file issues
+  match_any:
+    - "behave.ini"
+    - "feature file"
+    - "No scenarios"
+    - "ConfigParser"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: BEH_CONFIG_002
+  description: Environment or settings configuration errors
+  match_any:
+    - "environment.py"
+    - "settings"
+    - "userdata"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.83
+  priority: 15

@@ -135,6 +135,37 @@ crossbridge:
   
   
   # ──────────────────────────────────────────────────────────────────────────
+  # EXECUTION INTELLIGENCE - LOG SOURCES
+  # ──────────────────────────────────────────────────────────────────────────
+  # Configure automation logs (mandatory) and application logs (optional)
+  # Priority: CLI arguments > Config file > Framework defaults
+  
+  execution:
+    # Framework being tested (for default log path resolution)
+    framework: selenium  # selenium, pytest, robot, playwright, cypress, etc.
+    
+    # Source root directory (for code analysis)
+    source_root: ./src/test/java
+    
+    # Log sources configuration
+    logs:
+      # Automation logs (MANDATORY - test framework outputs)
+      # These are REQUIRED for analysis and will cause failure if missing
+      automation:
+        - ./target/surefire-reports     # Java/Maven test reports
+        - ./logs/test.log                # Test execution logs
+      
+      # Application logs (OPTIONAL - product/service logs)
+      # When present, enables +0.15 confidence boost via log correlation
+      # Missing application logs will NOT cause failures
+      application:
+        - ./app/logs/service.log         # Backend service logs
+        - ./logs/backend.log             # Application logs
+        # - ./logs/api.log               # API server logs
+        # - ./logs/database.log          # Database logs
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
   # FLAKY TEST DETECTION
   # ──────────────────────────────────────────────────────────────────────────
   # Machine learning-based flaky test detection
@@ -202,6 +233,122 @@ crossbridge:
     # Risk-based execution recommendations
     # Suggests which tests to run based on code changes
     risk_based_recommendations: true
+    
+    # ── Advanced Failure Classification Rules (NEW) ──────────────────────
+    # Framework-specific rules for intelligent failure classification
+    # All rules are in single config file (no separate YAML files needed)
+    # System automatically loads rules based on execution.framework setting
+    
+    rules:
+      # Rules for Selenium (Python/Java UI automation)
+      selenium:
+        - id: SEL_001
+          description: Element locator not found or stale
+          match_any:
+            - NoSuchElementException
+            - StaleElementReferenceException
+            - ElementNotInteractableException
+          failure_type: AUTOMATION_DEFECT
+          confidence: 0.90
+          priority: 10
+        
+        - id: SEL_002
+          description: Timeout waiting for element or condition
+          match_any:
+            - TimeoutException
+            - "wait timeout"
+            - "timed out waiting"
+          failure_type: AUTOMATION_DEFECT
+          confidence: 0.85
+          priority: 15
+        
+        - id: SEL_PROD_001
+          description: Server errors (5xx)
+          match_any:
+            - "500 Internal Server Error"
+            - "502 Bad Gateway"
+            - "503 Service Unavailable"
+          failure_type: PRODUCT_DEFECT
+          confidence: 0.95
+          priority: 5
+      
+      # Rules for Pytest (Python unit/integration tests)
+      pytest:
+        - id: PYT_001
+          description: Fixture failures
+          match_any:
+            - fixture
+            - "@pytest.fixture"
+            - setup failed
+          failure_type: AUTOMATION_DEFECT
+          confidence: 0.85
+          priority: 15
+        
+        - id: PYT_PROD_001
+          description: Assertion failures
+          match_any:
+            - AssertionError
+            - assert
+          excludes:
+            - fixture
+          failure_type: PRODUCT_DEFECT
+          confidence: 0.90
+          priority: 10
+      
+      # Rules for Robot Framework
+      robot:
+        - id: ROB_001
+          description: Keyword failures
+          match_any:
+            - "Keyword"
+            - "No keyword with name"
+          failure_type: AUTOMATION_DEFECT
+          confidence: 0.88
+          priority: 12
+        
+        - id: ROB_PROD_001
+          description: Test assertions failed
+          match_any:
+            - "should be equal"
+            - "should contain"
+            - "should not"
+          failure_type: PRODUCT_DEFECT
+          confidence: 0.90
+          priority: 10
+      
+      # Generic fallback rules (used when framework-specific rules don't match)
+      generic:
+        - id: GEN_PROD_001
+          description: Null pointer / reference errors
+          match_any:
+            - NullPointerException
+            - NullReferenceException
+            - "is null"
+            - "'NoneType'"
+          failure_type: PRODUCT_DEFECT
+          confidence: 0.85
+          priority: 20
+        
+        - id: GEN_ENV_001
+          description: Connection / network issues
+          match_any:
+            - Connection refused
+            - Connection timeout
+            - UnknownHostException
+            - ECONNREFUSED
+          failure_type: ENVIRONMENT_ISSUE
+          confidence: 0.90
+          priority: 15
+      
+      # ─── Note: Complete rule sets available in docs ───────────────────
+      # This shows basic examples. For full rule sets (14-20 rules per framework):
+      # - See: core/execution/intelligence/rules/*.yaml
+      # - Or use: crossbridge rules list --framework <name>
+      # - Add your custom rules here following the same structure
+      
+      # All 12 frameworks supported:
+      # selenium, pytest, robot, playwright, restassured, cypress,
+      # cucumber, behave, junit, testng, specflow, nunit, generic
   
   
   # ──────────────────────────────────────────────────────────────────────────

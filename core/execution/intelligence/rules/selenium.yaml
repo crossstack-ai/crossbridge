@@ -1,0 +1,213 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         selenium:
+#           - id: SEL_001
+#             description: Element locator issues
+#             match_any:
+#               - NoSuchElementException
+#               - StaleElementReferenceException
+#             failure_type: AUTOMATION_DEFECT
+#             confidence: 0.90
+#             priority: 10
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# Selenium-Specific Classification Rules
+# These rules are optimized for Selenium WebDriver test failures
+
+name: selenium
+version: 1.0.0
+description: Classification rules for Selenium WebDriver tests
+
+rules:
+  # ============================================================================
+  # AUTOMATION DEFECTS (Selenium-Specific)
+  # ============================================================================
+  
+  - id: SEL_001
+    description: Element locator issues
+    match_any:
+      - NoSuchElementException
+      - StaleElementReferenceException
+      - ElementNotInteractableException
+      - ElementNotVisibleException
+      - InvalidSelectorException
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.9
+    priority: 10
+  
+  - id: SEL_002
+    description: Timing and synchronization issues
+    match_any:
+      - TimeoutException
+      - WebDriverWait
+      - implicitly_wait
+      - element not found within timeout
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.75
+    priority: 20
+    excludes:
+      - server timeout
+      - connection timeout
+      - database timeout
+  
+  - id: SEL_003
+    description: Frame/window switching issues
+    match_any:
+      - NoSuchFrameException
+      - NoSuchWindowException
+      - switch_to
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.85
+    priority: 15
+  
+  - id: SEL_004
+    description: JavaScript execution failures
+    match_any:
+      - JavascriptException
+      - execute_script
+      - WebDriverException: javascript error
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.8
+    priority: 25
+  
+  - id: SEL_005
+    description: Screenshot or capability issues
+    match_any:
+      - SessionNotFoundException
+      - InvalidSessionIdException
+      - WebDriverException: chrome not reachable
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.85
+    priority: 30
+  
+  # ============================================================================
+  # ENVIRONMENT ISSUES
+  # ============================================================================
+  
+  - id: SEL_ENV_001
+    description: Browser driver issues
+    match_any:
+      - WebDriverException
+      - driver executable
+      - chromedriver
+      - geckodriver
+      - PATH
+    requires_all:
+      - driver
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.9
+    priority: 5
+  
+  - id: SEL_ENV_002
+    description: Network connectivity issues
+    match_any:
+      - ConnectionRefusedError
+      - Connection refused
+      - Connection reset
+      - Unable to connect
+      - ERR_CONNECTION_REFUSED
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.85
+    priority: 10
+  
+  - id: SEL_ENV_003
+    description: Page load timeout
+    match_any:
+      - page load timeout
+      - Timeout loading page
+      - Page took too long
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.75
+    priority: 15
+  
+  - id: SEL_ENV_004
+    description: Browser crashes
+    match_any:
+      - chrome crashed
+      - firefox crashed
+      - browser disconnected
+      - session deleted
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.9
+    priority: 8
+  
+  # ============================================================================
+  # PRODUCT DEFECTS
+  # ============================================================================
+  
+  - id: SEL_PROD_001
+    description: Application errors visible in UI
+    match_any:
+      - 500 Internal Server Error
+      - 404 Not Found
+      - error message displayed
+      - error popup
+      - error dialog
+    failure_type: PRODUCT_DEFECT
+    confidence: 0.85
+    priority: 20
+    excludes:
+      - expected error
+      - validation error
+  
+  - id: SEL_PROD_002
+    description: Incorrect page behavior
+    match_any:
+      - AssertionError
+      - Expected
+      - but was
+      - does not match
+    failure_type: PRODUCT_DEFECT
+    confidence: 0.7
+    priority: 30
+    excludes:
+      - element not found
+      - selector
+  
+  - id: SEL_PROD_003
+    description: Server-side errors
+    match_any:
+      - NullPointerException
+      - SQLException
+      - RuntimeException
+    failure_type: PRODUCT_DEFECT
+    confidence: 0.9
+    priority: 10
+  
+  # ============================================================================
+  # CONFIGURATION ISSUES
+  # ============================================================================
+  
+  - id: SEL_CONFIG_001
+    description: Missing or invalid configuration
+    match_any:
+      - ConfigurationException
+      - Invalid configuration
+      - Missing required property
+      - Configuration file not found
+    failure_type: CONFIGURATION_ISSUE
+    confidence: 0.85
+    priority: 20
+  
+  - id: SEL_CONFIG_002
+    description: Incorrect test data
+    match_any:
+      - Test data
+      - Invalid credentials
+      - Login failed
+    requires_all:
+      - credentials
+    failure_type: CONFIGURATION_ISSUE
+    confidence: 0.75
+    priority: 25

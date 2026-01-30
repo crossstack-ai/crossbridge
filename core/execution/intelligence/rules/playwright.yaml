@@ -1,0 +1,223 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         playwright:
+#           - id: PLW_001
+#             description: Selector/locator issues
+#             match_any:
+#               - "selector"
+#               - "locator"
+#             failure_type: AUTOMATION_DEFECT
+#             confidence: 0.90
+#             priority: 10
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# Playwright Framework Classification Rules
+# For JavaScript/TypeScript E2E testing with Playwright
+
+# ============================================================================
+# AUTOMATION DEFECTS - Playwright-specific test automation issues
+# ============================================================================
+
+- id: PLAY_001
+  description: Element locator not found or invalid selector
+  match_any:
+    - "locator.click: Target closed"
+    - "waiting for selector"
+    - "element not found"
+    - "No node found for selector"
+    - "Selector resolved to hidden"
+    - "Element is not visible"
+    - "strict mode violation"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.90
+  priority: 10
+
+- id: PLAY_002
+  description: Timeout waiting for element or action
+  match_any:
+    - "Timeout.*waiting for"
+    - "page.waitForSelector: Timeout"
+    - "page.waitForNavigation: Timeout"
+    - "locator.click: Timeout"
+    - "expect.*toBeVisible.*timeout"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 15
+
+- id: PLAY_003
+  description: Page navigation or frame handling issues
+  match_any:
+    - "Navigation timeout"
+    - "frame detached"
+    - "Frame was detached"
+    - "context.newPage: Target page, context or browser has been closed"
+    - "waiting for navigation"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 12
+
+- id: PLAY_004
+  description: Browser context or page lifecycle issues
+  match_any:
+    - "browser has been closed"
+    - "context has been closed"
+    - "page has been closed"
+    - "Protocol error"
+    - "Target closed"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.87
+  priority: 13
+
+- id: PLAY_005
+  description: Fixture or test setup/teardown failures
+  match_any:
+    - "beforeAll hook"
+    - "beforeEach hook"
+    - "afterAll hook"
+    - "afterEach hook"
+    - "Test fixture"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.82
+  priority: 18
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: PLAY_ENV_001
+  description: Browser launch or connection failures
+  match_any:
+    - "Failed to launch browser"
+    - "browserType.launch"
+    - "Could not connect to browser"
+    - "browser executable"
+    - "connect ECONNREFUSED"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.92
+  priority: 8
+
+- id: PLAY_ENV_002
+  description: Network or connectivity issues
+  match_any:
+    - "net::ERR_CONNECTION"
+    - "net::ERR_INTERNET_DISCONNECTED"
+    - "ENOTFOUND"
+    - "ECONNREFUSED"
+    - "network"
+  excludes:
+    - "NetworkError" # Often product issues
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.83
+  priority: 16
+
+- id: PLAY_ENV_003
+  description: Resource loading or page load failures
+  match_any:
+    - "net::ERR_ABORTED"
+    - "Failed to load resource"
+    - "page.goto: net"
+    - "NS_BINDING_ABORTED"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.80
+  priority: 20
+
+- id: PLAY_ENV_004
+  description: Screenshot or video capture failures
+  match_any:
+    - "Failed to capture screenshot"
+    - "Failed to capture video"
+    - "screenshot timeout"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.75
+  priority: 25
+
+# ============================================================================
+# PRODUCT DEFECTS - Application under test failures
+# ============================================================================
+
+- id: PLAY_PROD_001
+  description: Server errors and HTTP 5xx responses
+  match_any:
+    - "500 Internal Server Error"
+    - "502 Bad Gateway"
+    - "503 Service Unavailable"
+    - "504 Gateway Timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.92
+  priority: 5
+
+- id: PLAY_PROD_002
+  description: Assertion failures in test expectations
+  match_any:
+    - "expect("
+    - "toHaveText"
+    - "toBeVisible"
+    - "toContainText"
+    - "toBe("
+    - "Expected"
+  requires_all:
+    - "received"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 7
+
+- id: PLAY_PROD_003
+  description: JavaScript exceptions from application
+  match_any:
+    - "Uncaught TypeError"
+    - "Uncaught ReferenceError"
+    - "Uncaught Error"
+    - "console.error"
+  excludes:
+    - "Test timeout"
+    - "waiting for"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.85
+  priority: 10
+
+- id: PLAY_PROD_004
+  description: Application-level errors and exceptions
+  match_any:
+    - "Application error"
+    - "Runtime error"
+    - "Failed to fetch"
+    - "NetworkError when attempting to fetch"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.87
+  priority: 9
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration and setup problems
+# ============================================================================
+
+- id: PLAY_CONFIG_001
+  description: Playwright configuration errors
+  match_any:
+    - "playwright.config"
+    - "Invalid test config"
+    - "baseURL is not configured"
+    - "storageState"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: PLAY_CONFIG_002
+  description: Missing dependencies or modules
+  match_any:
+    - "Cannot find module"
+    - "Module not found"
+    - "ENOENT"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.90
+  priority: 10

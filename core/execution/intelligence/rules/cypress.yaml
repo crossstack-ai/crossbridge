@@ -1,0 +1,240 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         cypress:
+#           - id: CYP_001
+#             description: Command failures
+#             match_any:
+#               - "cy.get"
+#               - "cy.click"
+#             failure_type: AUTOMATION_DEFECT
+#             confidence: 0.88
+#             priority: 12
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# Cypress Framework Classification Rules
+# For JavaScript E2E testing with Cypress
+
+# ============================================================================
+# AUTOMATION DEFECTS - Cypress-specific test automation issues
+# ============================================================================
+
+- id: CYP_001
+  description: Element selector not found or detached
+  match_any:
+    - "Timed out retrying"
+    - "expected to find element"
+    - "but never found it"
+    - "element is detached from the DOM"
+    - "cy.get()"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.90
+  priority: 10
+
+- id: CYP_002
+  description: Element not actionable (covered, disabled, invisible)
+  match_any:
+    - "element is being covered"
+    - "element is disabled"
+    - "element is not visible"
+    - "failed because this element"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 12
+
+- id: CYP_003
+  description: Command timeout waiting for condition
+  match_any:
+    - "cy.wait() timed out"
+    - "Timed out waiting"
+    - "command timeout"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 15
+
+- id: CYP_004
+  description: Cypress command chain or async issues
+  match_any:
+    - "command was expected to run"
+    - "chaining"
+    - "cy.then()"
+    - "Promise"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.80
+  priority: 20
+
+- id: CYP_005
+  description: Fixture or test data loading failures
+  match_any:
+    - "cy.fixture()"
+    - "fixture file"
+    - "does not exist"
+  requires_all:
+    - "cypress/fixtures"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.87
+  priority: 13
+
+- id: CYP_006
+  description: Custom command or plugin issues
+  match_any:
+    - "Cypress.Commands.add"
+    - "custom command"
+    - "is not a function"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.83
+  priority: 17
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: CYP_ENV_001
+  description: Browser launch or connection failures
+  match_any:
+    - "browser launch"
+    - "Could not start"
+    - "browser crashed"
+    - "browser binary"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.92
+  priority: 8
+
+- id: CYP_ENV_002
+  description: Network errors and connectivity issues
+  match_any:
+    - "ENOTFOUND"
+    - "ECONNREFUSED"
+    - "ERR_CONNECTION"
+    - "network error"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: CYP_ENV_003
+  description: Page load or resource loading timeout
+  match_any:
+    - "page load"
+    - "cy.visit() timed out"
+    - "Failed to load resource"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.83
+  priority: 16
+
+- id: CYP_ENV_004
+  description: Screenshot or video recording failures
+  match_any:
+    - "screenshot"
+    - "video recording"
+    - "Failed to capture"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.75
+  priority: 25
+
+# ============================================================================
+# PRODUCT DEFECTS - Application under test failures
+# ============================================================================
+
+- id: CYP_PROD_001
+  description: Server errors (5xx responses)
+  match_any:
+    - "500 Internal Server Error"
+    - "502 Bad Gateway"
+    - "503 Service Unavailable"
+    - "504 Gateway Timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.95
+  priority: 3
+
+- id: CYP_PROD_002
+  description: Assertion failures on page content
+  match_any:
+    - "should("
+    - "expected"
+    - "AssertionError"
+  excludes:
+    - "Timed out"
+    - "element"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.90
+  priority: 6
+
+- id: CYP_PROD_003
+  description: JavaScript errors from application
+  match_any:
+    - "Uncaught TypeError"
+    - "Uncaught ReferenceError"
+    - "Uncaught Error"
+  excludes:
+    - "Cypress"
+    - "cy."
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.87
+  priority: 9
+
+- id: CYP_PROD_004
+  description: XHR/API response validation failures
+  match_any:
+    - "cy.intercept"
+    - "status code"
+    - "response body"
+  requires_all:
+    - "expected"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 8
+
+- id: CYP_PROD_005
+  description: Application console errors
+  match_any:
+    - "console.error"
+    - "Failed to load"
+  requires_all:
+    - "application"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.82
+  priority: 14
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration problems
+# ============================================================================
+
+- id: CYP_CONFIG_001
+  description: Cypress configuration errors
+  match_any:
+    - "cypress.config"
+    - "baseUrl"
+    - "Invalid config"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: CYP_CONFIG_002
+  description: Plugin or module loading failures
+  match_any:
+    - "Cannot find module"
+    - "Module not found"
+    - "plugins file"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.90
+  priority: 10
+
+- id: CYP_CONFIG_003
+  description: Environment variable or configuration missing
+  match_any:
+    - "Cypress.env()"
+    - "environment variable"
+    - "is undefined"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.85
+  priority: 13

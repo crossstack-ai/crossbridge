@@ -1,0 +1,216 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         junit:
+#           - id: JUNIT_001
+#             description: Assertion failures
+#             match_any:
+#               - "AssertionError"
+#               - "assertEquals"
+#             failure_type: PRODUCT_DEFECT
+#             confidence: 0.90
+#             priority: 10
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# JUnit Framework Classification Rules
+# For Java unit testing with JUnit 4/5
+
+# ============================================================================
+# AUTOMATION DEFECTS - JUnit-specific test automation issues
+# ============================================================================
+
+- id: JUNIT_001
+  description: Test setup or initialization failures
+  match_any:
+    - "@BeforeClass"
+    - "@Before"
+    - "@BeforeEach"
+    - "@BeforeAll"
+    - "setUp"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 11
+
+- id: JUNIT_002
+  description: Test teardown or cleanup failures
+  match_any:
+    - "@AfterClass"
+    - "@After"
+    - "@AfterEach"
+    - "@AfterAll"
+    - "tearDown"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 14
+
+- id: JUNIT_003
+  description: Mock or stub configuration issues
+  match_any:
+    - "Mockito"
+    - "@Mock"
+    - "mock("
+    - "when("
+    - "MockitoException"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.83
+  priority: 16
+
+- id: JUNIT_004
+  description: Test parameterization or data provider issues
+  match_any:
+    - "@ParameterizedTest"
+    - "@ValueSource"
+    - "@MethodSource"
+    - "ParameterResolutionException"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 13
+
+- id: JUNIT_005
+  description: Test timeout exceeded
+  match_any:
+    - "TestTimedOutException"
+    - "test timed out"
+    - "@Timeout"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.80
+  priority: 20
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: JUNIT_ENV_001
+  description: Database or external resource connectivity
+  match_any:
+    - "SQLException"
+    - "Connection refused"
+    - "Database"
+    - "JDBC"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 9
+
+- id: JUNIT_ENV_002
+  description: File system or resource access failures
+  match_any:
+    - "FileNotFoundException"
+    - "IOException"
+    - "resource not found"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.85
+  priority: 13
+
+- id: JUNIT_ENV_003
+  description: Network connectivity issues
+  match_any:
+    - "UnknownHostException"
+    - "ConnectException"
+    - "SocketTimeoutException"
+    - "Network"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: JUNIT_ENV_004
+  description: Classpath or dependency issues
+  match_any:
+    - "ClassNotFoundException"
+    - "NoClassDefFoundError"
+    - "Cannot find class"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 10
+
+# ============================================================================
+# PRODUCT DEFECTS - Application code failures
+# ============================================================================
+
+- id: JUNIT_PROD_001
+  description: Null pointer exceptions in application code
+  match_any:
+    - "NullPointerException"
+  excludes:
+    - "@Mock"
+    - "Mockito"
+    - "setUp"
+    - "tearDown"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 8
+
+- id: JUNIT_PROD_002
+  description: Assertion failures on expected behavior
+  match_any:
+    - "AssertionError"
+    - "assertEquals"
+    - "assertTrue"
+    - "assertFalse"
+    - "assertThat"
+  excludes:
+    - "mock"
+    - "stub"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.92
+  priority: 5
+
+- id: JUNIT_PROD_003
+  description: Application business logic exceptions
+  match_any:
+    - "IllegalArgumentException"
+    - "IllegalStateException"
+    - "RuntimeException"
+  excludes:
+    - "test"
+    - "@"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.85
+  priority: 10
+
+- id: JUNIT_PROD_004
+  description: Unexpected exceptions in application code
+  match_any:
+    - "Exception"
+  requires_all:
+    - "at com."
+  excludes:
+    - "org.junit"
+    - "org.mockito"
+    - "test"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.83
+  priority: 15
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration problems
+# ============================================================================
+
+- id: JUNIT_CONFIG_001
+  description: JUnit configuration or extension errors
+  match_any:
+    - "@ExtendWith"
+    - "Extension"
+    - "junit.properties"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: JUNIT_CONFIG_002
+  description: Test suite or runner configuration issues
+  match_any:
+    - "@RunWith"
+    - "@Suite"
+    - "SuiteConfiguration"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.83
+  priority: 15

@@ -1,0 +1,214 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         nunit:
+#           - id: NUNIT_001
+#             description: Assertion failures
+#             match_any:
+#               - "Assert."
+#               - "AssertionException"
+#             failure_type: PRODUCT_DEFECT
+#             confidence: 0.90
+#             priority: 10
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# NUnit Framework Classification Rules
+# For .NET unit testing with NUnit
+
+# ============================================================================
+# AUTOMATION DEFECTS - NUnit-specific test automation issues
+# ============================================================================
+
+- id: NUNIT_001
+  description: Test setup or initialization failures
+  match_any:
+    - "[SetUp]"
+    - "[OneTimeSetUp]"
+    - "SetUpAttribute"
+    - "SetUpFixture"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 11
+
+- id: NUNIT_002
+  description: Test teardown or cleanup failures
+  match_any:
+    - "[TearDown]"
+    - "[OneTimeTearDown]"
+    - "TearDownAttribute"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 14
+
+- id: NUNIT_003
+  description: Test case source or data provider failures
+  match_any:
+    - "[TestCaseSource]"
+    - "[ValueSource]"
+    - "TestCaseSourceAttribute"
+    - "TestCaseData"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.87
+  priority: 12
+
+- id: NUNIT_004
+  description: Mock or stub configuration issues
+  match_any:
+    - "NSubstitute"
+    - "Moq"
+    - "Mock<"
+    - "Substitute.For"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.83
+  priority: 16
+
+- id: NUNIT_005
+  description: Test timeout exceeded
+  match_any:
+    - "TimeoutException"
+    - "test timed out"
+    - "Timeout"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.80
+  priority: 20
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: NUNIT_ENV_001
+  description: Database or external resource connectivity
+  match_any:
+    - "SqlException"
+    - "Connection"
+    - "Database"
+    - "Could not connect"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 9
+
+- id: NUNIT_ENV_002
+  description: File system or resource access failures
+  match_any:
+    - "FileNotFoundException"
+    - "DirectoryNotFoundException"
+    - "IOException"
+    - "resource not found"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.85
+  priority: 13
+
+- id: NUNIT_ENV_003
+  description: Network connectivity issues
+  match_any:
+    - "HttpRequestException"
+    - "WebException"
+    - "SocketException"
+    - "Network"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: NUNIT_ENV_004
+  description: Assembly or dependency loading failures
+  match_any:
+    - "FileLoadException"
+    - "Could not load"
+    - "assembly"
+    - "DllNotFoundException"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 10
+
+# ============================================================================
+# PRODUCT DEFECTS - Application code failures
+# ============================================================================
+
+- id: NUNIT_PROD_001
+  description: Null reference exceptions in application code
+  match_any:
+    - "NullReferenceException"
+  excludes:
+    - "Mock"
+    - "Substitute"
+    - "SetUp"
+    - "TearDown"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 8
+
+- id: NUNIT_PROD_002
+  description: Assertion failures on expected behavior
+  match_any:
+    - "AssertionException"
+    - "Assert.AreEqual"
+    - "Assert.That"
+    - "Assert.IsTrue"
+    - "Should().Be"
+  excludes:
+    - "mock"
+    - "stub"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.92
+  priority: 5
+
+- id: NUNIT_PROD_003
+  description: Application business logic exceptions
+  match_any:
+    - "ArgumentException"
+    - "InvalidOperationException"
+    - "ApplicationException"
+  excludes:
+    - "NUnit"
+    - "test"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.85
+  priority: 10
+
+- id: NUNIT_PROD_004
+  description: Unexpected exceptions in application code
+  match_any:
+    - "Exception"
+  requires_all:
+    - "at MyApp."
+  excludes:
+    - "NUnit"
+    - "Mock"
+    - "test"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.83
+  priority: 15
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration problems
+# ============================================================================
+
+- id: NUNIT_CONFIG_001
+  description: NUnit configuration or settings errors
+  match_any:
+    - ".runsettings"
+    - "TestSettings"
+    - "Configuration"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: NUNIT_CONFIG_002
+  description: Test adapter or runner configuration issues
+  match_any:
+    - "NUnit3TestAdapter"
+    - "TestAdapter"
+    - "No tests found"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.83
+  priority: 15

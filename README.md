@@ -194,7 +194,59 @@ All settings in one place under `runtime.semantic_search` in [crossbridge.yml](c
 
 📖 See [SEMANTIC_SEARCH.md](docs/ai/SEMANTIC_SEARCH.md) and [Quick Start](docs/ai/SEMANTIC_SEARCH_QUICK_START.md)
 
-### 🔹 6. **Production Hardening & Runtime Protection**
+### 🔹 6. **Unified Intelligence Configuration**
+Centralize all framework-specific intelligence rules in one place:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   crossbridge.yml   │         │   Rule Engine    │         │   All Frameworks    │
+│                     │         │                  │         │                     │
+│  intelligence:      │────────▶│  • Auto-detect   │────────▶│  • Selenium ✓      │
+│    rules:           │         │  • Auto-load     │         │  • Pytest ✓        │
+│      selenium: []   │         │  • Fallback      │         │  • Robot ✓         │
+│      pytest: []     │         │  • Validation    │         │  • Playwright ✓    │
+│      robot: []      │         │                  │         │  • +9 more ✓       │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Benefits:**
+- 📦 **Single Source of Truth** - All 13 frameworks in one crossbridge.yml file
+- 🔄 **Automatic Loading** - Framework detected, rules loaded automatically
+- 🎯 **Priority System** - crossbridge.yml → framework.yaml → generic.yaml
+- ⚡ **Zero Migration** - Existing YAML files work as templates/fallback
+- 🧪 **Fully Tested** - 53 comprehensive tests covering all scenarios
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+crossbridge:
+  intelligence:
+    rules:
+      selenium:
+        - id: SEL001
+          match_any: ["NoSuchElementException", "element not found"]
+          failure_type: LOCATOR_ISSUE
+          confidence: 0.9
+      
+      pytest:
+        - id: PYT001
+          match_any: ["AssertionError", "assert False"]
+          failure_type: ASSERTION_FAILURE
+          confidence: 0.95
+      
+      robot:
+        - id: ROB001
+          match_any: ["Element not found", "keyword failed"]
+          failure_type: LOCATOR_ISSUE
+          confidence: 0.85
+```
+
+**Supported Frameworks (13 Total):**
+✅ Selenium • Pytest • Robot • Playwright • Cypress • RestAssured • Cucumber • Behave • JUnit • TestNG • SpecFlow • NUnit • Generic
+
+📖 **Complete Guide**: [UNIFIED_CONFIGURATION_GUIDE.md](UNIFIED_CONFIGURATION_GUIDE.md)
+
+### 🔹 7. **Production Hardening & Runtime Protection**
 Enterprise-grade production runtime features for resilient test execution:
 
 ```

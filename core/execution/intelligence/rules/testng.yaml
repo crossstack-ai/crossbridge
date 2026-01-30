@@ -1,0 +1,232 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         testng:
+#           - id: TNG_001
+#             description: Test setup/teardown issues
+#             match_any:
+#               - "@BeforeMethod"
+#               - "@AfterMethod"
+#             failure_type: AUTOMATION_DEFECT
+#             confidence: 0.85
+#             priority: 15
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# TestNG Framework Classification Rules
+# For Java enterprise testing with TestNG
+
+# ============================================================================
+# AUTOMATION DEFECTS - TestNG-specific test automation issues
+# ============================================================================
+
+- id: TESTNG_001
+  description: Test configuration method failures
+  match_any:
+    - "@BeforeClass"
+    - "@BeforeMethod"
+    - "@BeforeTest"
+    - "@BeforeSuite"
+    - "@Configuration"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 11
+
+- id: TESTNG_002
+  description: Test teardown or cleanup failures
+  match_any:
+    - "@AfterClass"
+    - "@AfterMethod"
+    - "@AfterTest"
+    - "@AfterSuite"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 14
+
+- id: TESTNG_003
+  description: Data provider failures
+  match_any:
+    - "@DataProvider"
+    - "dataProvider"
+    - "DataProviderException"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.87
+  priority: 12
+
+- id: TESTNG_004
+  description: Test dependency failures
+  match_any:
+    - "dependsOnMethods"
+    - "dependsOnGroups"
+    - "DependencyMap"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.83
+  priority: 16
+
+- id: TESTNG_005
+  description: Parameter injection or ITestContext issues
+  match_any:
+    - "@Parameters"
+    - "ITestContext"
+    - "Parameter"
+  requires_all:
+    - "NullPointerException"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.82
+  priority: 17
+
+- id: TESTNG_006
+  description: Test timeout exceeded
+  match_any:
+    - "ThreadTimeoutException"
+    - "test timed out"
+    - "timeOut"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.80
+  priority: 20
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: TESTNG_ENV_001
+  description: Database or external resource connectivity
+  match_any:
+    - "SQLException"
+    - "Connection refused"
+    - "Database"
+    - "JDBC"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 9
+
+- id: TESTNG_ENV_002
+  description: Selenium WebDriver initialization failures
+  match_any:
+    - "WebDriverException"
+    - "driver"
+    - "browser launch"
+    - "Could not start"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: TESTNG_ENV_003
+  description: Network connectivity issues
+  match_any:
+    - "UnknownHostException"
+    - "ConnectException"
+    - "SocketTimeoutException"
+    - "Network"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: TESTNG_ENV_004
+  description: File or resource not found
+  match_any:
+    - "FileNotFoundException"
+    - "IOException"
+    - "test data"
+    - "config file"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.83
+  priority: 15
+
+# ============================================================================
+# PRODUCT DEFECTS - Application under test failures
+# ============================================================================
+
+- id: TESTNG_PROD_001
+  description: Server errors (5xx responses)
+  match_any:
+    - "500 Internal Server Error"
+    - "502 Bad Gateway"
+    - "503 Service Unavailable"
+    - "504 Gateway Timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.95
+  priority: 3
+
+- id: TESTNG_PROD_002
+  description: Assertion failures on expected behavior
+  match_any:
+    - "AssertionError"
+    - "Assert.assertEquals"
+    - "Assert.assertTrue"
+    - "expected"
+    - "but was"
+  excludes:
+    - "dataProvider"
+    - "timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.92
+  priority: 5
+
+- id: TESTNG_PROD_003
+  description: Application null pointer exceptions
+  match_any:
+    - "NullPointerException"
+  excludes:
+    - "@Configuration"
+    - "ITestContext"
+    - "@Parameters"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 8
+
+- id: TESTNG_PROD_004
+  description: Application business logic exceptions
+  match_any:
+    - "IllegalArgumentException"
+    - "IllegalStateException"
+    - "RuntimeException"
+  excludes:
+    - "org.testng"
+    - "test"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.85
+  priority: 10
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration problems
+# ============================================================================
+
+- id: TESTNG_CONFIG_001
+  description: TestNG XML configuration issues
+  match_any:
+    - "testng.xml"
+    - "suite"
+    - "No tests found"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.90
+  priority: 10
+
+- id: TESTNG_CONFIG_002
+  description: Listener or reporter configuration errors
+  match_any:
+    - "@Listeners"
+    - "ITestListener"
+    - "Reporter"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.83
+  priority: 15
+
+- id: TESTNG_CONFIG_003
+  description: Dependency or classpath issues
+  match_any:
+    - "ClassNotFoundException"
+    - "NoClassDefFoundError"
+    - "Cannot find class"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11

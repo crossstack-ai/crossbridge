@@ -1,0 +1,195 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         generic:
+#           - id: GEN_001
+#             description: Null pointer errors
+#             match_any:
+#               - "NullPointerException"
+#               - "NullReferenceException"
+#             failure_type: PRODUCT_DEFECT
+#             confidence: 0.85
+#             priority: 20
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# Generic Classification Rules
+# Fallback rules for any framework
+
+name: generic
+version: 1.0.0
+description: Generic classification rules for all frameworks
+
+rules:
+  # ============================================================================
+  # PRODUCT DEFECTS
+  # ============================================================================
+  
+  - id: GEN_PROD_001
+    description: Null pointer/reference errors
+    match_any:
+      - NullPointerException
+      - NullReferenceException
+      - null
+      - undefined
+    failure_type: PRODUCT_DEFECT
+    confidence: 0.85
+    priority: 15
+  
+  - id: GEN_PROD_002
+    description: Server/API errors
+    match_any:
+      - 500 Internal Server Error
+      - 503 Service Unavailable
+      - SQLException
+      - DatabaseException
+    failure_type: PRODUCT_DEFECT
+    confidence: 0.9
+    priority: 10
+  
+  - id: GEN_PROD_003
+    description: Assertion failures
+    match_any:
+      - AssertionError
+      - assert
+      - Expected
+      - but was
+    failure_type: PRODUCT_DEFECT
+    confidence: 0.7
+    priority: 25
+  
+  - id: GEN_PROD_004
+    description: Runtime exceptions
+    match_any:
+      - RuntimeException
+      - Exception
+      - Error
+    failure_type: PRODUCT_DEFECT
+    confidence: 0.65
+    priority: 30
+  
+  # ============================================================================
+  # AUTOMATION DEFECTS
+  # ============================================================================
+  
+  - id: GEN_AUTO_001
+    description: Element not found
+    match_any:
+      - element not found
+      - could not find
+      - not located
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.85
+    priority: 18
+  
+  - id: GEN_AUTO_002
+    description: Timeout issues
+    match_any:
+      - timeout
+      - timed out
+      - TimeoutException
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.75
+    priority: 20
+    excludes:
+      - server
+      - database
+  
+  - id: GEN_AUTO_003
+    description: Test setup/teardown failures
+    match_any:
+      - setup
+      - teardown
+      - before
+      - after
+    requires_all:
+      - failed
+    failure_type: AUTOMATION_DEFECT
+    confidence: 0.8
+    priority: 22
+  
+  # ============================================================================
+  # ENVIRONMENT ISSUES
+  # ============================================================================
+  
+  - id: GEN_ENV_001
+    description: Connection failures
+    match_any:
+      - Connection refused
+      - Connection reset
+      - Cannot connect
+      - Failed to connect
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.85
+    priority: 12
+  
+  - id: GEN_ENV_002
+    description: Network errors
+    match_any:
+      - Network
+      - Socket
+      - HTTP
+      - SSL
+    requires_all:
+      - error
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.8
+    priority: 15
+  
+  - id: GEN_ENV_003
+    description: File system errors
+    match_any:
+      - FileNotFoundException
+      - File not found
+      - Permission denied
+      - No such file
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.85
+    priority: 18
+  
+  - id: GEN_ENV_004
+    description: Resource unavailable
+    match_any:
+      - Resource
+      - unavailable
+      - not available
+      - exhausted
+    failure_type: ENVIRONMENT_ISSUE
+    confidence: 0.8
+    priority: 20
+  
+  # ============================================================================
+  # CONFIGURATION ISSUES
+  # ============================================================================
+  
+  - id: GEN_CONFIG_001
+    description: Configuration errors
+    match_any:
+      - Configuration
+      - ConfigurationException
+      - Invalid configuration
+      - Missing configuration
+    failure_type: CONFIGURATION_ISSUE
+    confidence: 0.85
+    priority: 18
+  
+  - id: GEN_CONFIG_002
+    description: Missing properties/settings
+    match_any:
+      - property
+      - setting
+      - environment variable
+    requires_all:
+      - not found
+    failure_type: CONFIGURATION_ISSUE
+    confidence: 0.8
+    priority: 20

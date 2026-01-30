@@ -1,0 +1,234 @@
+# ============================================================================
+# NOTICE: Unified Configuration Available (Recommended)
+# ============================================================================
+# This file serves as a TEMPLATE and FALLBACK only.
+#
+# RECOMMENDED APPROACH: Define rules in crossbridge.yml instead:
+#
+#   crossbridge:
+#     intelligence:
+#       rules:
+#         cucumber:
+#           - id: CUC_001
+#             description: Step definition issues
+#             match_any:
+#               - "step definition"
+#               - "undefined step"
+#             failure_type: AUTOMATION_DEFECT
+#             confidence: 0.90
+#             priority: 10
+#
+# This file is used as fallback ONLY if rules are not found in crossbridge.yml
+# See: UNIFIED_CONFIGURATION_GUIDE.md for detailed documentation
+# ============================================================================
+
+# Cucumber/BDD Framework Classification Rules
+# For Gherkin-based BDD testing (Java/JavaScript)
+
+# ============================================================================
+# AUTOMATION DEFECTS - Cucumber/BDD-specific test automation issues
+# ============================================================================
+
+- id: CUC_001
+  description: Undefined step definitions
+  match_any:
+    - "UndefinedStepException"
+    - "Undefined step"
+    - "You can implement missing steps"
+    - "Step undefined"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.95
+  priority: 5
+
+- id: CUC_002
+  description: Step definition parameter binding failures
+  match_any:
+    - "ParameterType"
+    - "Could not convert"
+    - "argument mismatch"
+    - "DataTable"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.88
+  priority: 11
+
+- id: CUC_003
+  description: Hook execution failures (Before/After)
+  match_any:
+    - "@Before"
+    - "@After"
+    - "BeforeStep"
+    - "AfterStep"
+    - "Hook failed"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.85
+  priority: 14
+
+- id: CUC_004
+  description: Scenario context or world object issues
+  match_any:
+    - "ScenarioContext"
+    - "World"
+    - "context is not defined"
+    - "NullPointerException.*context"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.82
+  priority: 17
+
+- id: CUC_005
+  description: Element locator or page object issues
+  match_any:
+    - "NoSuchElementException"
+    - "ElementNotFound"
+    - "Could not find element"
+    - "StaleElementReferenceException"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.87
+  priority: 12
+
+- id: CUC_006
+  description: Timeout waiting for conditions
+  match_any:
+    - "TimeoutException"
+    - "Timed out waiting"
+    - "wait timeout"
+  failure_type: AUTOMATION_DEFECT
+  confidence: 0.83
+  priority: 16
+
+# ============================================================================
+# ENVIRONMENT ISSUES - Infrastructure and test environment problems
+# ============================================================================
+
+- id: CUC_ENV_001
+  description: Browser or driver initialization failures
+  match_any:
+    - "WebDriverException"
+    - "Could not start"
+    - "driver binary"
+    - "browser launch"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.90
+  priority: 9
+
+- id: CUC_ENV_002
+  description: Database or external service connectivity
+  match_any:
+    - "SQLException"
+    - "Connection refused"
+    - "Database"
+    - "Could not connect"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.88
+  priority: 11
+
+- id: CUC_ENV_003
+  description: Test data or configuration file not found
+  match_any:
+    - "FileNotFoundException"
+    - "test data"
+    - "config file"
+    - "properties file"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.83
+  priority: 15
+
+- id: CUC_ENV_004
+  description: Network connectivity issues
+  match_any:
+    - "UnknownHostException"
+    - "ConnectException"
+    - "SocketTimeout"
+    - "Network"
+  failure_type: ENVIRONMENT_ISSUE
+  confidence: 0.85
+  priority: 13
+
+# ============================================================================
+# PRODUCT DEFECTS - Application under test failures
+# ============================================================================
+
+- id: CUC_PROD_001
+  description: Server errors (5xx responses)
+  match_any:
+    - "500 Internal Server Error"
+    - "502 Bad Gateway"
+    - "503 Service Unavailable"
+    - "504 Gateway Timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.95
+  priority: 3
+
+- id: CUC_PROD_002
+  description: Assertion failures on expected behavior
+  match_any:
+    - "AssertionError"
+    - "expected"
+    - "but was"
+    - "assertEquals"
+    - "assertThat"
+  excludes:
+    - "Undefined step"
+    - "timeout"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.92
+  priority: 5
+
+- id: CUC_PROD_003
+  description: Application exceptions and errors
+  match_any:
+    - "NullPointerException"
+    - "IllegalArgumentException"
+    - "RuntimeException"
+  excludes:
+    - "context"
+    - "step definition"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.87
+  priority: 9
+
+- id: CUC_PROD_004
+  description: API response validation failures
+  match_any:
+    - "status code"
+    - "response body"
+    - "JSON"
+  requires_all:
+    - "expected"
+  failure_type: PRODUCT_DEFECT
+  confidence: 0.88
+  priority: 8
+
+# ============================================================================
+# CONFIGURATION ISSUES - Test configuration problems
+# ============================================================================
+
+- id: CUC_CONFIG_001
+  description: Cucumber configuration or glue path issues
+  match_any:
+    - "glue"
+    - "CucumberOptions"
+    - "feature file"
+    - "No features found"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.90
+  priority: 8
+
+- id: CUC_CONFIG_002
+  description: Plugin or formatter configuration errors
+  match_any:
+    - "plugin"
+    - "formatter"
+    - "report"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.83
+  priority: 15
+
+- id: CUC_CONFIG_003
+  description: Dependency or classpath issues
+  match_any:
+    - "ClassNotFoundException"
+    - "NoClassDefFoundError"
+    - "Cannot find class"
+  failure_type: CONFIGURATION_ISSUE
+  confidence: 0.88
+  priority: 11
