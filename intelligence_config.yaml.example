@@ -1,0 +1,140 @@
+# Crossbridge Intelligence Configuration
+# Deterministic + AI Behavior System
+
+# =============================================================================
+# Deterministic Classifier Configuration
+# =============================================================================
+# The deterministic classifier provides guaranteed, rule-based classification
+# that always works regardless of external services.
+
+deterministic:
+  # Classification thresholds
+  # These define the boundaries for flaky vs. unstable vs. stable tests
+  
+  flaky_threshold: 0.1        # 10% failure rate = flaky
+                               # Tests with 10-40% failure rate are flaky
+  
+  unstable_threshold: 0.4     # 40% failure rate = unstable
+                               # Tests with >= 40% failure rate are unstable
+  
+  min_runs_for_confidence: 5  # Minimum historical runs for high confidence
+                               # Tests with < 5 runs are marked as "new_test"
+  
+  # Confidence adjustments
+  high_confidence_min_runs: 10  # Runs needed for highest confidence
+  low_confidence_max_runs: 3    # Runs below which confidence is low
+
+# =============================================================================
+# AI Enrichment Configuration
+# =============================================================================
+# AI enrichment adds optional insights, explanations, and recommendations.
+# AI failures NEVER impact the deterministic classification.
+
+ai:
+  # Feature flags
+  enabled: true               # Master switch for all AI functionality
+  enrichment: true            # Enable AI enrichment layer
+  
+  # Timeouts and limits
+  timeout_ms: 2000            # Maximum time to wait for AI response (ms)
+                               # After timeout, deterministic result is returned
+  
+  min_confidence: 0.5         # Minimum AI confidence to use enrichment
+                               # AI results below this threshold are discarded
+  
+  # Failure handling
+  fail_open: true             # Return deterministic result on AI failure
+                               # Should always be true for production
+  
+  # Model configuration
+  model: "gpt-4o-mini"        # AI model to use for enrichment
+                               # Options: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+  
+  temperature: 0.3            # Model temperature (0.0 - 1.0)
+                               # Lower = more deterministic, higher = more creative
+  
+  max_tokens: 500             # Maximum tokens in AI response
+                               # Keep low for faster responses
+  
+  # Retry behavior
+  max_retries: 1              # Number of retries on AI failure
+  retry_delay_ms: 100         # Delay between retries (ms)
+
+# =============================================================================
+# Observability Configuration
+# =============================================================================
+# Metrics and logging for monitoring system health and performance.
+
+observability:
+  # Metrics collection
+  metrics_enabled: true                       # Enable metrics collection
+  metrics_prefix: "crossbridge.intelligence"  # Prefix for all metrics
+  
+  # Logging
+  log_level: "INFO"           # Log level: DEBUG, INFO, WARNING, ERROR
+  log_ai_prompts: false       # Log AI prompts (set true for debugging)
+  log_ai_responses: false     # Log AI responses (set true for debugging)
+  
+  # Performance tracking
+  track_latency: true         # Track latency percentiles
+  latency_percentiles:        # Which percentiles to calculate
+    - 50
+    - 90
+    - 95
+    - 99
+
+# =============================================================================
+# Environment-Specific Overrides
+# =============================================================================
+# These settings can be overridden via environment variables:
+#
+# AI Configuration:
+#   CROSSBRIDGE_AI_ENABLED=true|false
+#   CROSSBRIDGE_AI_ENRICHMENT=true|false
+#   CROSSBRIDGE_AI_TIMEOUT_MS=3000
+#   CROSSBRIDGE_AI_MIN_CONFIDENCE=0.6
+#   CROSSBRIDGE_AI_MODEL=gpt-4o
+#
+# Deterministic Configuration:
+#   CROSSBRIDGE_FLAKY_THRESHOLD=0.15
+#   CROSSBRIDGE_UNSTABLE_THRESHOLD=0.45
+#
+# Example:
+#   export CROSSBRIDGE_AI_ENABLED=false
+#   export CROSSBRIDGE_FLAKY_THRESHOLD=0.15
+#
+# =============================================================================
+
+# =============================================================================
+# Example Configurations
+# =============================================================================
+
+# Example 1: Conservative (High Confidence)
+# deterministic:
+#   flaky_threshold: 0.05      # Only 5% failure = flaky (stricter)
+#   unstable_threshold: 0.3     # 30% failure = unstable (stricter)
+#   min_runs_for_confidence: 10 # Need more runs for confidence
+# ai:
+#   min_confidence: 0.7         # Only use high-confidence AI results
+
+# Example 2: Aggressive (Quick Detection)
+# deterministic:
+#   flaky_threshold: 0.2        # 20% failure = flaky (looser)
+#   unstable_threshold: 0.5     # 50% failure = unstable (looser)
+#   min_runs_for_confidence: 3  # Accept fewer runs
+# ai:
+#   min_confidence: 0.4         # Accept lower-confidence AI results
+
+# Example 3: Deterministic Only (No AI)
+# ai:
+#   enabled: false              # Completely disable AI
+#   enrichment: false
+
+# Example 4: Development/Debug
+# ai:
+#   timeout_ms: 5000            # Longer timeout for debugging
+#   temperature: 0.5            # More creative AI responses
+# observability:
+#   log_level: "DEBUG"
+#   log_ai_prompts: true        # See AI prompts
+#   log_ai_responses: true      # See AI responses
