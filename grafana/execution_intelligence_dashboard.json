@@ -1,0 +1,339 @@
+{
+  "dashboard": {
+    "title": "Execution Intelligence Dashboard",
+    "description": "Comprehensive view of test execution intelligence, failure patterns, and CI/CD decisions",
+    "tags": ["execution-intelligence", "testing", "failures", "ci-cd"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "CI/CD Decision Summary",
+        "type": "stat",
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT COUNT(*) FILTER (WHERE should_fail_ci = true) as fail_count, COUNT(*) as total FROM analysis_summary WHERE created_at > NOW() - INTERVAL '24 hours'",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value",
+          "textMode": "value_and_name",
+          "reduceOptions": {
+            "values": false,
+            "fields": "/^fail_count$/",
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "orange" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Average Confidence Score",
+        "type": "gauge",
+        "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT AVG(confidence) as avg_confidence FROM classifications WHERE created_at > NOW() - INTERVAL '24 hours'",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 0.6, "color": "yellow" },
+                { "value": 0.8, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Total Failures Today",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT COUNT(*) as failure_count FROM failure_signals WHERE created_at > NOW() - INTERVAL '24 hours'",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Infrastructure vs Product Failures",
+        "type": "piechart",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT is_infra_related, COUNT(*) as count FROM failure_signals WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY is_infra_related",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "pie"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Failure Types Distribution",
+        "type": "piechart",
+        "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT signal_type, COUNT(*) as count FROM failure_signals WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY signal_type ORDER BY count DESC",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "donut"
+        }
+      },
+      {
+        "id": 6,
+        "title": "Confidence Score Trends",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT created_at as time, confidence, classification_type FROM classifications WHERE created_at > NOW() - INTERVAL '24 hours' ORDER BY created_at",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            },
+            "min": 0,
+            "max": 1
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Top Failing Tests (Last 24h)",
+        "type": "table",
+        "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT test_name, COUNT(*) as failure_count, AVG(confidence) as avg_confidence FROM failure_signals WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY test_name ORDER BY failure_count DESC LIMIT 10",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{ "displayName": "failure_count", "desc": true }]
+        },
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "avg_confidence" },
+              "properties": [
+                {
+                  "id": "custom.displayMode",
+                  "value": "gradient-gauge"
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "value": 0, "color": "red" },
+                      { "value": 0.6, "color": "yellow" },
+                      { "value": 0.8, "color": "green" }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 8,
+        "title": "Framework Breakdown",
+        "type": "barchart",
+        "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT framework, COUNT(*) as count FROM execution_events WHERE created_at > NOW() - INTERVAL '24 hours' AND framework IS NOT NULL GROUP BY framework ORDER BY count DESC",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "xTickLabelRotation": 0,
+          "showValue": "always"
+        }
+      },
+      {
+        "id": 9,
+        "title": "Retryable vs Non-Retryable Failures",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 6 },
+        "targets": [
+          {
+            "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, is_retryable, COUNT(*) as count FROM failure_signals WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY time, is_retryable ORDER BY time",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "bars",
+              "stacking": { "mode": "normal" }
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Historical Pattern Frequency",
+        "type": "table",
+        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 6 },
+        "targets": [
+          {
+            "rawSql": "SELECT pattern_summary, occurrence_count, last_seen, resolution_status FROM historical_patterns ORDER BY occurrence_count DESC LIMIT 10",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{ "displayName": "occurrence_count", "desc": true }]
+        }
+      },
+      {
+        "id": 11,
+        "title": "Performance Signals",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 26, "w": 8, "h": 6 },
+        "targets": [
+          {
+            "rawSql": "SELECT created_at as time, metric_name, metric_value FROM performance_signals WHERE created_at > NOW() - INTERVAL '24 hours' AND metric_name IN ('duration_ms', 'memory_usage_mb') ORDER BY created_at",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Infrastructure Health",
+        "type": "stat",
+        "gridPos": { "x": 8, "y": 26, "w": 8, "h": 6 },
+        "targets": [
+          {
+            "rawSql": "SELECT component_type, severity, COUNT(*) as count FROM infrastructure_signals WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY component_type, severity",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background"
+        },
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "severity" },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    { "type": "value", "value": "CRITICAL", "color": "dark-red" },
+                    { "type": "value", "value": "HIGH", "color": "red" },
+                    { "type": "value", "value": "MEDIUM", "color": "yellow" },
+                    { "type": "value", "value": "LOW", "color": "green" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 13,
+        "title": "Classification Types Over Time",
+        "type": "timeseries",
+        "gridPos": { "x": 16, "y": 26, "w": 8, "h": 6 },
+        "targets": [
+          {
+            "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, classification_type, COUNT(*) as count FROM classifications WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY time, classification_type ORDER BY time",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "stacking": { "mode": "normal" },
+              "fillOpacity": 50
+            }
+          }
+        }
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "name": "DS_POSTGRES",
+      "label": "PostgreSQL",
+      "description": "PostgreSQL datasource for execution intelligence data",
+      "type": "datasource",
+      "pluginId": "postgres",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "overwrite": true
+}

@@ -794,8 +794,115 @@ class GenericLogAdapter(LogAdapter):
         return events
 
 
+class JUnitLogAdapter(LogAdapter):
+    """Adapter for JUnit test logs"""
+    
+    def can_handle(self, raw_log: str) -> bool:
+        return bool(re.search(r'(junit\.framework|org\.junit|@Test|JUnit)', raw_log, re.IGNORECASE))
+    
+    def parse(self, raw_log: str) -> List[ExecutionEvent]:
+        events = []
+        lines = raw_log.split('\n')
+        
+        for i, line in enumerate(lines):
+            # Test start
+            if re.search(r'(@Test|testStarted|Running\s+\w+)', line):
+                match = re.search(r'(Running|testStarted)[\s:]+(\w+)', line)
+                if match:
+                    events.append(ExecutionEvent(
+                        test_name=match.group(2),
+                        message=line.strip(),
+                        log_level=LogLevel.INFO,
+                        event_type=EventType.TEST_START
+                    ))
+            
+            # Failures and errors
+            elif 'FAILURE' in line or 'ERROR' in line or 'AssertionError' in line:
+                test_match = re.search(r'(\w+)\s*\(.*?\)', line)
+                test_name = test_match.group(1) if test_match else "unknown"
+                
+                # Look for stacktrace
+                stacktrace = []
+                for j in range(i, min(i+20, len(lines))):
+                    if lines[j].strip().startswith('at '):
+                        stacktrace.append(lines[j].strip())
+                
+                events.append(ExecutionEvent(
+                    test_name=test_name,
+                    message=line.strip(),
+                    log_level=LogLevel.ERROR,
+                    stacktrace='\n'.join(stacktrace) if stacktrace else None,
+                    event_type=EventType.FAILURE
+                ))
+            
+            # Assertions
+            elif 'assert' in line.lower() and ('expected' in line.lower() or 'actual' in line.lower()):
+                events.append(ExecutionEvent(
+                    test_name="unknown",
+                    message=line.strip(),
+                    log_level=LogLevel.ERROR,
+                    event_type=EventType.ASSERTION
+                ))
+        
+        return events
+
+
+class NUnitLogAdapter(LogAdapter):
+    """Adapter for NUnit test logs"""
+    
+    def can_handle(self, raw_log: str) -> bool:
+        return bool(re.search(r'(NUnit|nunit\.framework|TestFixture|TestCase)', raw_log, re.IGNORECASE))
+    
+    def parse(self, raw_log: str) -> List[ExecutionEvent]:
+        events = []
+        lines = raw_log.split('\n')
+        
+        for i, line in enumerate(lines):
+            # Test start
+            if 'Test started' in line or '[Test]' in line:
+                match = re.search(r'Test\s+started:\s+(\w+)|^\s*(\w+)\s*\[Test\]', line)
+                if match:
+                    test_name = match.group(1) or match.group(2)
+                    events.append(ExecutionEvent(
+                        test_name=test_name,
+                        message=line.strip(),
+                        log_level=LogLevel.INFO,
+                        event_type=EventType.TEST_START
+                    ))
+            
+            # Test failures
+            elif 'Failed' in line or 'Error' in line or 'Exception' in line:
+                test_match = re.search(r'(\w+)\.(\w+)', line)
+                test_name = test_match.group(2) if test_match else "unknown"
+                
+                # Look for stacktrace
+                stacktrace = []
+                for j in range(i, min(i+20, len(lines))):
+                    if lines[j].strip().startswith('at ') or '--->' in lines[j]:
+                        stacktrace.append(lines[j].strip())
+                
+                events.append(ExecutionEvent(
+                    test_name=test_name,
+                    message=line.strip(),
+                    log_level=LogLevel.ERROR,
+                    stacktrace='\n'.join(stacktrace) if stacktrace else None,
+                    event_type=EventType.FAILURE
+                ))
+            
+            # Assertions
+            elif 'Assert.' in line or 'Expected:' in line or 'Actual:' in line:
+                events.append(ExecutionEvent(
+                    test_name="unknown",
+                    message=line.strip(),
+                    log_level=LogLevel.ERROR,
+                    event_type=EventType.ASSERTION
+                ))
+        
+        return events
+
+
 class AdapterRegistry:
-    """Registry for log adapters"""
+    """Registry for all framework-specific adapters"""
     
     def __init__(self):
         self.adapters: List[LogAdapter] = [
@@ -809,6 +916,8 @@ class AdapterRegistry:
             SpecFlowLogAdapter(),
             BehaveLogAdapter(),
             JavaTestNGLogAdapter(),
+            JUnitLogAdapter(),
+            NUnitLogAdapter(),
             GenericLogAdapter(),  # Always last (fallback)
         ]
     

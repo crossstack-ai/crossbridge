@@ -432,3 +432,249 @@ class CompositeExtractor:
                 unique_signals.append(signal)
         
         return unique_signals
+
+
+class SlowTestExtractor(FailureSignalExtractor):
+    """Extract slow test performance signals"""
+    
+    SLOW_THRESHOLDS = {
+        'unit': 1000,      # 1 second
+        'integration': 10000,  # 10 seconds
+        'e2e': 30000,      # 30 seconds
+        'api': 5000,       # 5 seconds
+        'default': 10000   # 10 seconds
+    }
+    
+    def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
+        signals = []
+        
+        for event in events:
+            if not event.duration_ms:
+                continue
+            
+            # Determine test type from test name or context
+            test_type = self._infer_test_type(event)
+            threshold = self.SLOW_THRESHOLDS.get(test_type, self.SLOW_THRESHOLDS['default'])
+            
+            if event.duration_ms > threshold:
+                slowness_factor = event.duration_ms / threshold
+                
+                signals.append(FailureSignal(
+                    signal_type=SignalType.PERFORMANCE,
+                    message=f"Slow test detected: {event.test_name} took {event.duration_ms}ms (threshold: {threshold}ms)",
+                    confidence=min(0.95, 0.5 + (slowness_factor - 1) * 0.1),
+                    context={
+                        'duration_ms': event.duration_ms,
+                        'threshold_ms': threshold,
+                        'slowness_factor': slowness_factor,
+                        'test_type': test_type
+                    }
+                ))
+        
+        return signals
+    
+    def _infer_test_type(self, event: ExecutionEvent) -> str:
+        """Infer test type from test name"""
+        name_lower = event.test_name.lower()
+        if 'unit' in name_lower:
+            return 'unit'
+        elif 'integration' in name_lower or 'integ' in name_lower:
+            return 'integration'
+        elif 'e2e' in name_lower or 'end_to_end' in name_lower:
+            return 'e2e'
+        elif 'api' in name_lower:
+            return 'api'
+        return 'default'
+
+
+class MemoryLeakExtractor(FailureSignalExtractor):
+    """Extract memory leak signals"""
+    
+    MEMORY_PATTERNS = [
+        r'OutOfMemoryError',
+        r'Memory\s+leak',
+        r'Heap\s+space',
+        r'GC\s+overhead',
+        r'MemoryError',
+        r'Cannot\s+allocate\s+memory'
+    ]
+    
+    def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
+        signals = []
+        
+        for event in events:
+            if event.log_level not in [LogLevel.ERROR, LogLevel.WARN]:
+                continue
+            
+            for pattern in self.MEMORY_PATTERNS:
+                if re.search(pattern, event.message, re.IGNORECASE):
+                    signals.append(FailureSignal(
+                        signal_type=SignalType.PERFORMANCE,
+                        message=f"Memory issue detected: {event.message}",
+                        confidence=0.85,
+                        stacktrace=event.stacktrace,
+                        context={
+                            'pattern_matched': pattern,
+                            'test_name': event.test_name
+                        },
+                        is_retryable=False,
+                        is_infra_related=False
+                    ))
+                    break
+        
+        return signals
+
+
+class HighCPUExtractor(FailureSignalExtractor):
+    """Extract high CPU usage signals"""
+    
+    CPU_PATTERNS = [
+        r'CPU\s+usage',
+        r'High\s+CPU',
+        r'Thread\s+contention',
+        r'Deadlock',
+        r'Busy\s+loop'
+    ]
+    
+    def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
+        signals = []
+        
+        for event in events:
+            if event.log_level not in [LogLevel.ERROR, LogLevel.WARN]:
+                continue
+            
+            for pattern in self.CPU_PATTERNS:
+                if re.search(pattern, event.message, re.IGNORECASE):
+                    signals.append(FailureSignal(
+                        signal_type=SignalType.PERFORMANCE,
+                        message=f"High CPU usage detected: {event.message}",
+                        confidence=0.75,
+                        context={
+                            'pattern_matched': pattern,
+                            'test_name': event.test_name
+                        },
+                        is_retryable=True,
+                        is_infra_related=True
+                    ))
+                    break
+        
+        return signals
+
+
+class DatabaseHealthExtractor(FailureSignalExtractor):
+    """Extract database health signals"""
+    
+    DB_PATTERNS = [
+        (r'Connection\s+(pool|timeout|refused)', 'connection_issue', 0.9, True),
+        (r'Deadlock\s+detected', 'deadlock', 0.95, False),
+        (r'Too\s+many\s+connections', 'connection_limit', 0.95, True),
+        (r'Lock\s+wait\s+timeout', 'lock_timeout', 0.9, True),
+        (r'Database\s+(unavailable|offline)', 'unavailable', 0.95, True),
+        (r'Transaction\s+rollback', 'rollback', 0.7, False),
+        (r'Duplicate\s+key', 'data_integrity', 0.8, False)
+    ]
+    
+    def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
+        signals = []
+        
+        for event in events:
+            if event.log_level != LogLevel.ERROR:
+                continue
+            
+            for pattern, issue_type, confidence, is_infra in self.DB_PATTERNS:
+                if re.search(pattern, event.message, re.IGNORECASE):
+                    signals.append(FailureSignal(
+                        signal_type=SignalType.INFRASTRUCTURE,
+                        message=f"Database health issue ({issue_type}): {event.message}",
+                        confidence=confidence,
+                        stacktrace=event.stacktrace,
+                        context={
+                            'component': 'DATABASE',
+                            'issue_type': issue_type,
+                            'test_name': event.test_name
+                        },
+                        is_retryable=is_infra,
+                        is_infra_related=True
+                    ))
+                    break
+        
+        return signals
+
+
+class NetworkHealthExtractor(FailureSignalExtractor):
+    """Extract network health signals"""
+    
+    NETWORK_PATTERNS = [
+        (r'Connection\s+(refused|reset|timeout)', 'connection_error', 0.9, True),
+        (r'Network\s+(unreachable|timeout|error)', 'network_error', 0.95, True),
+        (r'DNS\s+(lookup\s+failed|resolution)', 'dns_error', 0.9, True),
+        (r'Socket\s+(timeout|error)', 'socket_error', 0.85, True),
+        (r'SSL\s+(certificate|handshake)', 'ssl_error', 0.8, False),
+        (r'Too\s+many\s+open\s+files', 'resource_limit', 0.9, True)
+    ]
+    
+    def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
+        signals = []
+        
+        for event in events:
+            if event.log_level != LogLevel.ERROR:
+                continue
+            
+            for pattern, issue_type, confidence, is_retryable in self.NETWORK_PATTERNS:
+                if re.search(pattern, event.message, re.IGNORECASE):
+                    signals.append(FailureSignal(
+                        signal_type=SignalType.INFRASTRUCTURE,
+                        message=f"Network health issue ({issue_type}): {event.message}",
+                        confidence=confidence,
+                        stacktrace=event.stacktrace,
+                        context={
+                            'component': 'NETWORK',
+                            'issue_type': issue_type,
+                            'test_name': event.test_name
+                        },
+                        is_retryable=is_retryable,
+                        is_infra_related=True
+                    ))
+                    break
+        
+        return signals
+
+
+class ServiceHealthExtractor(FailureSignalExtractor):
+    """Extract service health signals"""
+    
+    SERVICE_PATTERNS = [
+        (r'Service\s+(unavailable|down|offline)', 'service_down', 0.95, True),
+        (r'Rate\s+limit\s+exceeded', 'rate_limit', 0.9, True),
+        (r'Circuit\s+breaker\s+open', 'circuit_breaker', 0.85, True),
+        (r'Load\s+balancer\s+error', 'lb_error', 0.9, True),
+        (r'Gateway\s+timeout', 'gateway_timeout', 0.9, True),
+        (r'Bad\s+gateway', 'bad_gateway', 0.85, True)
+    ]
+    
+    def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
+        signals = []
+        
+        for event in events:
+            if event.log_level != LogLevel.ERROR:
+                continue
+            
+            for pattern, issue_type, confidence, is_retryable in self.SERVICE_PATTERNS:
+                if re.search(pattern, event.message, re.IGNORECASE):
+                    signals.append(FailureSignal(
+                        signal_type=SignalType.INFRASTRUCTURE,
+                        message=f"Service health issue ({issue_type}): {event.message}",
+                        confidence=confidence,
+                        stacktrace=event.stacktrace,
+                        context={
+                            'component': 'SERVICE',
+                            'issue_type': issue_type,
+                            'test_name': event.test_name
+                        },
+                        is_retryable=is_retryable,
+                        is_infra_related=True
+                    ))
+                    break
+        
+        return signals
+

@@ -311,3 +311,108 @@ class ExecutionAnalyzer:
                 return True
         
         return False
+    
+    def analyze_batch(
+        self,
+        test_logs: List[Dict[str, Any]],
+        parallel: bool = True,
+        max_workers: int = 4
+    ) -> List[AnalysisResult]:
+        """
+        Analyze multiple test logs in batch.
+        
+        This is significantly faster than calling analyze() in a loop
+        for large test suites (100+ tests).
+        
+        Args:
+            test_logs: List of test log dictionaries with keys:
+                - log_content: Raw log text (required)
+                - test_name: Test name (required)
+                - framework: Framework name (required)
+                - test_file: Test file path (optional)
+                - context: Additional context (optional)
+            parallel: Use parallel processing (default True)
+            max_workers: Max parallel workers (default 4)
+        
+        Returns:
+            List of AnalysisResult objects (same order as input)
+        
+        Example:
+            test_logs = [
+                {
+                    "log_content": log1,
+                    "test_name": "test_login",
+                    "framework": "pytest"
+                },
+                {
+                    "log_content": log2,
+                    "test_name": "test_checkout",
+                    "framework": "selenium"
+                }
+            ]
+            
+            results = analyzer.analyze_batch(test_logs, parallel=True)
+            
+            # Filter failures
+            failures = [r for r in results if r.is_failure()]
+            product_bugs = [r for r in results if r.is_product_defect()]
+        """
+        logger.info(f"Batch analyzing {len(test_logs)} tests (parallel={parallel})")
+        
+        if parallel and len(test_logs) > 1:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all jobs
+                future_to_idx = {}
+                for idx, test_log in enumerate(test_logs):
+                    future = executor.submit(
+                        self.analyze,
+                        raw_log=test_log.get('raw_log') or test_log.get('log_content'),
+                        test_name=test_log['test_name'],
+                        framework=test_log.get('framework', 'unknown'),
+                        test_file=test_log.get('test_file'),
+                        context=test_log.get('context', {})
+                    )
+                    future_to_idx[future] = idx
+                
+                # Collect results in order
+                results = [None] * len(test_logs)
+                for future in as_completed(future_to_idx):
+                    idx = future_to_idx[future]
+                    try:
+                        results[idx] = future.result()
+                    except Exception as e:
+                        logger.error(f"Batch analysis failed for test {idx}: {str(e)}")
+                        # Return error result
+                        results[idx] = AnalysisResult(
+                            test_name=test_logs[idx]['test_name'],
+                            framework=test_logs[idx].get('framework', 'unknown'),
+                            status='ERROR',
+                            metadata={'error': str(e)}
+                        )
+                
+                return results
+        else:
+            # Sequential processing
+            results = []
+            for test_log in test_logs:
+                try:
+                    result = self.analyze(
+                        raw_log=test_log.get('raw_log') or test_log.get('log_content'),
+                        test_name=test_log['test_name'],
+                        framework=test_log.get('framework', 'unknown'),
+                        test_file=test_log.get('test_file'),
+                        context=test_log.get('context', {})
+                    )
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Batch analysis failed for {test_log['test_name']}: {str(e)}")
+                    results.append(AnalysisResult(
+                        test_name=test_log['test_name'],
+                        framework=test_log.get('framework', 'unknown'),
+                        status='ERROR',
+                        metadata={'error': str(e)}
+                    ))
+            
+            return results
