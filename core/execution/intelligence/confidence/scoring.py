@@ -1,7 +1,90 @@
 """
 Confidence Scoring Logic
 
-Implements the confidence calculation algorithms for each component.
+Implements the confidence calculation algorithms for failure classification.
+
+CONFIDENCE SCORING ALGORITHM (Aligned with Industry Standards):
+==============================================================
+
+Base Formula:
+    confidence = min(1.0,
+        base_signal_confidence +
+        rule_confidence_boost +
+        log1p(history_frequency) / log1p(20) +
+        application_log_correlation_boost +
+        signal_agreement_boost
+    )
+
+Confidence Buckets (UX-Safe):
+    HIGH (≥0.8)       : Auto-apply safe, minimal review needed
+    MEDIUM (0.6-0.8)  : Review recommended before action
+    LOW (<0.6)        : Manual review required
+
+Scoring Inputs:
+---------------
+1. base_signal_confidence (0.8-1.0)
+   - From FailureSignalExtractor pattern matching
+   - Higher for exact exception name matches
+   - Lower for fuzzy pattern matches
+
+2. rule_confidence_boost (0.0-0.3)
+   - From matched rule packs (per-framework rules)
+   - Multiple agreeing rules increase boost
+   - max(rule.confidence) + 0.1 per additional rule (capped at +0.2)
+
+3. history_frequency (logarithmic scaling)
+   - log1p(occurrences) / log1p(20)
+   - Caps at ~0.15 for frequently seen patterns
+   - New patterns get 0.0, common patterns get boost
+
+4. application_log_correlation (+0.1 to +0.2)
+   - If application logs confirm automation failure
+   - e.g., app shows 500 error when test sees HTTP failure
+   - Strong correlation: +0.2, weak: +0.1
+
+5. signal_agreement_boost (+0.1 to +0.2)
+   - Multiple signals pointing to same classification
+   - Stacktrace + code reference: +0.2
+   - Multiple error signals: +0.1
+
+Priority Weighting:
+-------------------
+Higher priority rules have stronger influence:
+    Priority 1-50:   confidence * 1.0
+    Priority 51-100: confidence * 0.9
+    Priority 101+:   confidence * 0.8
+
+Confidence Decay:
+-----------------
+Confidence decreases if:
+- No stacktrace: -0.1
+- No code reference: -0.1
+- Ambiguous error message: -0.2
+- New/unseen failure pattern: -0.05
+
+Example Calculations:
+---------------------
+1. Known Timeout (High Confidence):
+   base=0.9 + rules=0.2 + history=0.12 + app_logs=0.1 = 1.0 → 0.95 (capped)
+
+2. New Assertion Failure (Medium):
+   base=0.85 + rules=0.15 + history=0.0 + app_logs=0.0 = 0.75 (MEDIUM)
+
+3. Ambiguous Error (Low):
+   base=0.6 + rules=0.1 + history=0.0 - ambiguity_penalty=0.2 = 0.5 (LOW)
+
+CI/CD Integration:
+------------------
+- HIGH confidence → Auto-retry or auto-classify safe
+- MEDIUM confidence → Show warning, suggest review
+- LOW confidence → Block automation, require human review
+
+This algorithm ensures:
+✅ Deterministic and explainable results
+✅ Safe for production CI/CD decisions
+✅ Improves over time with historical data
+✅ Never silently fails (always returns confidence)
+✅ Conservative scoring prevents false positives
 """
 
 from typing import List, Optional

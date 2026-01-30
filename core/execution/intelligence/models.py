@@ -20,6 +20,25 @@ except ImportError:
         APPLICATION = "application"
 
 
+class EventType(Enum):
+    """
+    Event type classification.
+    
+    Categorizes execution events by their semantic meaning.
+    Aligned with industry-standard execution intelligence patterns.
+    """
+    TEST_START = "test_start"
+    TEST_END = "test_end"
+    STEP = "step"
+    ASSERTION = "assertion"
+    LOG = "log"
+    FAILURE = "failure"
+    RETRY = "retry"
+    METRIC = "metric"
+    SETUP = "setup"
+    TEARDOWN = "teardown"
+
+
 class LogLevel(Enum):
     """Log severity level"""
     DEBUG = "DEBUG"
@@ -70,6 +89,9 @@ class ExecutionEvent:
     UPDATED: Now includes log_source_type to distinguish between:
     - AUTOMATION logs (test framework) - MANDATORY
     - APPLICATION logs (product/service) - OPTIONAL for enrichment
+    
+    ALIGNED: Field names match industry-standard execution intelligence patterns
+    for better interoperability and clarity.
     """
     timestamp: str
     level: LogLevel
@@ -77,7 +99,12 @@ class ExecutionEvent:
     message: str
     metadata: Dict[str, Any] = field(default_factory=dict)
     
-    # Log source classification (NEW)
+    # Execution context (NEW - aligned with standard patterns)
+    run_id: Optional[str] = None  # Unique execution run identifier
+    event_type: Optional['EventType'] = None  # Semantic event categorization
+    duration_ms: Optional[int] = None  # Event duration in milliseconds
+    
+    # Log source classification
     log_source_type: 'LogSourceType' = None  # AUTOMATION or APPLICATION
     
     # Optional structured fields
@@ -85,7 +112,7 @@ class ExecutionEvent:
     test_file: Optional[str] = None
     exception_type: Optional[str] = None
     stacktrace: Optional[str] = None
-    service_name: Optional[str] = None  # NEW: For application logs
+    service_name: Optional[str] = None  # For application logs
     
     def __post_init__(self):
         """Set default log source type if not specified"""
@@ -105,6 +132,8 @@ class ExecutionEvent:
             "source": self.source,
             "message": self.message,
             "metadata": self.metadata,
+            "run_id": self.run_id,
+            "duration_ms": self.duration_ms,
             "test_name": self.test_name,
             "test_file": self.test_file,
             "exception_type": self.exception_type,
@@ -116,6 +145,10 @@ class ExecutionEvent:
         if self.log_source_type is not None:
             result["log_source_type"] = str(self.log_source_type)
         
+        # Add event_type if available
+        if self.event_type is not None:
+            result["event_type"] = self.event_type.value
+        
         return result
 
 
@@ -125,6 +158,10 @@ class FailureSignal:
     Extracted failure signal - deterministic, no AI.
     
     Multiple signals can be extracted from a single failure.
+    
+    ENHANCED: Now includes semantic flags for better CI/CD decision making:
+    - is_retryable: Whether this failure can be automatically retried
+    - is_infra_related: Whether this is infrastructure vs product issue
     """
     signal_type: SignalType
     message: str
@@ -135,12 +172,38 @@ class FailureSignal:
     file: Optional[str] = None
     line: Optional[int] = None
     
+    # Semantic flags (NEW - aligned with industry patterns)
+    is_retryable: bool = False  # Can this be auto-retried?
+    is_infra_related: bool = False  # Infrastructure vs product issue?
+    
     # Evidence
     keywords: List[str] = field(default_factory=list)
     patterns_matched: List[str] = field(default_factory=list)
     
     # Metadata
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        """Auto-infer semantic flags from signal_type if not explicitly set"""
+        # Retryable signals (transient failures)
+        if self.signal_type in [SignalType.TIMEOUT, SignalType.CONNECTION_ERROR, 
+                                 SignalType.DNS_ERROR, SignalType.HTTP_ERROR]:
+            if not self.is_retryable:  # Only set if not explicitly set
+                self.is_retryable = True
+        
+        # Infrastructure-related signals
+        if self.signal_type in [SignalType.TIMEOUT, SignalType.CONNECTION_ERROR,
+                                 SignalType.DNS_ERROR, SignalType.HTTP_ERROR,
+                                 SignalType.PERMISSION_ERROR, SignalType.MEMORY_ERROR]:
+            if not self.is_infra_related:  # Only set if not explicitly set
+                self.is_infra_related = True
+        
+        # Product/automation-related signals (NOT infrastructure)
+        if self.signal_type in [SignalType.ASSERTION, SignalType.LOCATOR,
+                                 SignalType.NULL_POINTER, SignalType.SYNTAX_ERROR,
+                                 SignalType.IMPORT_ERROR]:
+            self.is_retryable = False
+            self.is_infra_related = False
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
@@ -151,6 +214,8 @@ class FailureSignal:
             "stacktrace": self.stacktrace,
             "file": self.file,
             "line": self.line,
+            "is_retryable": self.is_retryable,
+            "is_infra_related": self.is_infra_related,
             "keywords": self.keywords,
             "patterns_matched": self.patterns_matched,
             "metadata": self.metadata,
