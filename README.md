@@ -141,7 +141,59 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
 
-### 🔹 5. **Semantic Search & Test Intelligence** 🆕
+### 🔹 5. **Execution Intelligence Engine** 🆕
+Framework-agnostic log analyzer that intelligently classifies test failures:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Raw Logs          │         │   Intelligence   │         │   Classification    │
+│  (All Frameworks)   │────────▶│   Engine         │────────▶│   + CI Actions      │
+│                     │         │                  │         │                     │
+│  • JUnit XML        │         │  • Extract       │         │  • Product Defect   │
+│  • pytest output    │         │  • Normalize     │         │  • Locator Issue    │
+│  • Robot logs       │         │  • Classify      │         │  • Environment      │
+│  • App logs         │         │  • Resolve code  │         │  • Flaky Test       │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🎯 **Intelligent Classification** - 5 failure types: Product Defect, Automation Issue, Locator Issue, Environment, Flaky
+- 🔧 **Works Without AI** - Deterministic, explainable, rule-based classification (AI optional for enhancement)
+- 📊 **Dual Log Support** - Analyze automation logs + application logs together
+- 🔍 **Code Resolution** - Pinpoints exact test file/line causing automation failures
+- 🚦 **CI/CD Integration** - Fail builds only on product defects, ignore flaky/env issues
+- 📈 **Confidence Scoring** - Provides confidence levels for each classification
+- 🌐 **Framework-Agnostic** - Supports all 13 frameworks with unified interface
+
+**Quick Usage:**
+```bash
+# Analyze single test log
+crossbridge analyze logs --log-file test_output.log --test-name test_login --framework pytest
+
+# Analyze with application logs for correlation
+crossbridge analyze-logs --framework selenium --logs-automation target/surefire-reports --logs-application app/logs/
+
+# Batch analyze directory
+crossbridge analyze directory --log-dir ./test-output --pattern "*.log"
+```
+
+**Failure Classification Categories:**
+1. **PRODUCT_DEFECT** 🐛 - Real bugs in application code → Fail CI/CD
+2. **AUTOMATION_ISSUE** 🔧 - Test code problems (syntax, imports, setup)
+3. **LOCATOR_ISSUE** 🎯 - UI element selectors broken/changed
+4. **ENVIRONMENT_ISSUE** 🌐 - Infrastructure failures (network, DB, timeouts)
+5. **FLAKY_TEST** 🔀 - Intermittent failures, timing issues
+
+**Use Cases:**
+1. **Automated Triage** - Classify 100s of failures in seconds
+2. **Smart CI/CD** - Fail pipeline only for real product defects
+3. **Team Routing** - Send automation issues to QA, product bugs to dev
+4. **Failure Analysis** - "Find similar timeout failures"
+5. **Root Cause** - Trace failure to exact test file and line number
+
+📖 See [EXECUTION_INTELLIGENCE.md](docs/EXECUTION_INTELLIGENCE.md) for complete documentation
+
+### 🔹 6. **Semantic Search & Test Intelligence** 🆕
 Unified system combining test normalization, AST extraction, and AI-powered semantic search:
 
 ```
@@ -194,7 +246,7 @@ All settings in one place under `runtime.semantic_search` in [crossbridge.yml](c
 
 📖 See [SEMANTIC_SEARCH.md](docs/ai/SEMANTIC_SEARCH.md) and [Quick Start](docs/ai/SEMANTIC_SEARCH_QUICK_START.md)
 
-### 🔹 6. **Unified Intelligence Configuration**
+### 🔹 7. **Unified Intelligence Configuration**
 Centralize all framework-specific intelligence rules in one place:
 
 ```
@@ -246,7 +298,7 @@ crossbridge:
 
 📖 **Complete Guide**: [UNIFIED_CONFIGURATION_GUIDE.md](UNIFIED_CONFIGURATION_GUIDE.md)
 
-### 🔹 7. **Production Hardening & Runtime Protection**
+### 🔹 8. **Production Hardening & Runtime Protection**
 Enterprise-grade production runtime features for resilient test execution:
 
 ```
@@ -552,6 +604,7 @@ CrossBridge AI is ideal for:
 ### You Should Use CrossBridge If You:
 - ✅ Have 100+ tests needing modernization
 - ✅ Want intelligence on existing tests without migration
+- ✅ Need automated failure triage and classification
 - ✅ Need to migrate before losing team knowledge
 - ✅ Require audit trails and reproducible transformations
 - ✅ Value open-source and extensibility
@@ -576,8 +629,92 @@ Traditional test automation modernization is:
 - ✅ **Data-driven** — intelligence-based decisions
 - ✅ **Scalable** — handles hundreds of tests
 - ✅ **AI-enhanced** — smart insights and recommendations
+- ✅ **Intelligent** — automated failure triage saves hours/week
 
 **Result:** Teams get better maintainability and measurable ROI in weeks, not months.
+
+---
+
+## 🎛️ CLI Commands
+
+CrossBridge provides comprehensive CLI commands for all major features:
+
+### 📊 Execution Intelligence & Log Analysis
+```bash
+# Analyze single test log
+crossbridge analyze logs --log-file test_output.log --test-name test_login --framework pytest
+
+# Analyze with application logs
+crossbridge analyze-logs --framework selenium --logs-automation target/surefire-reports --logs-application app/logs/
+
+# Batch analyze directory
+crossbridge analyze directory --log-dir ./test-output --pattern "*.log"
+```
+
+### 🔄 Test Transformation & Migration
+```bash
+# Transform Selenium to Playwright
+crossbridge transform --from selenium --to playwright --input tests/selenium/ --output tests/playwright/
+
+# BDD transformation
+crossbridge transform --from cucumber --to robot --input features/ --output robot/
+```
+
+### 🔍 Semantic Search & Intelligence
+```bash
+# Index tests for semantic search
+crossbridge semantic index -f pytest -p ./tests
+
+# Search using natural language
+crossbridge semantic search "login timeout error"
+
+# Find similar tests
+crossbridge semantic similar test_user_login
+```
+
+### 🐛 Flaky Test Detection
+```bash
+# Detect flaky tests
+crossbridge flaky detect --framework pytest --test-results ./results/
+
+# Analyze flaky patterns
+crossbridge flaky analyze --test-id test_checkout
+```
+
+### 🤖 AI Transformation Validation
+```bash
+# Generate with validation
+crossbridge ai-transform generate --prompt "Create login test" --framework playwright
+
+# Review pending transformations
+crossbridge ai-transform review --id abc123
+
+# Apply approved changes
+crossbridge ai-transform apply --id abc123
+```
+
+### 📈 Coverage & Analysis
+```bash
+# Analyze test coverage
+crossbridge coverage analyze --source-dir src/ --test-dir tests/
+
+# Generate coverage report
+crossbridge coverage report --format html
+```
+
+### ⚙️ Configuration & Setup
+```bash
+# Validate configuration
+crossbridge config validate
+
+# Initialize workspace
+crossbridge init --framework pytest
+
+# Check system status
+crossbridge status
+```
+
+📖 **Full CLI Reference**: Run `crossbridge --help` or see [CLI Documentation](cli/README.md)
 
 ---
 
@@ -1490,6 +1627,7 @@ Comprehensive guides for test automation modernization and AI-powered transforma
 - **[Multi-Framework Support](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - 12+ supported frameworks
 
 ### 🤖 AI & Intelligence
+- **[Execution Intelligence Engine](docs/EXECUTION_INTELLIGENCE.md)** - Automated failure classification & log analysis ✅ NEW!
 - **[AI Transformation](docs/ai/AI_TRANSFORMATION_USAGE.md)** - AI-powered test migration
 - **[Memory & Embeddings](docs/memory/MEMORY_EMBEDDINGS_SYSTEM.md)** - Semantic search
 - **[Intelligent Assistance](docs/intelligence/INTELLIGENT_TEST_ASSISTANCE.md)** - AI-powered insights
