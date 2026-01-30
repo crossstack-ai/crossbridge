@@ -15,6 +15,9 @@
 numpy>=1.21.0,<2.0.0              # Array operations, numerical computing
 scikit-learn>=1.0.0,<2.0.0        # Machine learning (flaky detection)
 
+# System Monitoring (for sidecar observer)
+psutil>=5.9.0,<7.0.0              # CPU and memory monitoring
+
 # Database & ORM
 SQLAlchemy>=2.0.0,<3.0.0          # Database ORM (upgraded to 2.x for better async support)
 psycopg2-binary>=2.9.0,<3.0.0     # PostgreSQL adapter

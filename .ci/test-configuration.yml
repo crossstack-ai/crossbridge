@@ -1,0 +1,540 @@
+# ============================================================================
+# CrossBridge CI/CD Configuration
+# ============================================================================
+# This file demonstrates CI configuration for:
+# 1. Test Suite Execution
+# 2. Coverage Enforcement (70% threshold)
+# 3. Adapter Contract Tests
+# 4. Sidecar Chaos Tests
+# 5. Integration Tests
+# 
+# Adapt this to your CI platform (GitHub Actions, GitLab CI, Jenkins, etc.)
+# ============================================================================
+
+# ============================================================================
+# Test Pyramid Configuration
+# ============================================================================
+# 70% Unit Tests | 25% Integration Tests | 5% E2E Tests
+#
+# Unit Tests: tests/unit/**
+# Integration Tests: tests/integration/**
+# E2E Tests: tests/e2e/**
+# Fixtures: tests/fixtures/**
+
+test_pyramid:
+  unit:
+    weight: 70%
+    path: tests/unit
+    pytest_args: --maxfail=5 --tb=short
+  
+  integration:
+    weight: 25%
+    path: tests/integration
+    pytest_args: --maxfail=2 --tb=short
+  
+  e2e:
+    weight: 5%
+    path: tests/e2e
+    pytest_args: --maxfail=1 --tb=long
+
+
+# ============================================================================
+# GitHub Actions Example
+# ============================================================================
+# File: .github/workflows/ci.yml
+
+github_actions: |
+  name: CrossBridge CI
+  
+  on:
+    push:
+      branches: [ main, develop ]
+    pull_request:
+      branches: [ main ]
+  
+  jobs:
+    test:
+      runs-on: ubuntu-latest
+      
+      steps:
+        - uses: actions/checkout@v3
+        
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.11'
+        
+        - name: Install dependencies
+          run: |
+            pip install -r requirements.txt
+            pip install pytest pytest-cov pytest-timeout
+        
+        # ──────────────────────────────────────────────────
+        # UNIT TESTS (70%)
+        # ──────────────────────────────────────────────────
+        - name: Run Unit Tests
+          run: |
+            pytest tests/unit/ \
+              --maxfail=5 \
+              --tb=short \
+              --cov=core \
+              --cov=cli \
+              --cov-report=term-missing \
+              --cov-report=xml:coverage-unit.xml \
+              --junitxml=results-unit.xml
+        
+        # ──────────────────────────────────────────────────
+        # ADAPTER CONTRACT TESTS
+        # ──────────────────────────────────────────────────
+        - name: Run Adapter Contract Tests
+          run: |
+            pytest tests/unit/adapters/test_adapter_contract.py \
+              --maxfail=1 \
+              --tb=long \
+              -v
+        
+        # ──────────────────────────────────────────────────
+        # INTEGRATION TESTS (25%)
+        # ──────────────────────────────────────────────────
+        - name: Run Integration Tests
+          run: |
+            pytest tests/integration/ \
+              --maxfail=2 \
+              --tb=short \
+              --cov=core \
+              --cov-append \
+              --cov-report=term-missing \
+              --cov-report=xml:coverage-integration.xml \
+              --junitxml=results-integration.xml
+        
+        # ──────────────────────────────────────────────────
+        # SIDECAR CHAOS TESTS
+        # ──────────────────────────────────────────────────
+        - name: Run Sidecar Chaos Tests
+          run: |
+            pytest tests/integration/sidecar/test_sidecar_chaos.py \
+              --maxfail=1 \
+              --tb=long \
+              --timeout=60 \
+              -v
+        
+        # ──────────────────────────────────────────────────
+        # E2E TESTS (5%)
+        # ──────────────────────────────────────────────────
+        - name: Run E2E Tests
+          run: |
+            pytest tests/e2e/ \
+              --maxfail=1 \
+              --tb=long \
+              --timeout=120 \
+              --junitxml=results-e2e.xml
+        
+        # ──────────────────────────────────────────────────
+        # COVERAGE ENFORCEMENT (70% threshold)
+        # ──────────────────────────────────────────────────
+        - name: Check Coverage Threshold
+          run: |
+            coverage combine
+            coverage report --fail-under=70
+        
+        # ──────────────────────────────────────────────────
+        # UPLOAD RESULTS
+        # ──────────────────────────────────────────────────
+        - name: Upload Coverage
+          uses: codecov/codecov-action@v3
+          with:
+            files: ./coverage-unit.xml,./coverage-integration.xml
+            flags: unittests,integration
+        
+        - name: Upload Test Results
+          if: always()
+          uses: actions/upload-artifact@v3
+          with:
+            name: test-results
+            path: results-*.xml
+
+
+# ============================================================================
+# GitLab CI Example
+# ============================================================================
+# File: .gitlab-ci.yml
+
+gitlab_ci: |
+  stages:
+    - test
+    - coverage
+  
+  variables:
+    COVERAGE_THRESHOLD: "70"
+  
+  # ──────────────────────────────────────────────────
+  # UNIT TESTS
+  # ──────────────────────────────────────────────────
+  unit-tests:
+    stage: test
+    image: python:3.11
+    before_script:
+      - pip install -r requirements.txt
+      - pip install pytest pytest-cov
+    script:
+      - pytest tests/unit/
+          --maxfail=5
+          --cov=core
+          --cov=cli
+          --cov-report=term-missing
+          --cov-report=xml:coverage-unit.xml
+    artifacts:
+      reports:
+        coverage_report:
+          coverage_format: cobertura
+          path: coverage-unit.xml
+  
+  # ──────────────────────────────────────────────────
+  # ADAPTER CONTRACT TESTS
+  # ──────────────────────────────────────────────────
+  adapter-contracts:
+    stage: test
+    image: python:3.11
+    before_script:
+      - pip install -r requirements.txt
+      - pip install pytest
+    script:
+      - pytest tests/unit/adapters/test_adapter_contract.py
+          --maxfail=1
+          -v
+    allow_failure: false
+  
+  # ──────────────────────────────────────────────────
+  # INTEGRATION TESTS
+  # ──────────────────────────────────────────────────
+  integration-tests:
+    stage: test
+    image: python:3.11
+    before_script:
+      - pip install -r requirements.txt
+      - pip install pytest pytest-cov
+    script:
+      - pytest tests/integration/
+          --maxfail=2
+          --cov=core
+          --cov-append
+          --cov-report=xml:coverage-integration.xml
+    artifacts:
+      reports:
+        coverage_report:
+          coverage_format: cobertura
+          path: coverage-integration.xml
+  
+  # ──────────────────────────────────────────────────
+  # SIDECAR CHAOS TESTS
+  # ──────────────────────────────────────────────────
+  sidecar-chaos:
+    stage: test
+    image: python:3.11
+    before_script:
+      - pip install -r requirements.txt
+      - pip install pytest pytest-timeout
+    script:
+      - pytest tests/integration/sidecar/test_sidecar_chaos.py
+          --timeout=60
+          -v
+  
+  # ──────────────────────────────────────────────────
+  # COVERAGE GATE
+  # ──────────────────────────────────────────────────
+  coverage-check:
+    stage: coverage
+    image: python:3.11
+    before_script:
+      - pip install coverage
+    script:
+      - coverage combine
+      - coverage report --fail-under=${COVERAGE_THRESHOLD}
+    dependencies:
+      - unit-tests
+      - integration-tests
+    allow_failure: false
+
+
+# ============================================================================
+# Jenkins Example
+# ============================================================================
+# File: Jenkinsfile
+
+jenkinsfile: |
+  pipeline {
+      agent any
+      
+      environment {
+          COVERAGE_THRESHOLD = '70'
+      }
+      
+      stages {
+          stage('Setup') {
+              steps {
+                  sh 'pip install -r requirements.txt'
+                  sh 'pip install pytest pytest-cov pytest-timeout'
+              }
+          }
+          
+          stage('Unit Tests') {
+              steps {
+                  sh '''
+                      pytest tests/unit/ \
+                          --maxfail=5 \
+                          --cov=core \
+                          --cov=cli \
+                          --cov-report=term-missing \
+                          --cov-report=xml:coverage-unit.xml \
+                          --junitxml=results-unit.xml
+                  '''
+              }
+          }
+          
+          stage('Adapter Contracts') {
+              steps {
+                  sh '''
+                      pytest tests/unit/adapters/test_adapter_contract.py \
+                          --maxfail=1 \
+                          -v
+                  '''
+              }
+          }
+          
+          stage('Integration Tests') {
+              steps {
+                  sh '''
+                      pytest tests/integration/ \
+                          --maxfail=2 \
+                          --cov=core \
+                          --cov-append \
+                          --cov-report=xml:coverage-integration.xml
+                  '''
+              }
+          }
+          
+          stage('Sidecar Chaos Tests') {
+              steps {
+                  sh '''
+                      pytest tests/integration/sidecar/test_sidecar_chaos.py \
+                          --timeout=60 \
+                          -v
+                  '''
+              }
+          }
+          
+          stage('Coverage Gate') {
+              steps {
+                  sh '''
+                      coverage combine
+                      coverage report --fail-under=${COVERAGE_THRESHOLD}
+                  '''
+              }
+          }
+      }
+      
+      post {
+          always {
+              junit 'results-*.xml'
+              publishHTML([
+                  reportDir: 'htmlcov',
+                  reportFiles: 'index.html',
+                  reportName: 'Coverage Report'
+              ])
+          }
+      }
+  }
+
+
+# ============================================================================
+# Pre-Commit Hooks (Optional)
+# ============================================================================
+# File: .pre-commit-config.yaml
+# Run tests before commit to catch issues early
+
+pre_commit: |
+  repos:
+    # Run unit tests
+    - repo: local
+      hooks:
+        - id: unit-tests
+          name: Run Unit Tests
+          entry: pytest tests/unit/ --maxfail=1 -x
+          language: system
+          pass_filenames: false
+        
+        # Check coverage locally
+        - id: coverage-check
+          name: Check Coverage
+          entry: pytest tests/unit/ --cov=core --cov-report=term --cov-fail-under=70
+          language: system
+          pass_filenames: false
+
+
+# ============================================================================
+# Local Development Commands
+# ============================================================================
+# Quick commands for local testing
+
+local_commands: |
+  # Run all tests
+  pytest tests/ --maxfail=5 --cov=core --cov-report=html
+  
+  # Run unit tests only
+  pytest tests/unit/ -v
+  
+  # Run with coverage
+  pytest tests/ --cov=core --cov-report=term-missing --cov-report=html
+  
+  # Check coverage threshold
+  pytest tests/ --cov=core --cov-fail-under=70
+  
+  # Run adapter contract tests
+  pytest tests/unit/adapters/test_adapter_contract.py -v
+  
+  # Run sidecar chaos tests
+  pytest tests/integration/sidecar/test_sidecar_chaos.py -v
+  
+  # Run with timeout (for chaos tests)
+  pytest tests/integration/sidecar/ --timeout=60
+  
+  # Generate coverage report
+  coverage run -m pytest tests/
+  coverage report --fail-under=70
+  coverage html
+
+
+# ============================================================================
+# Coverage Configuration
+# ============================================================================
+# File: .coveragerc
+
+coverage_config: |
+  [run]
+  source = core,cli
+  omit =
+      */tests/*
+      */venv/*
+      */__pycache__/*
+      */site-packages/*
+  
+  [report]
+  precision = 2
+  show_missing = True
+  skip_covered = False
+  
+  # Fail if coverage below threshold
+  fail_under = 70
+  
+  [html]
+  directory = htmlcov
+
+
+# ============================================================================
+# Pytest Configuration
+# ============================================================================
+# File: pytest.ini
+
+pytest_config: |
+  [pytest]
+  testpaths = tests
+  python_files = test_*.py
+  python_classes = Test*
+  python_functions = test_*
+  
+  # Test discovery
+  norecursedirs = .git .tox dist build *.egg venv
+  
+  # Markers
+  markers =
+      unit: Unit tests (70%)
+      integration: Integration tests (25%)
+      e2e: End-to-end tests (5%)
+      chaos: Chaos/stress tests
+      slow: Slow-running tests
+  
+  # Coverage
+  addopts =
+      --strict-markers
+      --tb=short
+      --cov-config=.coveragerc
+  
+  # Timeout for hanging tests
+  timeout = 300
+  timeout_method = thread
+
+
+# ============================================================================
+# Test Execution Matrix
+# ============================================================================
+
+test_matrix:
+  # Quick smoke test (< 1 minute)
+  smoke:
+    command: pytest tests/unit/ tests/fixtures/ -x --maxfail=1
+    timeout: 60
+    coverage: false
+  
+  # Unit tests only
+  unit:
+    command: pytest tests/unit/ --cov=core --cov=cli
+    timeout: 300
+    coverage: true
+    threshold: 70
+  
+  # Integration tests
+  integration:
+    command: pytest tests/integration/ --cov=core --cov-append
+    timeout: 600
+    coverage: true
+  
+  # Chaos tests
+  chaos:
+    command: pytest tests/integration/sidecar/test_sidecar_chaos.py --timeout=60
+    timeout: 120
+    coverage: false
+  
+  # Full suite
+  full:
+    command: pytest tests/ --cov=core --cov=cli --cov-report=html
+    timeout: 900
+    coverage: true
+    threshold: 70
+
+
+# ============================================================================
+# Recommended CI Pipeline Order
+# ============================================================================
+
+pipeline_stages:
+  1_lint:
+    - Run pylint/flake8
+    - Run black formatting check
+    - Run mypy type checking
+  
+  2_unit_tests:
+    - Run unit tests (70%)
+    - Check adapter contracts
+    - Generate coverage report
+  
+  3_integration_tests:
+    - Run integration tests (25%)
+    - Run sidecar integration tests
+    - Append to coverage
+  
+  4_chaos_tests:
+    - Run sidecar chaos tests
+    - Run stress tests
+  
+  5_e2e_tests:
+    - Run E2E tests (5%)
+    - Run smoke tests
+  
+  6_coverage_gate:
+    - Combine coverage reports
+    - Enforce 70% threshold
+    - Fail build if below threshold
+  
+  7_deploy:
+    - Deploy if all tests pass
+    - Tag release

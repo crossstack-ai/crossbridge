@@ -45,8 +45,7 @@ from .circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitState,
-    circuit_breaker_registry,
-    protected
+    circuit_breaker_registry
 )
 from .performance_monitor import (
     PerformanceMonitor,
@@ -104,7 +103,6 @@ __all__ = [
     'CircuitBreakerConfig',
     'CircuitState',
     'circuit_breaker_registry',
-    'protected',
     'PerformanceMonitor',
     'PerformanceMetrics',
     'SamplingStrategy',

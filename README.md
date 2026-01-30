@@ -110,7 +110,72 @@ CrossBridge now includes advanced parsing capabilities and a unified embeddings 
 
 ---
 
-### 🔹 5. **Framework-Agnostic Architecture**
+### 🔹 5. **Sidecar Observer** ⭐ NEW
+**Zero-impact test observability without code changes**
+
+Monitor and analyze tests without modifying a single line of test code:
+
+**Features:**
+- ⚡ **Fail-open execution** - Never blocks test runs (catches all exceptions)
+- 📦 **Bounded queues** - Load shedding with 5000 event capacity
+- 🎲 **Smart sampling** - Configurable rates (10% events, 5% logs, 1% profiling)
+- 💾 **Resource budgets** - Auto-throttles at 5% CPU / 100MB RAM limits
+- 🏥 **Health endpoints** - `/health`, `/ready`, `/metrics` for monitoring
+- 📊 **Prometheus metrics** - Production-grade observability
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+crossbridge:
+  sidecar:
+    enabled: true
+    sampling:
+      rates:
+        events: 0.1  # Sample 10% of events
+```
+
+Works with all 12+ frameworks. See [Sidecar Guide](docs/TEST_INFRASTRUCTURE_AND_SIDECAR_HARDENING.md).
+
+---
+
+### 🔹 5.1 **AI Semantic Engine**
+Advanced semantic intelligence for test discovery, duplicate detection, and smart test selection:
+
+- 🔍 **Semantic Search** - Natural language search across tests, scenarios, and failures
+- 🔄 **Duplicate Detection** - Automatic identification of duplicate test cases (threshold: similarity ≥ 0.9, confidence ≥ 0.8)
+- 📊 **Clustering** - DBSCAN-based grouping of similar entities
+- 🎯 **Smart Test Selection** - AI-powered test selection for code changes using multi-signal scoring:
+  - 40% Semantic similarity (code/test relationship)
+  - 30% Coverage relevance (code coverage mapping)
+  - 20% Failure history (historical patterns)
+  - 10% Flakiness penalty
+- 📐 **Confidence Calibration** - Logarithmic confidence scoring for reliable results
+- 💬 **Explainability** - Every result includes human-readable reasons
+
+**Framework Compatibility:** Works with all 13 frameworks (pytest, selenium, Robot, Cypress, Playwright, JUnit, TestNG, RestAssured, Cucumber, NUnit, SpecFlow, Behave, BDD)
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+ai:
+  semantic_engine:
+    enabled: true
+    embedding:
+      provider: openai
+      model: text-embedding-3-large
+    test_selection:
+      weights:
+        semantic_similarity: 0.4
+        coverage_relevance: 0.3
+        failure_history: 0.2
+        flakiness_penalty: 0.1
+```
+
+See [Semantic Engine Guide](docs/SEMANTIC_ENGINE.md) for details.
+
+---
+
+### 🔹 6. **Framework-Agnostic Architecture**
 Plugin-based ecosystem supports 12+ existing frameworks:
 
 | Framework | Language | Type | Status | Completeness |
@@ -218,7 +283,83 @@ crossbridge analyze directory --log-dir ./test-output --pattern "*.log"
 
 📖 See [EXECUTION_INTELLIGENCE.md](docs/EXECUTION_INTELLIGENCE.md) for complete documentation
 
-### 🔹 6. **Semantic Search & Test Intelligence** 🆕
+### 🔹 6. **Application Log Integration** 🆕
+**Released: January 30, 2026**
+
+Universal JSON log adapter for correlating test failures with application behavior:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Application Logs  │         │   JSON Adapter   │         │  Test Correlation   │
+│  (JSON/ELK/K8s)     │────────▶│  + Sampling      │────────▶│  + Root Cause       │
+│                     │         │  + Signal Extract│         │  + Context Analysis │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🔍 **Universal JSON Support** - ELK, Fluentd, Kubernetes, CloudWatch, custom formats
+- 🎯 **Auto Signal Extraction** - Errors, timeouts, retries, circuit breakers
+- 🔗 **Multi-Strategy Correlation** - Trace ID (1.0), execution ID (0.9), timestamp (0.7), service (0.5)
+- 📊 **Intelligent Sampling** - Level-based (DEBUG: 1%, ERROR: 100%), rate limiting, adaptive
+- 💾 **PostgreSQL Storage** - JSONB for flexible querying, batch inserts, indexed fields
+- 🎭 **Framework Compatible** - Works with all 13 CrossBridge frameworks
+- 🔄 **Retry & Circuit Breaker** - Resilient error handling and storage protection
+- 📈 **Health Monitoring** - Integrated with CrossBridge health status framework
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+execution:
+  log_ingestion:
+    enabled: true
+    adapters:
+      json:
+        enabled: true
+    sampling:
+      rates:
+        debug: 0.01    # 1% of DEBUG logs
+        error: 1.0     # 100% of ERROR logs
+    correlation:
+      strategies: [trace_id, execution_id, timestamp, service]
+```
+
+**Example Usage:**
+```python
+from core.execution.intelligence.log_adapters import get_registry
+from core.execution.intelligence.log_adapters.correlation import LogCorrelator
+
+# Parse application logs
+registry = get_registry()
+adapter = registry.get_adapter('application.log')
+app_logs = [adapter.parse(line) for line in log_file]
+
+# Correlate with test failures
+correlator = LogCorrelator()
+result = correlator.correlate(test_event, app_logs)
+
+print(f"Found {len(result.correlated_logs)} related logs")
+print(f"Correlation confidence: {result.correlation_confidence}")
+```
+
+**Supported Log Formats:**
+- Standard JSON logs
+- ELK/Elasticsearch (@timestamp, severity)
+- Fluentd/FluentBit (time, msg)
+- Kubernetes container logs (JSON)
+- CloudWatch logs (JSON)
+- Custom JSON formats (configurable field mapping)
+
+**Use Cases:**
+- Correlate test failures with application errors
+- Trace distributed transaction failures
+- Identify root causes in microservices
+- Detect timeout and retry patterns
+- Analyze circuit breaker events
+- Performance bottleneck detection
+
+📖 See [JSON_LOG_ADAPTER.md](docs/log_analysis/JSON_LOG_ADAPTER.md) for complete documentation
+
+### 🔹 7. **Semantic Search & Test Intelligence**
 Unified system combining test normalization, AST extraction, and AI-powered semantic search:
 
 ```
@@ -271,7 +412,7 @@ All settings in one place under `runtime.semantic_search` in [crossbridge.yml](c
 
 📖 See [SEMANTIC_SEARCH.md](docs/ai/SEMANTIC_SEARCH.md) and [Quick Start](docs/ai/SEMANTIC_SEARCH_QUICK_START.md)
 
-### 🔹 7. **Unified Intelligence Configuration**
+### 🔹 8. **Unified Intelligence Configuration**
 Centralize all framework-specific intelligence rules in one place:
 
 ```

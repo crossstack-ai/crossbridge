@@ -292,6 +292,166 @@ crossbridge:
       compare_results: true
   
   # ============================================================================
+  # SEMANTIC SEARCH & EMBEDDINGS
+  # ============================================================================
+  semantic_search:
+    enabled: true
+    
+    # Embedding provider
+    provider:
+      type: openai  # Options: openai, anthropic, local
+      model: text-embedding-3-large
+      api_key: ${OPENAI_API_KEY}
+      batch_size: 100
+      
+      # For local embeddings:
+      # type: local
+      # model: sentence-transformers/all-MiniLM-L6-v2
+      # device: cpu  # or 'cuda'
+    
+    # Vector store
+    vector_store:
+      type: pgvector  # PostgreSQL with pgvector extension
+      table_name: test_embedding
+      dimension: 3072  # text-embedding-3-large dimension
+      
+      # Alternative: Qdrant, Pinecone, etc.
+      # type: qdrant
+      # url: http://localhost:6333
+      # collection_name: crossbridge
+    
+    # ============================================================================
+    # EMBEDDING RELIABILITY & QUALITY
+    # ============================================================================
+    reliability:
+      enabled: true
+      
+      # Version tracking
+      version_format: "schema::content::model"  # e.g., v1::text-only::openai
+      current_version: "v1::text-only::openai"
+      
+      # Staleness detection (automatic reindexing triggers)
+      staleness:
+        enabled: true
+        
+        # Age-based staleness
+        max_age_days: 90
+        check_interval_hours: 24
+        
+        # Content-based staleness (fingerprint comparison)
+        check_fingerprint: true
+        fingerprint_algorithm: sha256
+        
+        # Version-based staleness
+        check_version: true
+        auto_upgrade: true  # Auto-reindex on version upgrade
+        
+        # Manual staleness flag
+        allow_manual_marking: true
+      
+      # Semantic drift detection
+      drift:
+        enabled: true
+        threshold: 0.85  # Cosine similarity threshold (below = drifted)
+        check_on_update: true
+        check_interval_days: 30
+        
+        # Alert on significant drift
+        alert_threshold: 0.70  # Alert if similarity < 0.70
+        
+      # Automatic reindexing pipeline
+      reindex:
+        enabled: true
+        
+        # Queue configuration
+        queue:
+          max_size: 10000
+          process_batch_size: 100
+          deduplication: true
+        
+        # Priority configuration (0-100, higher = more urgent)
+        priorities:
+          version_mismatch: 80
+          drift_detected: 70
+          manual_request: 70
+          content_changed: 60
+          no_embedding: 50
+          no_version: 40
+          age_threshold: 30
+        
+        # Background worker
+        worker:
+          enabled: true
+          interval_seconds: 60
+          max_concurrent_jobs: 5
+          retry_failed: true
+          max_retries: 3
+        
+        # Performance limits
+        rate_limit:
+          max_per_hour: 1000
+          max_per_day: 10000
+      
+      # Observability & monitoring
+      metrics:
+        enabled: true
+        
+        # Metrics to track
+        track:
+          - embeddings_total
+          - embeddings_stale
+          - embeddings_reindexed
+          - embedding_drift_detected
+          - embedding_avg_age_days
+          - reindex_queue_size
+          - reindex_success_rate
+        
+        # Logging
+        log_stale_embeddings: true
+        log_drift_events: true
+        log_reindex_jobs: true
+        
+        # Export to monitoring systems
+        export:
+          prometheus:
+            enabled: false
+            port: 9090
+            path: /metrics
+          
+          grafana:
+            enabled: true
+            dashboard: embeddings_reliability
+      
+      # Database schema options
+      schema:
+        use_dedicated_columns: true  # Use dedicated columns vs metadata JSON
+        migration_path: migration/sql/embedding_reliability.sql
+        
+        # Columns to add:
+        # - embedding_version
+        # - entity_fingerprint
+        # - drift_score
+        # - drift_detected
+        # - manually_stale
+        # - index_state
+    
+    # Search configuration
+    search:
+      default_top_k: 10
+      min_similarity: 0.7
+      enable_hybrid: false  # Hybrid semantic + keyword search
+      
+      # Query expansion
+      expand_queries: false
+      expansion_model: gpt-4o-mini
+    
+    # Text processing
+    text_builder:
+      include_metadata: true
+      max_length: 8000  # Characters
+      truncate_strategy: smart  # Options: smart, end, middle
+  
+  # ============================================================================
   # LOGGING & OBSERVABILITY
   # ============================================================================
   logging:

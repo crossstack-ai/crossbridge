@@ -108,18 +108,18 @@ class TestMappingSourceEnum:
         assert MappingSource.INFERRED.value == "inferred"
     
     def test_mapping_source_phase_alignment(self):
-        """Test that sources align with planned phases."""
-        # Phase 1: Static AST
-        phase1_sources = [MappingSource.STATIC_AST]
+        """Test that sources align with analysis stages."""
+        # Static AST Analysis
+        static_sources = [MappingSource.STATIC_AST]
         
-        # Phase 2: Runtime and Coverage
-        phase2_sources = [MappingSource.RUNTIME_TRACE, MappingSource.CODE_COVERAGE]
+        # Runtime and Coverage Analysis
+        runtime_sources = [MappingSource.RUNTIME_TRACE, MappingSource.CODE_COVERAGE]
         
-        # Phase 3: AI
-        phase3_sources = [MappingSource.AI]
+        # AI Enhancement
+        ai_sources = [MappingSource.AI]
         
         # Verify all exist
-        for source in phase1_sources + phase2_sources + phase3_sources:
+        for source in static_sources + runtime_sources + ai_sources:
             assert source in MappingSource
 
 
@@ -305,10 +305,10 @@ class TestPageObjectImpactMap:
 
 
 class TestMultiPhaseCompatibility:
-    """Test compatibility with multi-phase mapping approach."""
+    """Test compatibility with multi-stage mapping approach."""
     
     def test_static_ast_phase(self):
-        """Test Phase 1: Static AST mappings."""
+        """Test static AST analysis mappings."""
         mapping = TestToPageObjectMapping(
             test_id="Test.test",
             test_file="Test.java",
@@ -321,7 +321,7 @@ class TestMultiPhaseCompatibility:
         assert unified["source"] == "static_ast"
     
     def test_coverage_phase(self):
-        """Test Phase 2: Code coverage mappings."""
+        """Test code coverage analysis mappings."""
         mapping = TestToPageObjectMapping(
             test_id="Test.test",
             test_file="Test.java",
@@ -334,7 +334,7 @@ class TestMultiPhaseCompatibility:
         assert unified["source"] == "coverage"
     
     def test_ai_phase(self):
-        """Test Phase 3: AI-inferred mappings."""
+        """Test AI-inferred mappings."""
         mapping = TestToPageObjectMapping(
             test_id="Test.test",
             test_file="Test.java",
@@ -347,8 +347,8 @@ class TestMultiPhaseCompatibility:
         assert unified["source"] == "ai"
     
     def test_multiple_phases_same_mapping(self):
-        """Test same test-PO pair detected in multiple phases."""
-        # Phase 1: Static
+        """Test same test-PO pair detected in multiple analysis stages."""
+        # Static Analysis
         mapping1 = TestToPageObjectMapping(
             test_id="Test.test",
             test_file="Test.java",
@@ -357,7 +357,7 @@ class TestMultiPhaseCompatibility:
         )
         mapping1.add_page_object("LoginPage")
         
-        # Phase 2: Coverage
+        # Coverage Analysis
         mapping2 = TestToPageObjectMapping(
             test_id="Test.test",
             test_file="Test.java",

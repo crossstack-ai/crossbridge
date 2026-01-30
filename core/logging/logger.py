@@ -49,6 +49,7 @@ class LogCategory(Enum):
     TESTING = "testing"
     PERFORMANCE = "performance"
     SECURITY = "security"
+    OBSERVER = "observer"  # Sidecar observer logging
 
 
 # Add custom log levels to logging module
