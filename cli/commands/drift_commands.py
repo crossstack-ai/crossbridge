@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from tabulate import tabulate
@@ -16,9 +17,29 @@ from core.intelligence.confidence_drift import (
 from core.intelligence.drift_persistence import DriftPersistenceManager
 
 
+def _create_manager(args):
+    """Create DriftPersistenceManager from CLI arguments."""
+    backend = getattr(args, 'db_backend', 'sqlite')
+    
+    if backend == 'postgres':
+        return DriftPersistenceManager(
+            backend='postgres',
+            host=getattr(args, 'db_host', os.getenv('POSTGRES_HOST', 'localhost')),
+            port=getattr(args, 'db_port', int(os.getenv('POSTGRES_PORT', 5432))),
+            database=getattr(args, 'db_name', os.getenv('POSTGRES_DB', 'crossbridge')),
+            user=getattr(args, 'db_user', os.getenv('POSTGRES_USER', 'crossbridge')),
+            password=getattr(args, 'db_password', os.getenv('POSTGRES_PASSWORD', '')),
+            schema=getattr(args, 'db_schema', os.getenv('POSTGRES_SCHEMA', 'drift'))
+        )
+    else:
+        # SQLite (default)
+        db_path = getattr(args, 'db_path', 'data/drift_tracking.db')
+        return DriftPersistenceManager(backend='sqlite', db_path=db_path)
+
+
 def cmd_drift_status(args):
     """Show current drift status across all tests."""
-    manager = DriftPersistenceManager(args.db_path)
+    manager = _create_manager(args)
     detector = DriftDetector()
     
     # Get drift statistics
@@ -32,7 +53,11 @@ def cmd_drift_status(args):
     if args.category:
         print(f"Category: {args.category}")
     print(f"Time Window: Last {args.window} days")
-    print(f"Database: {args.db_path}\n")
+    backend = getattr(args, 'db_backend', 'sqlite')
+    if backend == 'postgres':
+        print(f"Database: PostgreSQL ({getattr(args, 'db_name', 'crossbridge')})\n")
+    else:
+        print(f"Database: {getattr(args, 'db_path', 'data/drift_tracking.db')}\n")
     
     print(f"Total Tests: {stats['total_tests']}")
     print(f"Total Measurements: {stats['total_measurements']}")
@@ -99,7 +124,7 @@ def cmd_drift_status(args):
 
 def cmd_drift_analyze(args):
     """Analyze drift for a specific test."""
-    manager = DriftPersistenceManager(args.db_path)
+    manager = _create_manager(args)
     detector = DriftDetector()
     
     # Load test history
@@ -176,7 +201,7 @@ def cmd_drift_analyze(args):
 
 def cmd_drift_alerts(args):
     """Show drift alerts."""
-    manager = DriftPersistenceManager(args.db_path)
+    manager = _create_manager(args)
     
     min_severity = DriftSeverity(args.severity) if args.severity else None
     acknowledged = False if args.unacknowledged else None
@@ -218,7 +243,7 @@ def cmd_drift_alerts(args):
 
 def cmd_drift_stats(args):
     """Show drift statistics and trends."""
-    manager = DriftPersistenceManager(args.db_path)
+    manager = _create_manager(args)
     
     since = datetime.utcnow() - timedelta(days=args.days)
     
@@ -271,7 +296,16 @@ def add_drift_commands(subparsers):
     )
     status_parser.add_argument('--category', help='Filter by category')
     status_parser.add_argument('--window', type=int, default=30, help='Time window in days (default: 30)')
-    status_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path')
+    status_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path (SQLite)')
+    # PostgreSQL options
+    status_parser.add_argument('--db-backend', choices=['sqlite', 'postgres'], default='sqlite',
+                              help='Database backend (default: sqlite)')
+    status_parser.add_argument('--db-host', default='localhost', help='PostgreSQL host')
+    status_parser.add_argument('--db-port', type=int, default=5432, help='PostgreSQL port')
+    status_parser.add_argument('--db-name', default='crossbridge', help='PostgreSQL database name')
+    status_parser.add_argument('--db-user', default='crossbridge', help='PostgreSQL user')
+    status_parser.add_argument('--db-password', default='', help='PostgreSQL password')
+    status_parser.add_argument('--db-schema', default='drift', help='PostgreSQL schema')
     status_parser.set_defaults(func=cmd_drift_status)
     
     # drift analyze
@@ -281,7 +315,16 @@ def add_drift_commands(subparsers):
     )
     analyze_parser.add_argument('test_name', help='Test name to analyze')
     analyze_parser.add_argument('--window', type=int, default=30, help='Time window in days')
-    analyze_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path')
+    analyze_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path (SQLite)')
+    # PostgreSQL options
+    analyze_parser.add_argument('--db-backend', choices=['sqlite', 'postgres'], default='sqlite',
+                               help='Database backend (default: sqlite)')
+    analyze_parser.add_argument('--db-host', default='localhost', help='PostgreSQL host')
+    analyze_parser.add_argument('--db-port', type=int, default=5432, help='PostgreSQL port')
+    analyze_parser.add_argument('--db-name', default='crossbridge', help='PostgreSQL database name')
+    analyze_parser.add_argument('--db-user', default='crossbridge', help='PostgreSQL user')
+    analyze_parser.add_argument('--db-password', default='', help='PostgreSQL password')
+    analyze_parser.add_argument('--db-schema', default='drift', help='PostgreSQL schema')
     analyze_parser.set_defaults(func=cmd_drift_analyze)
     
     # drift alerts
@@ -294,7 +337,16 @@ def add_drift_commands(subparsers):
     alerts_parser.add_argument('--unacknowledged', action='store_true', 
                               help='Show only unacknowledged alerts')
     alerts_parser.add_argument('--hours', type=int, default=24, help='Time window in hours')
-    alerts_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path')
+    alerts_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path (SQLite)')
+    # PostgreSQL options
+    alerts_parser.add_argument('--db-backend', choices=['sqlite', 'postgres'], default='sqlite',
+                              help='Database backend (default: sqlite)')
+    alerts_parser.add_argument('--db-host', default='localhost', help='PostgreSQL host')
+    alerts_parser.add_argument('--db-port', type=int, default=5432, help='PostgreSQL port')
+    alerts_parser.add_argument('--db-name', default='crossbridge', help='PostgreSQL database name')
+    alerts_parser.add_argument('--db-user', default='crossbridge', help='PostgreSQL user')
+    alerts_parser.add_argument('--db-password', default='', help='PostgreSQL password')
+    alerts_parser.add_argument('--db-schema', default='drift', help='PostgreSQL schema')
     alerts_parser.set_defaults(func=cmd_drift_alerts)
     
     # drift stats
@@ -304,7 +356,16 @@ def add_drift_commands(subparsers):
     )
     stats_parser.add_argument('--category', help='Filter by category')
     stats_parser.add_argument('--days', type=int, default=7, help='Time window in days')
-    stats_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path')
+    stats_parser.add_argument('--db-path', default='data/drift_tracking.db', help='Database path (SQLite)')
+    # PostgreSQL options
+    stats_parser.add_argument('--db-backend', choices=['sqlite', 'postgres'], default='sqlite',
+                             help='Database backend (default: sqlite)')
+    stats_parser.add_argument('--db-host', default='localhost', help='PostgreSQL host')
+    stats_parser.add_argument('--db-port', type=int, default=5432, help='PostgreSQL port')
+    stats_parser.add_argument('--db-name', default='crossbridge', help='PostgreSQL database name')
+    stats_parser.add_argument('--db-user', default='crossbridge', help='PostgreSQL user')
+    stats_parser.add_argument('--db-password', default='', help='PostgreSQL password')
+    stats_parser.add_argument('--db-schema', default='drift', help='PostgreSQL schema')
     stats_parser.set_defaults(func=cmd_drift_stats)
     
     drift_parser.set_defaults(func=lambda args: drift_parser.print_help())

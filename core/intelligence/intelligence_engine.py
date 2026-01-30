@@ -6,16 +6,19 @@ This module orchestrates the Deterministic + AI behavior system:
 2. AI enrichment (OPTIONAL)
 3. Metrics tracking
 4. Graceful fallback handling
+5. Drift detection tracking (OPTIONAL)
 
 CRITICAL PRINCIPLES:
 - Deterministic path NEVER fails
 - AI failures NEVER block results
 - Configuration controls all behavior
+- Drift tracking failures NEVER block classification
 """
 
 from typing import List, Optional, Dict, Any
 import time
 import logging
+from datetime import datetime, timedelta
 
 from .deterministic_classifier import (
     DeterministicClassifier,
@@ -33,6 +36,8 @@ from .ai_enricher import (
 )
 from .intelligence_config import IntelligenceConfig, get_config
 from .intelligence_metrics import MetricsTracker, get_metrics_tracker
+from .drift_persistence import DriftPersistenceManager
+from .confidence_drift import DriftDetector, DriftSeverity
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +60,9 @@ class IntelligenceEngine:
         self,
         config: Optional[IntelligenceConfig] = None,
         metrics: Optional[MetricsTracker] = None,
-        ai_analyzer=None
+        ai_analyzer=None,
+        drift_manager: Optional[DriftPersistenceManager] = None,
+        enable_drift_tracking: bool = True
     ):
         """
         Initialize intelligence engine.
@@ -64,9 +71,12 @@ class IntelligenceEngine:
             config: Optional configuration (uses global config if None)
             metrics: Optional metrics tracker (uses global if None)
             ai_analyzer: Optional AI analyzer instance
+            drift_manager: Optional drift persistence manager
+            enable_drift_tracking: Enable automatic drift tracking (default: True)
         """
         self.config = config or get_config()
         self.metrics = metrics or get_metrics_tracker()
+        self.enable_drift_tracking = enable_drift_tracking
         
         # Initialize deterministic classifier (REQUIRED)
         self.deterministic_classifier = DeterministicClassifier(
@@ -77,9 +87,32 @@ class IntelligenceEngine:
         ai_config = AIEnricherConfig(self.config.ai.to_dict())
         self.ai_enricher = AIEnricher(config=ai_config, ai_analyzer=ai_analyzer)
         
+        # Initialize drift tracking (OPTIONAL)
+        self.drift_manager = drift_manager
+        self.drift_detector = None
+        
+        if self.enable_drift_tracking and self.drift_manager is None:
+            try:
+                # Default to SQLite for backward compatibility
+                self.drift_manager = DriftPersistenceManager(
+                    backend='sqlite',
+                    db_path='data/drift_tracking.db'
+                )
+                logger.info("Drift tracking enabled (SQLite)")
+            except Exception as e:
+                logger.warning("Failed to initialize drift tracking: %s", str(e))
+                self.drift_manager = None
+                self.enable_drift_tracking = False
+        
+        # Initialize drift detector if tracking enabled
+        if self.enable_drift_tracking and self.drift_manager:
+            self.drift_detector = DriftDetector()
+            logger.info("Drift detector initialized")
+        
         logger.info(
-            "IntelligenceEngine initialized (AI enabled: %s)",
-            self.config.ai.enabled
+            "IntelligenceEngine initialized (AI: %s, Drift: %s)",
+            self.config.ai.enabled,
+            self.enable_drift_tracking
         )
     
     def classify(
@@ -166,6 +199,63 @@ class IntelligenceEngine:
             ai_result=ai_result
         )
         
+        # Step 3.5: Track confidence drift (OPTIONAL, never blocks)
+        if self.enable_drift_tracking and self.drift_manager and self.drift_detector:
+            try:
+                # Determine which confidence to track (prioritize AI if available)
+                confidence = (
+                    ai_result.confidence if ai_result 
+                    else deterministic_result.confidence
+                )
+                
+                # Record measurement in drift detector (in-memory)
+                self.drift_detector.record_confidence(
+                    test_name=signal.test_name,
+                    confidence=confidence,
+                    category=final_result.label
+                )
+                
+                # Store measurement in database
+                self.drift_manager.store_measurement(
+                    test_name=signal.test_name,
+                    confidence=confidence,
+                    category=final_result.label,
+                    timestamp=datetime.utcnow()
+                )
+                
+                # Check for drift using detector
+                drift_analysis = self.drift_detector.detect_drift(
+                    test_name=signal.test_name,
+                    window=timedelta(days=30)
+                )
+                
+                if drift_analysis and drift_analysis.severity in [DriftSeverity.HIGH, DriftSeverity.CRITICAL]:
+                    # Store drift alert in database
+                    from .confidence_drift import DriftAlert
+                    
+                    alert = DriftAlert(
+                        test_name=signal.test_name,
+                        severity=drift_analysis.severity,
+                        direction=drift_analysis.direction,
+                        confidence_change=drift_analysis.trend_slope,
+                        window_days=30,
+                        message=f"Drift detected: {drift_analysis.severity.value} {drift_analysis.direction.value} trend"
+                    )
+                    
+                    self.drift_manager.store_alert(alert)
+                    
+                    logger.warning(
+                        "Drift alert: %s - %s %s (confidence change: %.2f)",
+                        signal.test_name,
+                        drift_analysis.severity.value,
+                        drift_analysis.direction.value,
+                        drift_analysis.trend_slope
+                    )
+                
+            except Exception as e:
+                # Drift tracking failures NEVER block classification
+                logger.debug("Drift tracking failed: %s", str(e))
+        
         # Step 4: Track overall metrics
         total_duration = (time.time() - start_time) * 1000
         self.metrics.track_final_result(
@@ -251,6 +341,10 @@ class IntelligenceEngine:
                 'enabled': self.config.ai.enabled,
                 'success_rate_pct': ai_success_rate,
                 'stats': metrics_summary['ai_enrichment']
+            },
+            'drift_tracking': {
+                'enabled': self.enable_drift_tracking,
+                'manager_available': self.drift_manager is not None
             },
             'latency': metrics_summary['latency'],
             'config': {
