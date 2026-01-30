@@ -108,7 +108,7 @@ class SearchResult:
 # Text construction helpers for different entity types
 
 
-def test_to_text(test_data: Dict[str, Any]) -> str:
+def convert_test_to_text(test_data: Dict[str, Any]) -> str:
     """Convert test metadata to natural language text for embedding."""
     parts = [f"Test Name: {test_data.get('name', 'unknown')}"]
 

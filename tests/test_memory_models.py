@@ -8,7 +8,7 @@ from core.memory.models import (
     MemoryRecord,
     MemoryType,
     SearchResult,
-    test_to_text,
+    convert_test_to_text,
     scenario_to_text,
     step_to_text,
     page_to_text,
@@ -157,7 +157,7 @@ class TestTextConstruction:
             "tags": ["auth", "smoke"],
         }
 
-        text = test_to_text(test_data)
+        text = convert_test_to_text(test_data)
 
         assert "Test Name: test_login_valid" in text
         assert "Framework: pytest" in text

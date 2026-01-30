@@ -12,7 +12,7 @@ from core.memory.embedding_provider import EmbeddingProvider
 from core.memory.models import (
     MemoryRecord,
     MemoryType,
-    test_to_text,
+    convert_test_to_text,
     scenario_to_text,
     step_to_text,
     page_to_text,
@@ -131,7 +131,7 @@ class MemoryIngestionPipeline:
                 record = MemoryRecord(
                     id=test.get("id") or test.get("name", "unknown"),
                     type=MemoryType.TEST,
-                    text=test_to_text(test),
+                    text=convert_test_to_text(test),
                     metadata={
                         "framework": test.get("framework"),
                         "file": test.get("file"),

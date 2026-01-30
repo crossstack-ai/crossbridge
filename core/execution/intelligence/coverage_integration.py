@@ -1,0 +1,585 @@
+"""
+Coverage Integration Module
+
+Links ExecutionGraph to coverage reports to:
+1. Map test signals to covered code lines
+2. Calculate coverage metrics per signal type
+3. Identify uncovered failure-prone code
+4. Prioritize tests based on coverage gaps
+
+Supports:
+- Coverage.py reports (Python)
+- JaCoCo XML reports (Java)
+- Istanbul/NYC reports (JavaScript)
+"""
+
+import json
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Set, Optional, Tuple
+from enum import Enum
+
+from core.logging.logger import LogManager
+
+logger = LogManager.get_logger(__name__)
+
+
+class CoverageFormat(Enum):
+    """Supported coverage report formats"""
+    COVERAGE_PY = "coverage.py"  # Python coverage
+    JACOCO_XML = "jacoco"        # Java coverage
+    ISTANBUL_JSON = "istanbul"   # JavaScript coverage
+    LCOV = "lcov"                # LCOV info format
+
+
+@dataclass
+class CoverageLine:
+    """Single line coverage information"""
+    file_path: str
+    line_number: int
+    hit_count: int  # Number of times executed
+    is_covered: bool
+    branch_coverage: Optional[float] = None  # For lines with branches
+
+
+@dataclass
+class FileCoverage:
+    """Coverage for a single file"""
+    file_path: str
+    total_lines: int
+    covered_lines: int
+    missed_lines: int
+    line_coverage: float  # Percentage
+    branch_coverage: Optional[float] = None
+    lines: List[CoverageLine] = field(default_factory=list)
+    
+    def get_uncovered_lines(self) -> List[int]:
+        """Get list of uncovered line numbers"""
+        return [line.line_number for line in self.lines if not line.is_covered]
+    
+    def get_covered_lines(self) -> List[int]:
+        """Get list of covered line numbers"""
+        return [line.line_number for line in self.lines if line.is_covered]
+
+
+@dataclass
+class CoverageReport:
+    """Complete coverage report"""
+    format: CoverageFormat
+    timestamp: str
+    files: Dict[str, FileCoverage] = field(default_factory=dict)
+    overall_coverage: float = 0.0
+    
+    def get_file_coverage(self, file_path: str) -> Optional[FileCoverage]:
+        """Get coverage for specific file"""
+        # Normalize path
+        normalized = str(Path(file_path).as_posix())
+        return self.files.get(normalized)
+    
+    def get_uncovered_files(self, threshold: float = 0.8) -> List[str]:
+        """Get files with coverage below threshold"""
+        return [
+            path for path, coverage in self.files.items()
+            if coverage.line_coverage < threshold
+        ]
+
+
+class CoverageParser:
+    """Parse coverage reports from various formats"""
+    
+    @staticmethod
+    def parse_coverage_py(coverage_json_path: Path) -> CoverageReport:
+        """
+        Parse coverage.py JSON report
+        
+        Generated with: coverage json -o coverage.json
+        
+        Args:
+            coverage_json_path: Path to coverage.json
+            
+        Returns:
+            CoverageReport object
+        """
+        logger.info(f"Parsing coverage.py report: {coverage_json_path}")
+        
+        with open(coverage_json_path, 'r') as f:
+            data = json.load(f)
+        
+        report = CoverageReport(
+            format=CoverageFormat.COVERAGE_PY,
+            timestamp=data.get('meta', {}).get('timestamp', ''),
+            overall_coverage=data.get('totals', {}).get('percent_covered', 0.0)
+        )
+        
+        # Parse files
+        for file_path, file_data in data.get('files', {}).items():
+            summary = file_data.get('summary', {})
+            executed = file_data.get('executed_lines', [])
+            missing = file_data.get('missing_lines', [])
+            
+            # Create coverage lines
+            lines = []
+            all_lines = set(executed + missing)
+            for line_num in sorted(all_lines):
+                lines.append(CoverageLine(
+                    file_path=file_path,
+                    line_number=line_num,
+                    hit_count=1 if line_num in executed else 0,
+                    is_covered=line_num in executed
+                ))
+            
+            file_coverage = FileCoverage(
+                file_path=file_path,
+                total_lines=summary.get('num_statements', 0),
+                covered_lines=summary.get('covered_lines', 0),
+                missed_lines=summary.get('missing_lines', 0),
+                line_coverage=summary.get('percent_covered', 0.0),
+                branch_coverage=summary.get('percent_covered_display', None),
+                lines=lines
+            )
+            
+            report.files[file_path] = file_coverage
+        
+        logger.info(f"Parsed {len(report.files)} files, overall coverage: {report.overall_coverage:.1f}%")
+        return report
+    
+    @staticmethod
+    def parse_jacoco_xml(jacoco_xml_path: Path) -> CoverageReport:
+        """
+        Parse JaCoCo XML report
+        
+        Generated by Maven JaCoCo plugin
+        
+        Args:
+            jacoco_xml_path: Path to jacoco.xml
+            
+        Returns:
+            CoverageReport object
+        """
+        logger.info(f"Parsing JaCoCo XML report: {jacoco_xml_path}")
+        
+        tree = ET.parse(jacoco_xml_path)
+        root = tree.getroot()
+        
+        report = CoverageReport(
+            format=CoverageFormat.JACOCO_XML,
+            timestamp=root.get('timestamp', '')
+        )
+        
+        # Parse packages and classes
+        total_covered = 0
+        total_lines = 0
+        
+        for package in root.findall('.//package'):
+            package_name = package.get('name', '').replace('/', '.')
+            
+            for sourcefile in package.findall('.//sourcefile'):
+                filename = sourcefile.get('name', '')
+                file_path = f"{package_name.replace('.', '/')}/{filename}"
+                
+                # Parse lines
+                lines = []
+                covered = 0
+                total = 0
+                
+                for line in sourcefile.findall('.//line'):
+                    line_num = int(line.get('nr', 0))
+                    hit_count = int(line.get('ci', 0))  # covered instructions
+                    missed = int(line.get('mi', 0))     # missed instructions
+                    
+                    is_covered = hit_count > 0
+                    total += 1
+                    if is_covered:
+                        covered += 1
+                    
+                    lines.append(CoverageLine(
+                        file_path=file_path,
+                        line_number=line_num,
+                        hit_count=hit_count,
+                        is_covered=is_covered
+                    ))
+                
+                line_coverage = (covered / total * 100) if total > 0 else 0.0
+                
+                file_coverage = FileCoverage(
+                    file_path=file_path,
+                    total_lines=total,
+                    covered_lines=covered,
+                    missed_lines=total - covered,
+                    line_coverage=line_coverage,
+                    lines=lines
+                )
+                
+                report.files[file_path] = file_coverage
+                total_covered += covered
+                total_lines += total
+        
+        report.overall_coverage = (total_covered / total_lines * 100) if total_lines > 0 else 0.0
+        
+        logger.info(f"Parsed {len(report.files)} files, overall coverage: {report.overall_coverage:.1f}%")
+        return report
+    
+    @staticmethod
+    def parse_istanbul_json(istanbul_json_path: Path) -> CoverageReport:
+        """
+        Parse Istanbul/NYC JSON report
+        
+        Generated with: nyc report --reporter=json
+        
+        Args:
+            istanbul_json_path: Path to coverage-final.json
+            
+        Returns:
+            CoverageReport object
+        """
+        logger.info(f"Parsing Istanbul JSON report: {istanbul_json_path}")
+        
+        with open(istanbul_json_path, 'r') as f:
+            data = json.load(f)
+        
+        report = CoverageReport(
+            format=CoverageFormat.ISTANBUL_JSON,
+            timestamp=''
+        )
+        
+        total_covered = 0
+        total_lines = 0
+        
+        for file_path, file_data in data.items():
+            statements = file_data.get('s', {})
+            statement_map = file_data.get('statementMap', {})
+            
+            # Create coverage lines
+            lines = []
+            line_hits = {}
+            
+            for stmt_id, hit_count in statements.items():
+                location = statement_map.get(stmt_id, {}).get('start', {})
+                line_num = location.get('line', 0)
+                
+                if line_num > 0:
+                    line_hits[line_num] = line_hits.get(line_num, 0) + hit_count
+            
+            for line_num, hit_count in sorted(line_hits.items()):
+                lines.append(CoverageLine(
+                    file_path=file_path,
+                    line_number=line_num,
+                    hit_count=hit_count,
+                    is_covered=hit_count > 0
+                ))
+            
+            covered = sum(1 for hits in line_hits.values() if hits > 0)
+            total = len(line_hits)
+            line_coverage = (covered / total * 100) if total > 0 else 0.0
+            
+            file_coverage = FileCoverage(
+                file_path=file_path,
+                total_lines=total,
+                covered_lines=covered,
+                missed_lines=total - covered,
+                line_coverage=line_coverage,
+                lines=lines
+            )
+            
+            report.files[file_path] = file_coverage
+            total_covered += covered
+            total_lines += total
+        
+        report.overall_coverage = (total_covered / total_lines * 100) if total_lines > 0 else 0.0
+        
+        logger.info(f"Parsed {len(report.files)} files, overall coverage: {report.overall_coverage:.1f}%")
+        return report
+
+
+class CoverageGraphIntegration:
+    """
+    Integrate coverage data with ExecutionGraph
+    
+    Links test execution to code coverage to enable:
+    - Signal-to-code mapping
+    - Coverage-weighted confidence
+    - Uncovered failure detection
+    """
+    
+    def __init__(self, graph, coverage_report: CoverageReport):
+        """
+        Initialize integration
+        
+        Args:
+            graph: ExecutionGraph instance
+            coverage_report: CoverageReport instance
+        """
+        self.graph = graph
+        self.coverage = coverage_report
+        self._test_coverage_cache = {}
+    
+    def get_test_coverage(self, test_node_id: str) -> Set[str]:
+        """
+        Get all files covered by a test
+        
+        Args:
+            test_node_id: Test node ID
+            
+        Returns:
+            Set of file paths covered by test
+        """
+        if test_node_id in self._test_coverage_cache:
+            return self._test_coverage_cache[test_node_id]
+        
+        # Use graph to find code nodes
+        code_nodes = self.graph.find_code_coverage(test_node_id)
+        covered_files = {node.file_path for node in code_nodes if node.file_path}
+        
+        self._test_coverage_cache[test_node_id] = covered_files
+        return covered_files
+    
+    def get_signal_coverage(self, signal) -> Optional[FileCoverage]:
+        """
+        Get coverage for the code associated with a signal
+        
+        Args:
+            signal: ExecutionSignal object
+            
+        Returns:
+            FileCoverage for the associated code, or None
+        """
+        # Find code files for this signal's test
+        test_node_id = f"test:{signal.scenario_name or signal.name}"
+        covered_files = self.get_test_coverage(test_node_id)
+        
+        # Get coverage for first covered file
+        for file_path in covered_files:
+            coverage = self.coverage.get_file_coverage(file_path)
+            if coverage:
+                return coverage
+        
+        return None
+    
+    def calculate_coverage_weighted_confidence(self, signal) -> float:
+        """
+        Calculate confidence weighted by code coverage
+        
+        Lower coverage = less confident in signal
+        
+        Args:
+            signal: ExecutionSignal with confidence score
+            
+        Returns:
+            Coverage-weighted confidence (0.0-1.0)
+        """
+        original_confidence = signal.confidence or 0.5
+        
+        # Get coverage for signal
+        file_coverage = self.get_signal_coverage(signal)
+        
+        if not file_coverage:
+            # No coverage data, return original confidence with penalty
+            return original_confidence * 0.8
+        
+        # Weight confidence by coverage
+        coverage_factor = file_coverage.line_coverage / 100.0
+        
+        # Blend original confidence with coverage factor
+        # 70% original, 30% coverage
+        weighted = 0.7 * original_confidence + 0.3 * coverage_factor
+        
+        return weighted
+    
+    def find_uncovered_failure_zones(self, signals: List) -> List[Tuple[str, float, List[int]]]:
+        """
+        Find code regions that:
+        1. Are uncovered or poorly covered
+        2. Are in files with failure signals
+        
+        These are high-risk zones.
+        
+        Args:
+            signals: List of ExecutionSignal objects
+            
+        Returns:
+            List of (file_path, risk_score, uncovered_lines)
+        """
+        # Group signals by file
+        file_signals = {}
+        for signal in signals:
+            test_node_id = f"test:{signal.scenario_name or signal.name}"
+            covered_files = self.get_test_coverage(test_node_id)
+            
+            for file_path in covered_files:
+                if file_path not in file_signals:
+                    file_signals[file_path] = []
+                file_signals[file_path].append(signal)
+        
+        # Calculate risk scores
+        risk_zones = []
+        
+        for file_path, file_signals_list in file_signals.items():
+            coverage = self.coverage.get_file_coverage(file_path)
+            if not coverage:
+                continue
+            
+            # Count failures in this file
+            failure_count = sum(1 for s in file_signals_list if s.failure_type)
+            
+            # Calculate risk score
+            # High risk = many failures + low coverage
+            uncovered_ratio = 1.0 - (coverage.line_coverage / 100.0)
+            risk_score = failure_count * uncovered_ratio
+            
+            if risk_score > 0.5:  # Threshold
+                uncovered_lines = coverage.get_uncovered_lines()
+                risk_zones.append((file_path, risk_score, uncovered_lines))
+        
+        # Sort by risk score descending
+        risk_zones.sort(key=lambda x: x[1], reverse=True)
+        
+        return risk_zones
+    
+    def suggest_coverage_improvements(self, signals: List, top_n: int = 10) -> List[Dict]:
+        """
+        Suggest which files should have more coverage based on failure patterns
+        
+        Args:
+            signals: List of ExecutionSignal objects
+            top_n: Number of suggestions to return
+            
+        Returns:
+            List of suggestions with file path, current coverage, failure count
+        """
+        # Find uncovered failure zones
+        risk_zones = self.find_uncovered_failure_zones(signals)
+        
+        suggestions = []
+        
+        for file_path, risk_score, uncovered_lines in risk_zones[:top_n]:
+            coverage = self.coverage.get_file_coverage(file_path)
+            
+            suggestion = {
+                'file_path': file_path,
+                'current_coverage': coverage.line_coverage if coverage else 0.0,
+                'uncovered_lines': len(uncovered_lines),
+                'risk_score': risk_score,
+                'recommendation': f"Add tests covering lines {uncovered_lines[:5]}{'...' if len(uncovered_lines) > 5 else ''}"
+            }
+            
+            suggestions.append(suggestion)
+        
+        return suggestions
+    
+    def calculate_signal_type_coverage(self, signals: List, signal_type: str) -> Dict:
+        """
+        Calculate coverage metrics for a specific signal type
+        
+        Args:
+            signals: List of ExecutionSignal objects
+            signal_type: Signal type to analyze
+            
+        Returns:
+            Dict with coverage stats for this signal type
+        """
+        # Filter signals by type
+        type_signals = [s for s in signals if s.failure_type == signal_type]
+        
+        if not type_signals:
+            return {'signal_type': signal_type, 'signal_count': 0, 'files': []}
+        
+        # Get coverage for each signal
+        file_coverages = {}
+        
+        for signal in type_signals:
+            file_coverage = self.get_signal_coverage(signal)
+            if file_coverage:
+                file_path = file_coverage.file_path
+                if file_path not in file_coverages:
+                    file_coverages[file_path] = {
+                        'coverage': file_coverage.line_coverage,
+                        'signal_count': 0
+                    }
+                file_coverages[file_path]['signal_count'] += 1
+        
+        # Calculate average coverage
+        avg_coverage = sum(f['coverage'] for f in file_coverages.values()) / len(file_coverages) if file_coverages else 0.0
+        
+        return {
+            'signal_type': signal_type,
+            'signal_count': len(type_signals),
+            'files': len(file_coverages),
+            'average_coverage': avg_coverage,
+            'file_details': file_coverages
+        }
+
+
+def generate_coverage_report(
+    coverage_file: Path,
+    format: CoverageFormat = CoverageFormat.COVERAGE_PY
+) -> CoverageReport:
+    """
+    Convenience function to generate coverage report
+    
+    Args:
+        coverage_file: Path to coverage file
+        format: Coverage format
+        
+    Returns:
+        CoverageReport object
+    """
+    if format == CoverageFormat.COVERAGE_PY:
+        return CoverageParser.parse_coverage_py(coverage_file)
+    elif format == CoverageFormat.JACOCO_XML:
+        return CoverageParser.parse_jacoco_xml(coverage_file)
+    elif format == CoverageFormat.ISTANBUL_JSON:
+        return CoverageParser.parse_istanbul_json(coverage_file)
+    else:
+        raise ValueError(f"Unsupported format: {format}")
+
+
+if __name__ == "__main__":
+    # Example usage
+    from core.execution.intelligence.graph_linking import build_complete_graph
+    from core.execution.intelligence.models import CucumberScenario, CucumberStep
+    
+    # Create sample data
+    scenarios = [
+        CucumberScenario(
+            name="Login test",
+            feature_name="Authentication",
+            steps=[
+                CucumberStep(
+                    keyword="Given",
+                    text="I am on login page",
+                    status="passed",
+                    duration_ms=100
+                )
+            ],
+            status="passed",
+            duration_ms=100
+        )
+    ]
+    
+    # Build graph
+    graph = build_complete_graph(scenarios=scenarios)
+    
+    # Parse coverage (example with mock file)
+    # coverage_report = generate_coverage_report(Path("coverage.json"))
+    
+    # Integrate
+    # integration = CoverageGraphIntegration(graph, coverage_report)
+    
+    # Get test coverage
+    # covered_files = integration.get_test_coverage("test:Login test")
+    # print(f"Test covers: {covered_files}")
+    
+    # Find risk zones
+    # signals = [scenario.to_signal(run_id="run1") for scenario in scenarios]
+    # risk_zones = integration.find_uncovered_failure_zones(signals)
+    # print(f"Risk zones: {risk_zones}")
+    
+    # Suggest improvements
+    # suggestions = integration.suggest_coverage_improvements(signals)
+    # for suggestion in suggestions:
+    #     print(f"File: {suggestion['file_path']}")
+    #     print(f"  Coverage: {suggestion['current_coverage']:.1f}%")
+    #     print(f"  Recommendation: {suggestion['recommendation']}")
+    
+    print("Coverage integration module loaded successfully")

@@ -160,7 +160,7 @@ def run_quick_test():
         print("✅ MemoryRecord creation works")
 
         # Test text construction
-        from core.memory.models import test_to_text
+        from core.memory.models import convert_test_to_text
 
         test_data = {
             "name": "test_example",
@@ -168,7 +168,7 @@ def run_quick_test():
             "steps": ["step1", "step2"],
         }
 
-        text = test_to_text(test_data)
+        text = convert_test_to_text(test_data)
         assert "test_example" in text
         assert "pytest" in text
         print("✅ Text construction works")
