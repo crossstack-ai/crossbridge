@@ -1296,5 +1296,521 @@ AssertionError: Expected confirmation page, got error page
         assert result.classification.failure_type == FailureType.PRODUCT_DEFECT
 
 
+# ============================================================================
+# NEW TESTS FOR EXTENDED IMPLEMENTATION
+# ============================================================================
+
+class TestJUnitNUnitAdapters:
+    """Test newly added JUnit and NUnit adapters"""
+    
+    def test_junit_adapter_detection(self):
+        """Test JUnit log detection"""
+        from core.execution.intelligence.adapters import JUnitLogAdapter
+        adapter = JUnitLogAdapter()
+        
+        junit_log = """
+Running com.example.UserTest
+Tests run: 1, Failures: 1, Errors: 0
+testCreateUser(com.example.UserTest): expected:<200> but was:<500>
+"""
+        assert adapter.can_handle(junit_log)
+    
+    def test_junit_adapter_parsing(self):
+        """Test JUnit log parsing"""
+        from core.execution.intelligence.adapters import JUnitLogAdapter
+        adapter = JUnitLogAdapter()
+        
+        log = """
+@Test
+Running testLogin
+FAILURE: testLogin(com.example.LoginTest)
+AssertionError: Login failed
+  at com.example.LoginTest.testLogin(LoginTest.java:45)
+"""
+        events = adapter.parse(log)
+        assert len(events) > 0
+        assert any(e.level == LogLevel.ERROR for e in events)
+    
+    def test_nunit_adapter_detection(self):
+        """Test NUnit log detection"""
+        from core.execution.intelligence.adapters import NUnitLogAdapter
+        adapter = NUnitLogAdapter()
+        
+        nunit_log = """
+NUnit Test Runner
+TestFixture: LoginTests
+Test started: TestValidLogin
+"""
+        assert adapter.can_handle(nunit_log)
+    
+    def test_nunit_adapter_parsing(self):
+        """Test NUnit log parsing"""
+        from core.execution.intelligence.adapters import NUnitLogAdapter
+        adapter = NUnitLogAdapter()
+        
+        log = """
+Test started: LoginTest.TestValidLogin
+LoginTest.TestValidLogin: Failed
+Expected: True
+Actual: False
+  at LoginTest.TestValidLogin() in LoginTest.cs:line 42
+"""
+        events = adapter.parse(log)
+        assert len(events) > 0
+        assert any('Failed' in e.message for e in events)
+
+
+class TestPerformanceSignalExtractors:
+    """Test performance signal extractors"""
+    
+    def test_slow_test_extractor_unit(self):
+        """Test slow unit test detection (>1s)"""
+        from core.execution.intelligence.extractor import SlowTestExtractor
+        extractor = SlowTestExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_unit_calculation",
+                message="Test completed",
+                level=LogLevel.INFO,
+                duration_ms=2000  # 2 seconds - slow for unit test
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].signal_type == SignalType.PERFORMANCE
+        assert 'Slow test detected' in signals[0].message
+        assert signals[0].confidence > 0.5
+    
+    def test_slow_test_extractor_e2e(self):
+        """Test E2E test within threshold"""
+        from core.execution.intelligence.extractor import SlowTestExtractor
+        extractor = SlowTestExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_e2e_checkout",
+                message="Test completed",
+                level=LogLevel.INFO,
+                duration_ms=25000  # 25s - acceptable for E2E
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 0  # Within threshold
+    
+    def test_memory_leak_extractor(self):
+        """Test memory leak detection"""
+        from core.execution.intelligence.extractor import MemoryLeakExtractor
+        extractor = MemoryLeakExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_data_processing",
+                message="OutOfMemoryError: Java heap space exceeded",
+                level=LogLevel.ERROR,
+                stacktrace="at java.util.ArrayList.grow()"
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].signal_type == SignalType.PERFORMANCE
+        assert 'Memory issue detected' in signals[0].message
+        assert signals[0].confidence >= 0.85
+        assert not signals[0].is_retryable  # Memory leaks need code fix
+    
+    def test_high_cpu_extractor(self):
+        """Test high CPU detection"""
+        from core.execution.intelligence.extractor import HighCPUExtractor
+        extractor = HighCPUExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_computation",
+                message="WARNING: High CPU usage detected - 98%",
+                level=LogLevel.WARN
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].signal_type == SignalType.PERFORMANCE
+        assert signals[0].is_retryable  # Could be transient load
+        assert signals[0].is_infra_related
+
+
+class TestInfrastructureSignalExtractors:
+    """Test infrastructure signal extractors"""
+    
+    def test_database_connection_pool_timeout(self):
+        """Test database connection pool timeout detection"""
+        from core.execution.intelligence.extractor import DatabaseHealthExtractor
+        extractor = DatabaseHealthExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_user_query",
+                message="ERROR: Connection pool timeout - no connections available",
+                level=LogLevel.ERROR
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].signal_type == SignalType.INFRASTRUCTURE
+        assert signals[0].metadata['component'] == 'DATABASE'
+        assert signals[0].metadata['issue_type'] == 'connection_issue'
+        assert signals[0].is_retryable
+        assert signals[0].is_infra_related
+    
+    def test_database_deadlock(self):
+        """Test database deadlock detection"""
+        from core.execution.intelligence.extractor import DatabaseHealthExtractor
+        extractor = DatabaseHealthExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_transaction",
+                message="Deadlock detected during transaction commit",
+                level=LogLevel.ERROR
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].metadata['issue_type'] == 'deadlock'
+        assert not signals[0].is_retryable  # Needs code fix
+    
+    def test_network_connection_refused(self):
+        """Test network connection refused"""
+        from core.execution.intelligence.extractor import NetworkHealthExtractor
+        extractor = NetworkHealthExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_api_call",
+                message="Connection refused: connect to api.example.com:443",
+                level=LogLevel.ERROR
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].signal_type == SignalType.INFRASTRUCTURE
+        assert signals[0].metadata['component'] == 'NETWORK'
+        assert signals[0].is_retryable
+    
+    def test_network_dns_failure(self):
+        """Test DNS resolution failure"""
+        from core.execution.intelligence.extractor import NetworkHealthExtractor
+        extractor = NetworkHealthExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_external_api",
+                message="DNS lookup failed for hostname api.example.com",
+                level=LogLevel.ERROR
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].metadata['issue_type'] == 'dns_error'
+    
+    def test_service_rate_limit(self):
+        """Test service rate limit detection"""
+        from core.execution.intelligence.extractor import ServiceHealthExtractor
+        extractor = ServiceHealthExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_bulk_upload",
+                message="HTTP 429: Rate limit exceeded - retry after 60 seconds",
+                level=LogLevel.ERROR
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].metadata['component'] == 'SERVICE'
+        assert signals[0].metadata['issue_type'] == 'rate_limit'
+        assert signals[0].is_retryable
+    
+    def test_service_gateway_timeout(self):
+        """Test gateway timeout detection"""
+        from core.execution.intelligence.extractor import ServiceHealthExtractor
+        extractor = ServiceHealthExtractor()
+        
+        events = [
+            ExecutionEvent(
+                timestamp="2026-01-30T12:00:00",
+                source="test",
+                test_name="test_report_generation",
+                message="HTTP 504 Gateway timeout",
+                level=LogLevel.ERROR
+            )
+        ]
+        
+        signals = extractor.extract(events)
+        assert len(signals) == 1
+        assert signals[0].metadata['issue_type'] == 'gateway_timeout'
+
+
+class TestHistoricalFrequencyTracking:
+    """Test historical frequency tracking"""
+    
+    def test_pattern_hasher_normalization(self):
+        """Test message normalization removes variable parts"""
+        from core.execution.intelligence.historical import PatternHasher
+        
+        msg1 = "Timeout after 5000ms at 2026-01-30 10:30:45"
+        msg2 = "Timeout after 3000ms at 2026-01-30 11:45:23"
+        
+        norm1 = PatternHasher.normalize_message(msg1)
+        norm2 = PatternHasher.normalize_message(msg2)
+        
+        # Should normalize to same pattern
+        assert norm1 == norm2
+        assert 'TIMEOUT' in norm1
+        assert 'TIMESTAMP' in norm1
+    
+    def test_pattern_hasher_consistent_hash(self):
+        """Test consistent hash generation for similar failures"""
+        from core.execution.intelligence.historical import PatternHasher
+        
+        signal1 = FailureSignal(
+            signal_type=SignalType.TIMEOUT,
+            message="Connection timeout after 5000ms",
+            confidence=0.9
+        )
+        signal2 = FailureSignal(
+            signal_type=SignalType.TIMEOUT,
+            message="Connection timeout after 3000ms",
+            confidence=0.85
+        )
+        
+        hash1 = PatternHasher.hash_pattern(signal1)
+        hash2 = PatternHasher.hash_pattern(signal2)
+        
+        # Should generate same hash
+        assert hash1 == hash2
+    
+    def test_tracker_record_occurrence(self):
+        """Test recording pattern occurrences"""
+        from core.execution.intelligence.historical import HistoricalFrequencyTracker
+        
+        tracker = HistoricalFrequencyTracker()
+        
+        signal = FailureSignal(
+            signal_type=SignalType.LOCATOR,
+            message="Element not found: #login-button",
+            confidence=0.8
+        )
+        
+        # Record first occurrence
+        hash1 = tracker.record_occurrence(signal, test_name="test_login")
+        assert hash1 in tracker._cache
+        assert tracker._cache[hash1].occurrence_count == 1
+        
+        # Record second occurrence
+        hash2 = tracker.record_occurrence(signal, test_name="test_login")
+        assert hash1 == hash2
+        assert tracker._cache[hash1].occurrence_count == 2
+    
+    def test_tracker_frequency_boost(self):
+        """Test frequency-based confidence boost"""
+        from core.execution.intelligence.historical import HistoricalFrequencyTracker
+        
+        tracker = HistoricalFrequencyTracker()
+        
+        signal = FailureSignal(
+            signal_type=SignalType.HTTP_ERROR,
+            message="HTTP 503 Service Unavailable",
+            confidence=0.8
+        )
+        
+        # No history - no boost
+        boost = tracker.calculate_frequency_boost(signal)
+        assert boost == 0.0
+        
+        # Record 10 occurrences
+        for i in range(10):
+            tracker.record_occurrence(signal)
+        
+        # Should get logarithmic boost
+        boost = tracker.calculate_frequency_boost(signal)
+        assert 0.0 < boost < 1.0
+    
+    def test_tracker_top_patterns(self):
+        """Test retrieving top patterns by frequency"""
+        from core.execution.intelligence.historical import HistoricalFrequencyTracker
+        
+        tracker = HistoricalFrequencyTracker()
+        
+        # Create 3 patterns with different frequencies
+        for i in range(5):
+            signal1 = FailureSignal(
+                signal_type=SignalType.TIMEOUT,
+                message="Timeout waiting for element",
+                confidence=0.8
+            )
+            tracker.record_occurrence(signal1, test_name=f"test_{i}")
+        
+        for i in range(3):
+            signal2 = FailureSignal(
+                signal_type=SignalType.ASSERTION,
+                message="Assertion failed",
+                confidence=0.9
+            )
+            tracker.record_occurrence(signal2, test_name=f"test_{i}")
+        
+        signal3 = FailureSignal(
+            signal_type=SignalType.LOCATOR,
+            message="Element not visible",
+            confidence=0.7
+        )
+        tracker.record_occurrence(signal3, test_name="test_0")
+        
+        # Get top patterns
+        top = tracker.get_top_patterns(limit=3)
+        assert len(top) == 3
+        assert top[0].occurrence_count == 5  # Timeout
+        assert top[1].occurrence_count == 3  # Assertion
+        assert top[2].occurrence_count == 1  # Locator
+
+
+class TestBatchProcessingAPI:
+    """Test batch processing functionality"""
+    
+    def test_batch_analyze_sequential(self):
+        """Test sequential batch processing"""
+        from core.execution.intelligence.analyzer import ExecutionAnalyzer
+        
+        analyzer = ExecutionAnalyzer(enable_ai=False)
+        
+        test_logs = [
+            {
+                'raw_log': 'test_1.py::test_api FAILED\nAssertionError: 500',
+                'test_name': 'test_api',
+                'framework': 'pytest'
+            },
+            {
+                'raw_log': '[ERROR] ElementNotFoundException',
+                'test_name': 'test_ui',
+                'framework': 'selenium'
+            }
+        ]
+        
+        results = analyzer.analyze_batch(test_logs, parallel=False)
+        assert len(results) == 2
+        assert all(r.test_name for r in results)
+    
+    def test_batch_analyze_parallel(self):
+        """Test parallel batch processing"""
+        from core.execution.intelligence.analyzer import ExecutionAnalyzer
+        
+        analyzer = ExecutionAnalyzer(enable_ai=False)
+        
+        test_logs = [
+            {
+                'raw_log': f'test_{i}.py::test_func FAILED\nTimeout',
+                'test_name': f'test_{i}',
+                'framework': 'pytest'
+            }
+            for i in range(10)
+        ]
+        
+        results = analyzer.analyze_batch(test_logs, parallel=True, max_workers=4)
+        assert len(results) == 10
+        
+        # Results should maintain order
+        for i, result in enumerate(results):
+            assert result.test_name == f'test_{i}'
+    
+    def test_batch_analyze_error_handling(self):
+        """Test batch processing handles errors gracefully"""
+        from core.execution.intelligence.analyzer import ExecutionAnalyzer
+        
+        analyzer = ExecutionAnalyzer(enable_ai=False)
+        
+        test_logs = [
+            {
+                'raw_log': 'Valid log',
+                'test_name': 'test_1',
+                'framework': 'pytest'
+            },
+            {
+                'raw_log': None,  # This will cause an error
+                'test_name': 'test_2',
+                'framework': 'pytest'
+            },
+            {
+                'raw_log': 'Another valid log',
+                'test_name': 'test_3',
+                'framework': 'pytest'
+            }
+        ]
+        
+        results = analyzer.analyze_batch(test_logs, parallel=False)
+        assert len(results) == 3
+        
+        # Second result should have error status
+        assert results[1].status == 'ERROR'
+        assert 'error' in results[1].metadata
+
+
+class TestAllFrameworksCoverage:
+    """Ensure all 13 frameworks are tested"""
+    
+    def test_all_13_frameworks_registered(self):
+        """Verify all 13 frameworks are in adapter registry"""
+        from core.execution.intelligence.adapters import AdapterRegistry
+        
+        registry = AdapterRegistry()
+        adapter_names = [type(a).__name__ for a in registry.adapters]
+        
+        expected_adapters = [
+            'SeleniumLogAdapter',
+            'PytestLogAdapter',
+            'RobotFrameworkLogAdapter',
+            'PlaywrightLogAdapter',
+            'CypressLogAdapter',
+            'RestAssuredLogAdapter',
+            'CucumberBDDLogAdapter',
+            'SpecFlowLogAdapter',
+            'BehaveLogAdapter',
+            'JavaTestNGLogAdapter',
+            'JUnitLogAdapter',  # NEW
+            'NUnitLogAdapter',  # NEW
+            'GenericLogAdapter'  # Fallback
+        ]
+        
+        for expected in expected_adapters:
+            assert expected in adapter_names, f"{expected} not found in registry"
+        
+        # Should have exactly 13 adapters (12 specific + 1 generic)
+        assert len(registry.adapters) == 13
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])

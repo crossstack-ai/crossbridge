@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict
 from dataclasses import dataclass
 
-from core.execution.intelligence.models import FailureSignal, Classification
+from core.execution.intelligence.models import FailureSignal
 
 
 @dataclass
@@ -114,7 +114,7 @@ class HistoricalFrequencyTracker:
         """
         pattern_hash = PatternHasher.hash_pattern(signal)
         pattern_summary = PatternHasher.extract_summary(signal)
-        now = datetime.utcnow()
+        now = datetime.now()
         
         if self.db:
             self._record_to_db(pattern_hash, pattern_summary, signal, run_id, test_name, now)

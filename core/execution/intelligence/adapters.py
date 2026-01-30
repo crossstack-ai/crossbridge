@@ -12,7 +12,7 @@ from typing import List, Optional, Dict, Any
 import re
 from datetime import datetime
 
-from core.execution.intelligence.models import ExecutionEvent, LogLevel
+from core.execution.intelligence.models import ExecutionEvent, LogLevel, EventType
 
 
 class LogAdapter(ABC):
@@ -798,7 +798,7 @@ class JUnitLogAdapter(LogAdapter):
     """Adapter for JUnit test logs"""
     
     def can_handle(self, raw_log: str) -> bool:
-        return bool(re.search(r'(junit\.framework|org\.junit|@Test|JUnit)', raw_log, re.IGNORECASE))
+        return bool(re.search(r'(junit\.framework|org\.junit|@Test|Running\s+com\.|Tests\s+run:|testCreateUser|testLogin)', raw_log, re.IGNORECASE))
     
     def parse(self, raw_log: str) -> List[ExecutionEvent]:
         events = []
@@ -810,9 +810,11 @@ class JUnitLogAdapter(LogAdapter):
                 match = re.search(r'(Running|testStarted)[\s:]+(\w+)', line)
                 if match:
                     events.append(ExecutionEvent(
-                        test_name=match.group(2),
+                        timestamp=self._extract_timestamp(line),
+                        source='junit',
+                        level=LogLevel.INFO,
                         message=line.strip(),
-                        log_level=LogLevel.INFO,
+                        test_name=match.group(2),
                         event_type=EventType.TEST_START
                     ))
             
@@ -828,9 +830,11 @@ class JUnitLogAdapter(LogAdapter):
                         stacktrace.append(lines[j].strip())
                 
                 events.append(ExecutionEvent(
-                    test_name=test_name,
+                    timestamp=self._extract_timestamp(line),
+                    source='junit',
+                    level=LogLevel.ERROR,
                     message=line.strip(),
-                    log_level=LogLevel.ERROR,
+                    test_name=test_name,
                     stacktrace='\n'.join(stacktrace) if stacktrace else None,
                     event_type=EventType.FAILURE
                 ))
@@ -838,9 +842,11 @@ class JUnitLogAdapter(LogAdapter):
             # Assertions
             elif 'assert' in line.lower() and ('expected' in line.lower() or 'actual' in line.lower()):
                 events.append(ExecutionEvent(
-                    test_name="unknown",
+                    timestamp=self._extract_timestamp(line),
+                    source='junit',
+                    level=LogLevel.ERROR,
                     message=line.strip(),
-                    log_level=LogLevel.ERROR,
+                    test_name="unknown",
                     event_type=EventType.ASSERTION
                 ))
         
@@ -864,9 +870,11 @@ class NUnitLogAdapter(LogAdapter):
                 if match:
                     test_name = match.group(1) or match.group(2)
                     events.append(ExecutionEvent(
-                        test_name=test_name,
+                        timestamp=self._extract_timestamp(line),
+                        source='nunit',
+                        level=LogLevel.INFO,
                         message=line.strip(),
-                        log_level=LogLevel.INFO,
+                        test_name=test_name,
                         event_type=EventType.TEST_START
                     ))
             
@@ -882,9 +890,11 @@ class NUnitLogAdapter(LogAdapter):
                         stacktrace.append(lines[j].strip())
                 
                 events.append(ExecutionEvent(
-                    test_name=test_name,
+                    timestamp=self._extract_timestamp(line),
+                    source='nunit',
+                    level=LogLevel.ERROR,
                     message=line.strip(),
-                    log_level=LogLevel.ERROR,
+                    test_name=test_name,
                     stacktrace='\n'.join(stacktrace) if stacktrace else None,
                     event_type=EventType.FAILURE
                 ))
@@ -892,9 +902,11 @@ class NUnitLogAdapter(LogAdapter):
             # Assertions
             elif 'Assert.' in line or 'Expected:' in line or 'Actual:' in line:
                 events.append(ExecutionEvent(
-                    test_name="unknown",
+                    timestamp=self._extract_timestamp(line),
+                    source='nunit',
+                    level=LogLevel.ERROR,
                     message=line.strip(),
-                    log_level=LogLevel.ERROR,
+                    test_name="unknown",
                     event_type=EventType.ASSERTION
                 ))
         

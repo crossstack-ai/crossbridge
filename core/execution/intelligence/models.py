@@ -75,6 +75,8 @@ class SignalType(Enum):
     SYNTAX_ERROR = "syntax_error"
     IMPORT_ERROR = "import_error"
     MEMORY_ERROR = "memory_error"
+    PERFORMANCE = "performance"  # NEW: Performance-related signals
+    INFRASTRUCTURE = "infrastructure"  # NEW: Infrastructure health signals
     UNKNOWN = "unknown"
 
 

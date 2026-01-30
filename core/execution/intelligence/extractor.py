@@ -463,7 +463,7 @@ class SlowTestExtractor(FailureSignalExtractor):
                     signal_type=SignalType.PERFORMANCE,
                     message=f"Slow test detected: {event.test_name} took {event.duration_ms}ms (threshold: {threshold}ms)",
                     confidence=min(0.95, 0.5 + (slowness_factor - 1) * 0.1),
-                    context={
+                    metadata={
                         'duration_ms': event.duration_ms,
                         'threshold_ms': threshold,
                         'slowness_factor': slowness_factor,
@@ -503,7 +503,7 @@ class MemoryLeakExtractor(FailureSignalExtractor):
         signals = []
         
         for event in events:
-            if event.log_level not in [LogLevel.ERROR, LogLevel.WARN]:
+            if event.level not in [LogLevel.ERROR, LogLevel.WARN]:
                 continue
             
             for pattern in self.MEMORY_PATTERNS:
@@ -513,7 +513,7 @@ class MemoryLeakExtractor(FailureSignalExtractor):
                         message=f"Memory issue detected: {event.message}",
                         confidence=0.85,
                         stacktrace=event.stacktrace,
-                        context={
+                        metadata={
                             'pattern_matched': pattern,
                             'test_name': event.test_name
                         },
@@ -540,7 +540,7 @@ class HighCPUExtractor(FailureSignalExtractor):
         signals = []
         
         for event in events:
-            if event.log_level not in [LogLevel.ERROR, LogLevel.WARN]:
+            if event.level not in [LogLevel.ERROR, LogLevel.WARN]:
                 continue
             
             for pattern in self.CPU_PATTERNS:
@@ -549,7 +549,7 @@ class HighCPUExtractor(FailureSignalExtractor):
                         signal_type=SignalType.PERFORMANCE,
                         message=f"High CPU usage detected: {event.message}",
                         confidence=0.75,
-                        context={
+                        metadata={
                             'pattern_matched': pattern,
                             'test_name': event.test_name
                         },
@@ -578,7 +578,7 @@ class DatabaseHealthExtractor(FailureSignalExtractor):
         signals = []
         
         for event in events:
-            if event.log_level != LogLevel.ERROR:
+            if event.level != LogLevel.ERROR:
                 continue
             
             for pattern, issue_type, confidence, is_infra in self.DB_PATTERNS:
@@ -588,7 +588,7 @@ class DatabaseHealthExtractor(FailureSignalExtractor):
                         message=f"Database health issue ({issue_type}): {event.message}",
                         confidence=confidence,
                         stacktrace=event.stacktrace,
-                        context={
+                        metadata={
                             'component': 'DATABASE',
                             'issue_type': issue_type,
                             'test_name': event.test_name
@@ -617,7 +617,7 @@ class NetworkHealthExtractor(FailureSignalExtractor):
         signals = []
         
         for event in events:
-            if event.log_level != LogLevel.ERROR:
+            if event.level != LogLevel.ERROR:
                 continue
             
             for pattern, issue_type, confidence, is_retryable in self.NETWORK_PATTERNS:
@@ -627,7 +627,7 @@ class NetworkHealthExtractor(FailureSignalExtractor):
                         message=f"Network health issue ({issue_type}): {event.message}",
                         confidence=confidence,
                         stacktrace=event.stacktrace,
-                        context={
+                        metadata={
                             'component': 'NETWORK',
                             'issue_type': issue_type,
                             'test_name': event.test_name
@@ -656,7 +656,7 @@ class ServiceHealthExtractor(FailureSignalExtractor):
         signals = []
         
         for event in events:
-            if event.log_level != LogLevel.ERROR:
+            if event.level != LogLevel.ERROR:
                 continue
             
             for pattern, issue_type, confidence, is_retryable in self.SERVICE_PATTERNS:
@@ -666,7 +666,7 @@ class ServiceHealthExtractor(FailureSignalExtractor):
                         message=f"Service health issue ({issue_type}): {event.message}",
                         confidence=confidence,
                         stacktrace=event.stacktrace,
-                        context={
+                        metadata={
                             'component': 'SERVICE',
                             'issue_type': issue_type,
                             'test_name': event.test_name
