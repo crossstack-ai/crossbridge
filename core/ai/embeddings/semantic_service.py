@@ -158,23 +158,23 @@ class SemanticSearchService:
                     **entity_data
                 )
             
-            # Check token limit
-            if self.semantic_config.max_tokens:
-                entity.text = self.text_builder.truncate_if_needed(
-                    entity.text,
-                    max_tokens=self.semantic_config.max_tokens
+                # Check token limit
+                if self.semantic_config.max_tokens:
+                    entity.text = self.text_builder.truncate_if_needed(
+                        entity.text,
+                        max_tokens=self.semantic_config.max_tokens
+                    )
+                
+                # Generate embedding
+                embedding = self.provider.embed(entity.text)
+                
+                # Store in vector DB
+                self.vector_store.upsert(
+                    entity=entity,
+                    embedding=embedding,
+                    model=self.provider.model_name(),
+                    version=self.version
                 )
-            
-            # Generate embedding
-            embedding = self.provider.embed(entity.text)
-            
-            # Store in vector DB
-            self.vector_store.upsert(
-                entity=entity,
-                embedding=embedding,
-                model=self.provider.model_name(),
-                version=self.version
-            )
                 
                 logger.debug(
                     f"Indexed entity",
@@ -292,17 +292,17 @@ class SemanticSearchService:
             try:
                 # Generate query embedding
                 query_embedding = self.provider.embed(query)
-            
-            # Search vector store
-            min_score = min_score or self.semantic_config.min_similarity_score
-            results = self.vector_store.similarity_search(
-                query_embedding=query_embedding,
-                top_k=top_k,
-                entity_type=entity_type,
-                filters=filters,
-                min_score=min_score
-            )
                 
+                # Search vector store
+                min_score = min_score or self.semantic_config.min_similarity_score
+                results = self.vector_store.similarity_search(
+                    query_embedding=query_embedding,
+                    top_k=top_k,
+                    entity_type=entity_type,
+                    filters=filters,
+                    min_score=min_score
+                )
+                    
                 logger.debug(
                     f"Search completed",
                     query=query[:50],
@@ -315,6 +315,7 @@ class SemanticSearchService:
             except Exception as e:
                 logger.error(f"Search failed", query=query[:50], error=str(e))
                 raise SemanticSearchError(f"Search failed: {e}")
+    
     def find_similar(
         self,
         entity_id: str,

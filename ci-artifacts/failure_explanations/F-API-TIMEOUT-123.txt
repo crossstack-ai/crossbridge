@@ -1,0 +1,13 @@
+Failure: flaky (Confidence: 91%)
+
+Primary Rule:
+- flaky_history (100%)
+
+Strong Signals:
+- Error Message Stability (85%)
+- Retry Consistency (90%)
+- Historical Frequency (80%)
+
+Evidence:
+- java.net.SocketTimeoutException: Read timed out after 30s
+- java.net.SocketTimeoutException: Read timed out after 30s

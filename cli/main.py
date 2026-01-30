@@ -36,8 +36,8 @@ from persistence.orchestrator import persist_discovery
 # Import CLI commands
 from cli.commands.coverage import add_coverage_commands, execute_coverage_command
 from cli.commands.api_diff import register_commands as register_api_diff_commands
-from cli.commands.ai_transform import ai_transform
 from cli.commands.semantic import semantic_group
+from cli.commands.drift_commands import add_drift_commands, execute_drift_command
 
 logger = logging.getLogger(__name__)
 
@@ -1165,8 +1165,8 @@ def main():
     # Add coverage mapping commands
     add_coverage_commands(subparsers)
     
-    # Add AI transformation commands
-    subparsers.add_parser('ai-transform', add_help=False, parents=[ai_transform])
+    # Add drift monitoring commands
+    add_drift_commands(subparsers)
     
     # Add semantic search commands
     semantic_parser = subparsers.add_parser(
@@ -1189,6 +1189,10 @@ def main():
     # Execute coverage commands if specified
     if args.command == 'coverage':
         return execute_coverage_command(args)
+    
+    # Execute drift commands if specified
+    if args.command == 'drift':
+        return execute_drift_command(args)
     
     # Execute command
     return args.func(args)

@@ -1,0 +1,94 @@
+{
+  "failure_id": "F-API-TIMEOUT-123",
+  "final_confidence": 0.9129999999999999,
+  "category": "flaky",
+  "primary_rule": "flaky_intermittent",
+  "rule_influence": [
+    {
+      "rule_name": "new_test",
+      "weight": 1.0,
+      "matched": false,
+      "contribution": 0.0,
+      "explanation": "Test has sufficient execution history (100 runs)"
+    },
+    {
+      "rule_name": "flaky_retry",
+      "weight": 0.9,
+      "matched": false,
+      "contribution": 0.0,
+      "explanation": "Test was retried but did not exhibit flaky pattern"
+    },
+    {
+      "rule_name": "regression",
+      "weight": 0.85,
+      "matched": false,
+      "contribution": 0.0,
+      "explanation": "No code changes detected"
+    },
+    {
+      "rule_name": "unstable",
+      "weight": 0.8,
+      "matched": false,
+      "contribution": 0.0,
+      "explanation": "Failure rate (35.0%) below unstable threshold"
+    },
+    {
+      "rule_name": "flaky_history",
+      "weight": 0.7,
+      "matched": true,
+      "contribution": 1.0,
+      "explanation": "Moderate failure rate (35.0%) indicating flakiness"
+    },
+    {
+      "rule_name": "stable",
+      "weight": 0.6,
+      "matched": false,
+      "contribution": 0.0,
+      "explanation": "Test does not meet stable criteria"
+    }
+  ],
+  "signal_quality": [
+    {
+      "signal_name": "stacktrace_presence",
+      "quality_score": 0.6,
+      "evidence": "Partial stacktrace available"
+    },
+    {
+      "signal_name": "error_message_stability",
+      "quality_score": 0.85,
+      "evidence": "Consistent error message across failures"
+    },
+    {
+      "signal_name": "retry_consistency",
+      "quality_score": 0.9,
+      "evidence": "Failure reproduced across 3 retries"
+    },
+    {
+      "signal_name": "historical_frequency",
+      "quality_score": 0.8,
+      "evidence": "Based on 100 historical runs (35.0% failure rate)"
+    },
+    {
+      "signal_name": "cross_test_correlation",
+      "quality_score": 0.4,
+      "evidence": "No cross-test patterns detected"
+    }
+  ],
+  "evidence_context": {
+    "stacktrace_summary": "java.net.SocketTimeoutException: Read timed out after 30s",
+    "error_message_summary": "java.net.SocketTimeoutException: Read timed out after 30s",
+    "similar_failures": [],
+    "related_tests": [
+      "api.tests.*"
+    ],
+    "logs_summary": []
+  },
+  "confidence_breakdown": {
+    "rule_score": 1.0,
+    "signal_score": 0.71,
+    "final_confidence": 0.9129999999999999,
+    "formula": "0.7 * rule_score + 0.3 * signal_score"
+  },
+  "timestamp": "2026-01-30T10:05:43.126856",
+  "framework": "restassured_java"
+}

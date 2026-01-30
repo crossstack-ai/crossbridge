@@ -29,6 +29,13 @@ class CrossBridgeError(Exception):
         super().__init__(message)
 
 
+class CommandError(CrossBridgeError):
+    """Command execution error."""
+    
+    def __init__(self, message: str, suggestion: Optional[str] = None):
+        super().__init__(message, "CMD_ERROR", suggestion)
+
+
 class AuthenticationError(CrossBridgeError):
     """Authentication/authorization failed."""
     

@@ -38,6 +38,7 @@ class LogCategory(Enum):
     Log categories for filtering and organization.
     """
     GENERAL = "general"
+    CLI = "cli"
     AI = "ai"
     ADAPTER = "adapter"
     MIGRATION = "migration"
