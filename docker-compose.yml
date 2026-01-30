@@ -1,0 +1,189 @@
+# ============================================================================
+# CrossBridge Docker Compose Configuration
+# ============================================================================
+# Quick local execution with volume persistence
+# Philosophy: Stateless container, externalized state
+# ============================================================================
+
+version: "3.9"
+
+services:
+  # ==========================================================================
+  # CrossBridge Orchestrator
+  # ==========================================================================
+  crossbridge:
+    image: crossbridge/crossbridge:${CROSSBRIDGE_VERSION:-1.0.0}
+    container_name: crossbridge
+    
+    # Working directory (mounted test repository)
+    working_dir: /workspace
+    
+    # Volume mounts (externalized state)
+    volumes:
+      # Test repository (read-only recommended for safety)
+      - ./test-repo:/workspace:ro
+      
+      # Logs (persistent)
+      - ./crossbridge-data/logs:/data/logs
+      
+      # Reports (persistent)
+      - ./crossbridge-data/reports:/data/reports
+      
+      # Cache (git diff, memory, etc.)
+      - ./crossbridge-data/cache:/data/cache
+      
+      # Configuration (optional override)
+      - ./crossbridge.yml:/opt/crossbridge/crossbridge.yml:ro
+    
+    # Environment variables
+    environment:
+      # Execution mode
+      - CROSSBRIDGE_MODE=observer
+      
+      # Environment
+      - CROSSBRIDGE_ENV=${CROSSBRIDGE_ENV:-local}
+      
+      # Logging
+      - CROSSBRIDGE_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Database (optional)
+      - CROSSBRIDGE_DB_HOST=${DB_HOST:-10.55.12.99}
+      - CROSSBRIDGE_DB_PORT=${DB_PORT:-5432}
+      - CROSSBRIDGE_DB_NAME=${DB_NAME:-crossbridge}
+      - CROSSBRIDGE_DB_USER=${DB_USER:-postgres}
+      - CROSSBRIDGE_DB_PASSWORD=${DB_PASSWORD:-admin}
+      
+      # Application tracking
+      - PRODUCT_NAME=${PRODUCT_NAME:-CrossBridgeApp}
+      - APP_VERSION=${APP_VERSION:-v1.0.0}
+      - ENVIRONMENT=${ENVIRONMENT:-local}
+    
+    # Command to execute
+    # Override this with your actual execution command
+    command: >
+      exec run
+      --framework ${FRAMEWORK:-pytest}
+      --strategy ${STRATEGY:-smoke}
+      --env local
+    
+    # Resource limits (optional but recommended)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    
+    # Network mode
+    network_mode: bridge
+    
+    # Restart policy (don't restart for one-shot execution)
+    restart: "no"
+    
+    # Exit code handling
+    # Container exits with CrossBridge exit code
+    # 0 = success, 1 = test failures, 2 = execution error, 3 = config error
+
+  # ==========================================================================
+  # Database (Optional - For Persistence)
+  # ==========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: crossbridge-db
+    
+    environment:
+      - POSTGRES_DB=${DB_NAME:-crossbridge}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-admin}
+    
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    
+    ports:
+      - "5432:5432"
+    
+    restart: unless-stopped
+    
+    # Only start if explicitly needed
+    profiles:
+      - database
+
+  # ==========================================================================
+  # Grafana (Optional - For Dashboards)
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: crossbridge-grafana
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    ports:
+      - "3000:3000"
+    
+    restart: unless-stopped
+    
+    # Only start if explicitly needed
+    profiles:
+      - monitoring
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  # Postgres data (persistent)
+  postgres-data:
+    driver: local
+  
+  # Grafana data (persistent)
+  grafana-data:
+    driver: local
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  default:
+    name: crossbridge-network
+    driver: bridge
+
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+#
+# Basic execution (smoke tests):
+#   docker-compose up
+#
+# With custom strategy:
+#   STRATEGY=impacted docker-compose up
+#
+# With custom framework:
+#   FRAMEWORK=testng STRATEGY=risk docker-compose up
+#
+# With database:
+#   docker-compose --profile database up
+#
+# With monitoring:
+#   docker-compose --profile monitoring up
+#
+# Full stack:
+#   docker-compose --profile database --profile monitoring up
+#
+# Dry run (plan only):
+#   docker-compose run --rm crossbridge exec plan --framework pytest --strategy impacted
+#
+# Interactive shell:
+#   docker-compose run --rm --entrypoint /bin/bash crossbridge
+#
+# Clean up:
+#   docker-compose down -v
+#
+# ============================================================================

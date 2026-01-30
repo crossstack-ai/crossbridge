@@ -860,6 +860,69 @@ Traditional test automation modernization is:
 
 ---
 
+## 🐳 Docker Quick Start
+
+**Run CrossBridge as a Docker container for immediate use:**
+
+### Pull and Run
+
+```bash
+# Pull the image
+docker pull crossbridge/crossbridge:1.0.0
+
+# Run a smoke test
+docker run --rm \
+  -v $(pwd)/test-repo:/workspace:ro \
+  -v $(pwd)/crossbridge-data/logs:/data/logs \
+  -v $(pwd)/crossbridge-data/reports:/data/reports \
+  crossbridge/crossbridge:1.0.0 exec run \
+  --framework pytest \
+  --strategy smoke
+```
+
+### Using docker-compose
+
+```bash
+# Copy environment file
+cp .env.docker.example .env
+
+# Edit .env to customize
+
+# Run tests
+docker-compose up
+```
+
+### CI/CD Integration
+
+**GitHub Actions:**
+```yaml
+- name: Run CrossBridge
+  run: |
+    docker run --rm \
+      -v $(pwd):/workspace:ro \
+      -v $(pwd)/crossbridge-data/logs:/data/logs \
+      crossbridge/crossbridge:1.0.0 exec run \
+      --framework pytest \
+      --strategy impacted \
+      --ci
+```
+
+### Available Tags
+- `1.0.0` - Specific version (recommended for production)
+- `1.0` - Minor version (gets patch updates)
+- `1` - Major version (latest in v1.x)
+- `latest` - Latest release
+
+**Exit Codes** (CI/CD friendly):
+- `0` - All tests passed ✅
+- `1` - Test failures ❌
+- `2` - Execution error ⚠️
+- `3` - Configuration error 🔧
+
+📖 **Complete Guide**: [Docker Guide](docs/DOCKER_GUIDE.md)
+
+---
+
 ## 🎛️ CLI Commands
 
 CrossBridge provides comprehensive CLI commands for all major features:

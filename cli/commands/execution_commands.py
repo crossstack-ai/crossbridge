@@ -215,9 +215,18 @@ def run_command(
         else:
             sys.exit(0)
             
+    except ValueError as e:
+        # Configuration error (exit code 3)
+        handle_cli_error(e, "Configuration error")
+        sys.exit(3)
+    except RuntimeError as e:
+        # Execution error (exit code 2)
+        handle_cli_error(e, "Execution error")
+        sys.exit(2)
     except Exception as e:
+        # General error (exit code 2)
         handle_cli_error(e, "Execution failed")
-        sys.exit(1)
+        sys.exit(2)
 
 
 @execution_commands.command(name="plan")
