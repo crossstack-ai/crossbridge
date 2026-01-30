@@ -521,7 +521,7 @@ crossbridge:
 **Supported Frameworks (13 Total):**
 ✅ Selenium • Pytest • Robot • Playwright • Cypress • RestAssured • Cucumber • Behave • JUnit • TestNG • SpecFlow • NUnit • Generic
 
-📖 **Complete Guide**: [UNIFIED_CONFIGURATION_GUIDE.md](UNIFIED_CONFIGURATION_GUIDE.md)
+📖 **Complete Guide**: [UNIFIED_CONFIGURATION_GUIDE.md](docs/configuration/UNIFIED_CONFIGURATION_GUIDE.md)
 
 ### 🔹 8. **Production Hardening & Runtime Protection**
 Enterprise-grade production runtime features for resilient test execution:
@@ -1194,7 +1194,7 @@ robot tests/  # or pytest tests/  # or mvn test
 **No manual configuration needed!** All hooks and listeners are pre-configured.
 
 📖 **Learn More**: 
-- [AI Transformation Usage](docs/ai/AI_TRANSFORMATION_USAGE.md)
+- [AI Transformation Validation](docs/ai/AI_TRANSFORMATION_VALIDATION.md)
 - [Performance Profiling Setup](docs/profiling/QUICK_REFERENCE.md)
 - [Framework Integration Guide](docs/profiling/FRAMEWORK_INTEGRATION.md)
 
@@ -1222,7 +1222,7 @@ Hybrid Mode         → AI-enhanced with human review markers (best quality)
 - **Rollback & Diff Reporting** - detailed transformation reports for audit trails 🆕
 - Natural language documentation and best practice implementations
 - Automatic fallback to pattern-based if AI unavailable
-- See [`docs/ai/AI_TRANSFORMATION_USAGE.md`](docs/ai/AI_TRANSFORMATION_USAGE.md) for setup
+- See [`docs/ai/AI_TRANSFORMATION_VALIDATION.md`](docs/ai/AI_TRANSFORMATION_VALIDATION.md) for setup
 
 ```python
 # Enable AI transformation for all file types
