@@ -115,6 +115,8 @@ isort>=5.12.0                     # Import sorting
 javalang>=0.13.0                  # Java AST parsing (for Java Step Parser - Phase 2)
 # Note: Python AST uses built-in ast module
 # Note: XML parsing uses built-in xml.etree.ElementTree
+# Note: JSON parsing uses built-in json module
+# Note: .NET parsing uses regex (no external C# parser)
 
 # ============================================================================
 # OPTIONAL STORAGE BACKENDS
