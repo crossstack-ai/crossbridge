@@ -208,9 +208,85 @@ Trend: strongly_increasing
 
 ---
 
-## Usage Examples
+## Usage
 
-### Basic Usage
+### CLI Commands
+
+The drift monitoring system provides a comprehensive CLI interface for production use:
+
+#### 1. Overall Status
+```bash
+# Show drift status across all tests
+python -m cli.main drift status
+
+# Filter by category and time window
+python -m cli.main drift status --category authentication --window 7
+
+# Custom database
+python -m cli.main drift status --db-path data/production_drift.db
+```
+
+**Output**: Table showing all tests with drift, severity levels, drift percentages, and directions.
+
+#### 2. Analyze Specific Test
+```bash
+# Detailed analysis of one test
+python -m cli.main drift analyze test_login
+
+# Custom time window (last 14 days)
+python -m cli.main drift analyze test_login --window 14
+```
+
+**Output**: Comprehensive drift report including:
+- Severity and direction with emojis
+- Baseline vs current confidence
+- Drift percentage and absolute change
+- Recent measurements table
+- Actionable recommendations
+
+#### 3. View Alerts
+```bash
+# Show all recent alerts (last 24 hours)
+python -m cli.main drift alerts
+
+# Filter by severity
+python -m cli.main drift alerts --severity high
+
+# Show only unacknowledged alerts
+python -m cli.main drift alerts --unacknowledged
+
+# Custom time window (last 7 days)
+python -m cli.main drift alerts --hours 168
+```
+
+**Output**: List of alerts with severity, status, timestamps, and top recommendations.
+
+#### 4. Statistics
+```bash
+# Show drift statistics (last 7 days)
+python -m cli.main drift stats
+
+# Filter by category
+python -m cli.main drift stats --category e-commerce --days 30
+```
+
+**Output**: 
+- Total tests tracked and measurements
+- Average confidence and range
+- Alert distribution by severity
+- Database size
+
+#### Interactive Demo
+```bash
+# Run interactive CLI demo
+python demo_drift_cli.py
+```
+
+This generates sample drift data and demonstrates all CLI commands with realistic scenarios.
+
+### Python API
+
+#### Basic Usage
 
 ```python
 from core.intelligence.confidence_drift import DriftDetector, DriftSeverity
@@ -234,7 +310,7 @@ if analysis and analysis.is_drifting:
         print(f"  - {rec}")
 ```
 
-### Alert System
+#### Alert System
 
 ```python
 from core.intelligence.confidence_drift import DriftAlertManager
@@ -528,6 +604,34 @@ GET  /api/drift/trends/{test_name}          # Get trend data
 ---
 
 ## Changelog
+
+### Version 1.2.0 (2026-01-30) - CLI Commands
+- ✅ CLI command: `drift status` - Overall drift status
+- ✅ CLI command: `drift analyze` - Detailed test analysis
+- ✅ CLI command: `drift alerts` - Show drift alerts
+- ✅ CLI command: `drift stats` - Statistics and trends
+- ✅ Interactive demo: `demo_drift_cli.py`
+- ✅ Rich terminal output with tables and emojis
+
+**Commit**: dd557f3  
+**Files**:
+- `cli/commands/drift_commands.py` (243 lines)
+- `demo_drift_cli.py` (264 lines)
+
+### Version 1.1.0 (2026-01-30) - Persistence Layer
+- ✅ SQLite-based persistence
+- ✅ Confidence measurement storage
+- ✅ Drift analysis caching
+- ✅ Alert persistence with acknowledgment
+- ✅ Statistics and reporting
+- ✅ Cleanup and maintenance
+- ✅ JSON export functionality
+- ✅ 26/26 tests passing
+
+**Commit**: 397b0df  
+**Files**:
+- `core/intelligence/drift_persistence.py` (737 lines)
+- `tests/intelligence/test_drift_persistence.py` (572 lines)
 
 ### Version 1.0.0 (2026-01-30) - Initial Release
 - ✅ Per-test drift tracking
