@@ -214,6 +214,91 @@ crossbridge:
   
   
   # ──────────────────────────────────────────────────────────────────────────
+  # DRIFT DETECTION & MONITORING
+  # ──────────────────────────────────────────────────────────────────────────
+  # Confidence drift detection and monitoring for test stability tracking
+  
+  drift_detection:
+    # Enable confidence drift tracking
+    enabled: true
+    
+    # Database backend for drift data storage
+    # Options: sqlite (default, file-based) or postgres (production, scalable)
+    backend: sqlite
+    
+    # ── SQLite Configuration ──────────────────────────────────────────────
+    # Used when backend=sqlite (default for development/testing)
+    sqlite:
+      db_path: ./data/drift_tracking.db
+    
+    # ── PostgreSQL Configuration ──────────────────────────────────────────
+    # Used when backend=postgres (recommended for production)
+    # Supports environment variable substitution
+    postgres:
+      host: ${POSTGRES_HOST:-localhost}
+      port: ${POSTGRES_PORT:-5432}
+      database: ${POSTGRES_DB:-crossbridge}
+      user: ${POSTGRES_USER:-crossbridge}
+      password: ${POSTGRES_PASSWORD:-}
+      schema: ${POSTGRES_SCHEMA:-drift}
+      
+      # Connection pooling (for production scalability)
+      pool:
+        min_connections: 1
+        max_connections: 10
+    
+    # ── Drift Analysis Parameters ──────────────────────────────────────────
+    analysis:
+      # Time window for drift detection (days)
+      window_days: 30
+      
+      # Minimum measurements required for reliable drift analysis
+      min_measurements: 5
+      
+      # Drift severity thresholds (percentage change in confidence)
+      # Used to classify drift severity levels
+      thresholds:
+        low: 5        # 5% change = LOW severity
+        moderate: 10  # 10% change = MODERATE severity
+        high: 20      # 20% change = HIGH severity
+        critical: 30  # 30% change = CRITICAL severity
+    
+    # ── Alert Configuration ────────────────────────────────────────────────
+    # Automatic alert generation for significant drift
+    alerts:
+      # Create alerts only for these severity levels
+      # Options: [low, moderate, high, critical]
+      alert_on_severity:
+        - high
+        - critical
+      
+      # Alert notifications (future enhancement)
+      notifications:
+        enabled: false
+        # slack_webhook: ${SLACK_WEBHOOK_URL}
+        # teams_webhook: ${TEAMS_WEBHOOK_URL}
+        # email_recipients: ${ALERT_EMAIL_LIST}
+    
+    # ── Data Maintenance ───────────────────────────────────────────────────
+    # Automatic cleanup and optimization
+    maintenance:
+      # Automatically cleanup old data
+      auto_cleanup: true
+      
+      # Data retention policies (days)
+      # Older data will be automatically purged
+      retention:
+        measurements: 90   # Keep confidence measurements for 90 days
+        analysis_cache: 30 # Keep analysis results cache for 30 days
+        alerts: 60         # Keep drift alerts for 60 days
+      
+      # Database optimization
+      vacuum:
+        enabled: true
+        schedule: weekly   # Run vacuum optimization weekly
+  
+  
+  # ──────────────────────────────────────────────────────────────────────────
   # INTELLIGENCE FEATURES
   # ──────────────────────────────────────────────────────────────────────────
   # AI-powered analysis and recommendations
