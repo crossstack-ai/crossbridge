@@ -1924,3 +1924,232 @@ runtime:
       output:
         type: file  # file | log
         path: ./data/profiling/benchmark_results.json
+
+# ═════════════════════════════════════════════════════════════════════════
+# EXECUTION ORCHESTRATION
+# ═════════════════════════════════════════════════════════════════════════
+# Intelligent test execution orchestration
+# Determines WHAT, WHEN, and HOW to run tests (delegates actual execution to frameworks)
+execution:
+  enabled: true
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # STRATEGY CONFIGURATION
+  # ───────────────────────────────────────────────────────────────────────
+  strategies:
+    # Smoke strategy - fast signal tests
+    smoke:
+      enabled: true
+      tags: ["smoke", "sanity", "critical", "p0"]
+      max_duration_minutes: 10
+      always_include_critical: true
+    
+    # Impacted strategy - tests affected by code changes
+    impacted:
+      enabled: true
+      
+      # Sources for impact analysis
+      sources:
+        git_diff: true           # Analyze changed files
+        coverage_mapping: true   # Use code coverage data
+        semantic_analysis: true  # Use semantic engine (if available)
+      
+      # Fallback if no tests selected
+      fallback_strategy: smoke
+      min_tests: 5  # Minimum tests to run
+      
+      # Always include certain tests
+      always_include:
+        critical: true
+        recent_failures: true
+        flaky_prevention: false  # Don't auto-include flaky tests
+      
+      # Semantic similarity threshold (if using semantic engine)
+      semantic_threshold: 0.7
+    
+    # Risk-based strategy - historical risk analysis
+    risk:
+      enabled: true
+      
+      # Risk scoring weights
+      weights:
+        failure_rate: 0.4        # Historical failures
+        code_churn: 0.2          # Changes in covered code
+        criticality: 0.3         # Business criticality
+        flakiness_penalty: -0.1  # Penalize flaky tests
+      
+      # Risk score thresholds
+      min_risk_score: 0.3
+      
+      # Budget limits
+      default_max_tests: 100
+      default_max_duration_minutes: 60
+    
+    # Full strategy - all tests
+    full:
+      enabled: true
+      parallel: true
+      max_duration_minutes: 180  # 3 hours limit
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # FRAMEWORK ADAPTERS
+  # ───────────────────────────────────────────────────────────────────────
+  adapters:
+    testng:
+      enabled: true
+      build_tool: mvn  # mvn or gradle
+      suite_xml_path: target/crossbridge-suite.xml
+      parallel_methods: 4
+      report_dir: target/surefire-reports
+    
+    junit:
+      enabled: true
+      build_tool: mvn  # mvn or gradle
+      parallel_enabled: true
+      report_dir: target/surefire-reports
+    
+    restassured:
+      enabled: true
+      build_tool: mvn  # mvn or gradle
+      test_framework: testng  # testng or junit
+      parallel_tests: true
+      report_dir: target/surefire-reports
+    
+    robot:
+      enabled: true
+      use_pabot: true  # Use pabot for parallel execution
+      pabot_processes: 4
+      output_dir: robot-results
+      log_level: INFO
+    
+    pytest:
+      enabled: true
+      use_xdist: true  # Use pytest-xdist for parallel execution
+      xdist_workers: 4
+      junit_xml: pytest-results.xml
+      html_report: pytest-report.html
+    
+    behave:
+      enabled: true
+      parallel_processes: 4
+      output_format: json
+      results_file: behave-results.json
+    
+    cypress:
+      enabled: true
+      parallel: true
+      record: false  # Record to Cypress Dashboard
+      browser: chrome
+      results_dir: cypress/results
+    
+    playwright:
+      enabled: true
+      parallel: true
+      workers: 4
+      reporter: json
+      results_dir: playwright-report
+    
+    cucumber:
+      enabled: true
+      parallel_enabled: true
+      output_format: json
+      report_file: target/cucumber-report.json
+    
+    specflow:
+      enabled: true
+      dotnet_test: true
+      logger: trx
+      results_dir: TestResults
+    
+    nunit:
+      enabled: true
+      dotnet_test: true
+      logger: nunit
+      results_dir: TestResults
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # EXECUTION SETTINGS
+  # ───────────────────────────────────────────────────────────────────────
+  settings:
+    # Default strategy per environment
+    default_strategy:
+      dev: smoke
+      qa: impacted
+      staging: risk
+      prod: risk
+    
+    # Parallelization
+    parallel:
+      enabled: true
+      max_workers: 4
+      per_framework: true  # Framework-specific parallel settings
+    
+    # Timeouts
+    timeouts:
+      default_test_timeout: 300  # 5 minutes per test
+      default_suite_timeout: 3600  # 1 hour per suite
+      global_timeout: 7200  # 2 hours absolute max
+    
+    # Retries
+    retries:
+      enabled: true
+      max_retries: 1
+      retry_on:
+        - timeout
+        - infrastructure_failure
+      never_retry:
+        - assertion_error
+        - explicit_failure
+    
+    # CI/CD mode optimizations
+    ci_mode:
+      verbose_logging: true
+      fail_fast: false
+      archive_results: true
+      parallel_aggressive: true
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # RESULT HANDLING
+  # ───────────────────────────────────────────────────────────────────────
+  results:
+    # Store results in database
+    store_results: true
+    database: postgresql  # Use main database
+    
+    # Result retention
+    retention_days: 90
+    
+    # Notifications (placeholder for future)
+    notifications:
+      enabled: false
+      channels: []  # slack, email, etc.
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # INTEGRATION
+  # ───────────────────────────────────────────────────────────────────────
+  integration:
+    # Git integration for impact analysis
+    git:
+      enabled: true
+      default_base_branch: main
+      fetch_depth: 100  # Number of commits to analyze
+    
+    # Memory integration for semantic analysis
+    memory:
+      enabled: true
+      use_semantic_engine: true
+    
+    # Coverage integration
+    coverage:
+      enabled: true
+      sources:
+        - jacoco  # Java
+        - coverage.py  # Python
+        - nyc  # JavaScript
+    
+    # Flaky detection integration
+    flaky_detection:
+      enabled: true
+      exclude_flaky_by_default: true
+      flaky_threshold: 0.2  # 20% failure rate
+

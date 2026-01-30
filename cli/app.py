@@ -41,6 +41,7 @@ from cli.commands.coverage_commands import coverage_group
 from cli.commands.flaky import flaky_group
 from cli.commands.memory import memory_app, search_app
 from cli.commands.analyze import analyze_group
+from cli.commands.execution_commands import execution_commands
 
 app = typer.Typer(
     name="crossbridge",
@@ -58,6 +59,8 @@ app.add_typer(memory_app, name="memory")
 app.add_typer(search_app, name="search")
 # Add execution intelligence commands
 app.add_typer(analyze_group, name="analyze")
+# Add execution orchestration commands
+app.add_typer(execution_commands, name="exec")
 
 # Install custom exception hook to suppress tracebacks in CLI
 def _custom_exception_hook(exc_type, exc_value, exc_traceback):
