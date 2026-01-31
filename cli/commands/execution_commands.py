@@ -8,7 +8,7 @@ Commands:
 - crossbridge plan: Show execution plan (dry-run)
 """
 
-import click
+import typer
 from pathlib import Path
 from typing import Optional
 import json
@@ -40,117 +40,97 @@ def format_error(msg):
     return f"❌ {msg}"
 
 
-@click.group(name="exec")
-def execution_commands():
-    """Test execution orchestration commands"""
-    pass
+execution_commands = typer.Typer(
+    name="exec",
+    help="Test execution orchestration commands"
+)
 
 
 @execution_commands.command(name="run")
-@click.option(
-    "--framework",
-    type=click.Choice([
-        "testng", "robot", "pytest", "cypress", "playwright",
-        "junit", "cucumber", "behave", "nunit", "specflow"
-    ]),
-    required=True,
-    help="Test framework to use",
-)
-@click.option(
-    "--strategy",
-    type=click.Choice(["smoke", "impacted", "risk", "full"]),
-    default="impacted",
-    help="Test selection strategy",
-)
-@click.option(
-    "--env",
-    "--environment",
-    default="dev",
-    help="Target environment (dev, qa, staging, prod)",
-)
-@click.option(
-    "--ci",
-    is_flag=True,
-    help="Enable CI mode (affects logging and retries)",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show execution plan without running tests",
-)
-@click.option(
-    "--max-tests",
-    type=int,
-    help="Maximum number of tests to run (budget limit)",
-)
-@click.option(
-    "--max-duration",
-    type=int,
-    help="Maximum execution duration in minutes",
-)
-@click.option(
-    "--tags",
-    help="Comma-separated tags to include",
-)
-@click.option(
-    "--exclude-tags",
-    help="Comma-separated tags to exclude",
-)
-@click.option(
-    "--include-flaky",
-    is_flag=True,
-    help="Include known flaky tests",
-)
-@click.option(
-    "--no-parallel",
-    is_flag=True,
-    help="Disable parallel execution",
-)
-@click.option(
-    "--base-branch",
-    help="Base branch for impact analysis (e.g., main, develop)",
-)
-@click.option(
-    "--branch",
-    help="Current branch name",
-)
-@click.option(
-    "--commit",
-    help="Commit SHA",
-)
-@click.option(
-    "--build-id",
-    help="CI build ID",
-)
-@click.option(
-    "--workspace",
-    type=click.Path(exists=True),
-    help="Path to workspace (defaults to current directory)",
-)
-@click.option(
-    "--json",
-    "output_json",
-    is_flag=True,
-    help="Output result as JSON",
-)
 def run_command(
-    framework: str,
-    strategy: str,
-    env: str,
-    ci: bool,
-    dry_run: bool,
-    max_tests: Optional[int],
-    max_duration: Optional[int],
-    tags: Optional[str],
-    exclude_tags: Optional[str],
-    include_flaky: bool,
-    no_parallel: bool,
-    base_branch: Optional[str],
-    branch: Optional[str],
-    commit: Optional[str],
-    build_id: Optional[str],
-    workspace: Optional[str],
-    output_json: bool,
+    framework: str = typer.Option(
+        ...,
+        help="Test framework to use",
+    ),
+    strategy: str = typer.Option(
+        "impacted",
+        help="Test selection strategy (smoke/impacted/risk/full)",
+    ),
+    env: str = typer.Option(
+        "dev",
+        "--env",
+        help="Target environment (dev, qa, staging, prod)",
+    ),
+    ci: bool = typer.Option(
+        False,
+        "--ci",
+        help="Enable CI mode (affects logging and retries)",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show execution plan without running tests",
+    ),
+    max_tests: Optional[int] = typer.Option(
+        None,
+        "--max-tests",
+        help="Maximum number of tests to run (budget limit)",
+    ),
+    max_duration: Optional[int] = typer.Option(
+        None,
+        "--max-duration",
+        help="Maximum execution duration in minutes",
+    ),
+    tags: Optional[str] = typer.Option(
+        None,
+        "--tags",
+        help="Comma-separated tags to include",
+    ),
+    exclude_tags: Optional[str] = typer.Option(
+        None,
+        "--exclude-tags",
+        help="Comma-separated tags to exclude",
+    ),
+    include_flaky: bool = typer.Option(
+        False,
+        "--include-flaky",
+        help="Include known flaky tests",
+    ),
+    no_parallel: bool = typer.Option(
+        False,
+        "--no-parallel",
+        help="Disable parallel execution",
+    ),
+    base_branch: Optional[str] = typer.Option(
+        None,
+        "--base-branch",
+        help="Base branch for impact analysis (e.g., main, develop)",
+    ),
+    branch: Optional[str] = typer.Option(
+        None,
+        "--branch",
+        help="Current branch name",
+    ),
+    commit: Optional[str] = typer.Option(
+        None,
+        "--commit",
+        help="Commit SHA",
+    ),
+    build_id: Optional[str] = typer.Option(
+        None,
+        "--build-id",
+        help="CI build ID",
+    ),
+    workspace: Optional[str] = typer.Option(
+        None,
+        "--workspace",
+        help="Path to workspace (defaults to current directory)",
+    ),
+    output_json: bool = typer.Option(
+        False,
+        "--json",
+        help="Output result as JSON",
+    ),
 ):
     """
     Execute tests with intelligent orchestration.
@@ -246,50 +226,38 @@ def run_command(
         sys.exit(2)
 
 
+
+
 @execution_commands.command(name="plan")
-@click.option(
-    "--framework",
-    type=click.Choice([
-        "testng", "robot", "pytest", "cypress", "playwright",
-        "junit", "cucumber", "behave", "nunit", "specflow"
-    ]),
-    required=True,
-    help="Test framework",
-)
-@click.option(
-    "--strategy",
-    type=click.Choice(["smoke", "impacted", "risk", "full"]),
-    default="impacted",
-    help="Test selection strategy",
-)
-@click.option(
-    "--env",
-    "--environment",
-    default="dev",
-    help="Target environment",
-)
-@click.option(
-    "--base-branch",
-    help="Base branch for impact analysis",
-)
-@click.option(
-    "--workspace",
-    type=click.Path(exists=True),
-    help="Path to workspace",
-)
-@click.option(
-    "--json",
-    "output_json",
-    is_flag=True,
-    help="Output plan as JSON",
-)
 def plan_command(
-    framework: str,
-    strategy: str,
-    env: str,
-    base_branch: Optional[str],
-    workspace: Optional[str],
-    output_json: bool,
+    framework: str = typer.Option(
+        ...,
+        help="Test framework",
+    ),
+    strategy: str = typer.Option(
+        "impacted",
+        help="Test selection strategy (smoke/impacted/risk/full)",
+    ),
+    env: str = typer.Option(
+        "dev",
+        "--env",
+        help="Target environment",
+    ),
+    base_branch: Optional[str] = typer.Option(
+        None,
+        "--base-branch",
+        help="Base branch for impact analysis",
+    ),
+    workspace: Optional[str] = typer.Option(
+        None,
+        "--workspace",
+        help="Path to workspace",
+    ),
+    output_json: bool = typer.Option(
+        False,
+        "--json",
+        help="Output plan as JSON",
+    ),
 ):
     """
     Show execution plan without running tests.
