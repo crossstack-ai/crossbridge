@@ -206,9 +206,9 @@ export CROSSBRIDGE_DB_USER=postgres
 export CROSSBRIDGE_DB_PASSWORD=admin
 
 # Application Tracking
-export PRODUCT_NAME=MyRobotApp
-export APP_VERSION=v2.0.0
-export ENVIRONMENT=test
+export CROSSBRIDGE_PRODUCT_NAME=MyRobotApp
+export CROSSBRIDGE_APPLICATION_VERSION=v2.0.0
+export CROSSBRIDGE_ENVIRONMENT=test
 ```
 
 Or create `.env` file:
@@ -218,9 +218,9 @@ CROSSBRIDGE_HOOKS_ENABLED=true
 CROSSBRIDGE_DB_HOST=10.55.12.99
 CROSSBRIDGE_DB_PORT=5432
 CROSSBRIDGE_DB_NAME=crossbridge
-PRODUCT_NAME=MyRobotApp
-APP_VERSION=v2.0.0
-ENVIRONMENT=test
+CROSSBRIDGE_PRODUCT_NAME=MyRobotApp
+CROSSBRIDGE_APPLICATION_VERSION=v2.0.0
+CROSSBRIDGE_ENVIRONMENT=test
 ```
 
 ### Step 3: Run Tests
@@ -232,7 +232,7 @@ robot --listener crossbridge.hooks.robot_hooks.CrossBridgeListener tests/
 # With variables
 robot --listener crossbridge.hooks.robot_hooks.CrossBridgeListener \
       --variable CROSSBRIDGE_ENABLED:true \
-      --variable APP_VERSION:v2.0.0 \
+      --variable CROSSBRIDGE_APPLICATION_VERSION:v2.0.0 \
       tests/
 
 # With tags
@@ -265,9 +265,9 @@ services:
       - CROSSBRIDGE_DB_PASSWORD=admin
       
       # Application Tracking
-      - PRODUCT_NAME=MyRobotApp
-      - APP_VERSION=v2.0.0
-      - ENVIRONMENT=test
+      - CROSSBRIDGE_PRODUCT_NAME=MyRobotApp
+      - CROSSBRIDGE_APPLICATION_VERSION=v2.0.0
+      - CROSSBRIDGE_ENVIRONMENT=test
     volumes:
       - ./robot-project:/workspace
       - ./test-results:/workspace/results
@@ -429,12 +429,12 @@ CROSSBRIDGE_ENABLED = os.getenv('CI') is not None
 ### 3. Use Application Version from Git
 ```bash
 # Maven
-export APP_VERSION=$(git describe --tags --always)
-mvn test -Dcrossbridge.application.version=${APP_VERSION}
+export CROSSBRIDGE_APPLICATION_VERSION=$(git describe --tags --always)
+mvn test -Dcrossbridge.application.version=${CROSSBRIDGE_APPLICATION_VERSION}
 
 # Robot
-export APP_VERSION=$(git describe --tags --always)
-robot --variable APP_VERSION:${APP_VERSION} tests/
+export CROSSBRIDGE_APPLICATION_VERSION=$(git describe --tags --always)
+robot --variable CROSSBRIDGE_APPLICATION_VERSION:${CROSSBRIDGE_APPLICATION_VERSION} tests/
 ```
 
 ### 4. Configure Sampling for High-Volume Tests

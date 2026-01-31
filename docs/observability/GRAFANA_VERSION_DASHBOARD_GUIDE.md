@@ -153,9 +153,9 @@ This will add another batch of version-tracked test events.
 ### Option 1: Environment Variables (Recommended)
 ```bash
 # Set before running tests
-export APP_VERSION="2.1.0"
-export PRODUCT_NAME="MyWebApp"
-export ENVIRONMENT="production"
+export CROSSBRIDGE_APPLICATION_VERSION="2.1.0"
+export CROSSBRIDGE_PRODUCT_NAME="MyWebApp"
+export CROSSBRIDGE_ENVIRONMENT="production"
 
 # Run your tests
 pytest tests/
@@ -166,8 +166,8 @@ pytest tests/
 # GitHub Actions
 - name: Run Tests
   env:
-    APP_VERSION: ${{ github.ref_name }}
-    PRODUCT_NAME: MyWebApp
+    CROSSBRIDGE_APPLICATION_VERSION: ${{ github.ref_name }}
+    CROSSBRIDGE_PRODUCT_NAME: MyWebApp
     ENVIRONMENT: staging
   run: pytest tests/
 ```

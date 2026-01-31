@@ -236,12 +236,12 @@ crossbridge:
 
 ```bash
 # CI/CD - GitLab
-export APP_VERSION=$(git describe --tags)
+export CROSSBRIDGE_APPLICATION_VERSION=$(git describe --tags)
 export CI_ENVIRONMENT_NAME=production
 
 # CI/CD - GitHub Actions
-export APP_VERSION=${{ github.ref_name }}
-export PRODUCT_NAME=${{ github.repository }}
+export CROSSBRIDGE_APPLICATION_VERSION=${{ github.ref_name }}
+export CROSSBRIDGE_PRODUCT_NAME=${{ github.repository }}
 
 # Local development
 export OPENAI_API_KEY=sk-your-key-here
