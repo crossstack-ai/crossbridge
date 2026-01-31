@@ -114,10 +114,40 @@ def _parse_scenario(
     uri: str,
     feature_tags: List[str]
 ) -> ScenarioResult:
-    """Parse a single scenario from Cucumber JSON."""
+    """
+    Parse a single scenario from Cucumber JSON.
+    
+    Handles both regular scenarios and scenario outline instances.
+    For scenario outlines, extracts example data from the scenario name
+    which Cucumber includes in the format "Scenario Name <row_index>".
+    """
     scenario_name = element.get("name", "Unnamed Scenario")
     scenario_type = element.get("type", "scenario")
     line = element.get("line", -1)
+    
+    # Gap 2: Extract scenario outline metadata if present
+    outline_example_index: Optional[int] = None
+    outline_example_data: Optional[dict] = None
+    source_outline_uri: Optional[str] = None
+    source_outline_line: Optional[int] = None
+    
+    # Cucumber appends example index to scenario name for outlines
+    # E.g., "Login with credentials <1>" or "Login with credentials"
+    if scenario_type == "scenario" and "<" in scenario_name and ">" in scenario_name:
+        import re
+        match = re.search(r'<(\d+)>$', scenario_name)
+        if match:
+            outline_example_index = int(match.group(1)) - 1  # Convert to 0-based
+            # Remove the index suffix from name
+            scenario_name = re.sub(r'\s*<\d+>$', '', scenario_name)
+            # Mark as originally from outline
+            scenario_type = "scenario_outline"
+            source_outline_uri = uri
+            source_outline_line = line
+            
+            # Try to extract example data from step text
+            # Cucumber replaces <param> with actual values in step text
+            outline_example_data = _extract_example_data_from_steps(element.get("steps", []))
     
     # Parse scenario-level tags (combine with feature tags)
     scenario_tags = [
@@ -143,6 +173,18 @@ def _parse_scenario(
         elif step_status in ("skipped", "pending", "undefined") and scenario_status != "failed":
             scenario_status = "skipped"
     
+    # Gap 3: Extract metadata from environment (if available)
+    metadata = None
+    try:
+        from .metadata_extractor import extract_metadata, MetadataExtractor
+        metadata = extract_metadata()
+        
+        # Enhance metadata with scenario-specific info
+        extractor = MetadataExtractor()
+        metadata.grouping = extractor.extract_grouping_from_annotations(all_tags)
+    except ImportError:
+        pass  # Metadata extraction not available
+    
     return ScenarioResult(
         feature=feature_name,
         scenario=scenario_name,
@@ -151,7 +193,12 @@ def _parse_scenario(
         steps=steps,
         status=scenario_status,
         uri=uri,
-        line=line
+        line=line,
+        metadata=metadata,
+        outline_example_index=outline_example_index,
+        outline_example_data=outline_example_data,
+        source_outline_uri=source_outline_uri,
+        source_outline_line=source_outline_line
     )
 
 
@@ -227,6 +274,42 @@ def _normalize_tag(tag: str) -> str:
     if not tag.startswith("@"):
         tag = f"@{tag}"
     return tag
+
+
+def _extract_example_data_from_steps(steps: List[Dict[str, Any]]) -> dict:
+    """
+    Extract example data from scenario outline steps.
+    
+    When Cucumber expands scenario outlines, it replaces <param> placeholders
+    with actual values in step text. This function attempts to extract those
+    values by comparing step text patterns.
+    
+    Returns:
+        Dictionary of parameter name -> value from example row
+    """
+    example_data = {}
+    
+    # Look for quoted strings that might be example values
+    # Common pattern: Given I login with "username" and "password"
+    import re
+    
+    for step_data in steps:
+        step_name = step_data.get("name", "")
+        
+        # Find quoted strings (potential example values)
+        quoted_values = re.findall(r'"([^"]+)"', step_name)
+        
+        # Find numeric values
+        numeric_values = re.findall(r'\b(\d+)\b', step_name)
+        
+        # Store with generic keys (we don't know parameter names without original outline)
+        for i, value in enumerate(quoted_values):
+            example_data[f"param_{i+1}"] = value
+        
+        for i, value in enumerate(numeric_values):
+            example_data[f"numeric_{i+1}"] = value
+    
+    return example_data if example_data else None
 
 
 def parse_multiple_cucumber_reports(report_paths: List[str | Path]) -> List[FeatureResult]:

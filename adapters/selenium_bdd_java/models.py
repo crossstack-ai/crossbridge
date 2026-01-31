@@ -8,6 +8,22 @@ independent of the underlying Cucumber implementation (JVM, JS, etc.).
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+# Import failure classification if available
+try:
+    from .failure_classifier import FailureClassification, classify_failure
+    _FAILURE_CLASSIFIER_AVAILABLE = True
+except ImportError:
+    _FAILURE_CLASSIFIER_AVAILABLE = False
+    FailureClassification = None
+
+# Import metadata extractor if available
+try:
+    from .metadata_extractor import TestMetadata
+    _METADATA_AVAILABLE = True
+except ImportError:
+    _METADATA_AVAILABLE = False
+    TestMetadata = None
+
 
 @dataclass
 class StepResult:
@@ -18,11 +34,21 @@ class StepResult:
     duration_ns: int
     error_message: Optional[str] = None
     
+    # Structured failure classification (Gap 1 - Critical)
+    failure_classification: Optional['FailureClassification'] = None
+    
     def __post_init__(self):
         """Validate step status."""
         valid_statuses = {"passed", "failed", "skipped", "pending", "undefined"}
         if self.status not in valid_statuses:
             raise ValueError(f"Invalid step status: {self.status}. Must be one of {valid_statuses}")
+        
+        # Auto-classify failures if classifier available
+        if (self.status == "failed" and 
+            self.error_message and 
+            _FAILURE_CLASSIFIER_AVAILABLE and 
+            not self.failure_classification):
+            self.failure_classification = classify_failure(self.error_message, self.name)
 
 
 @dataclass
@@ -37,6 +63,15 @@ class ScenarioResult:
     status: str  # passed | failed | skipped
     uri: str
     line: int
+    
+    # Gap 3: Metadata enrichment (Critical)
+    metadata: Optional['TestMetadata'] = None
+    
+    # Gap 2: Scenario outline support (Critical)
+    outline_example_index: Optional[int] = None  # Which example row (0-based)
+    outline_example_data: Optional[dict] = None  # Actual example values
+    source_outline_uri: Optional[str] = None  # Original outline if expanded
+    source_outline_line: Optional[int] = None
     
     def __post_init__(self):
         """Validate scenario type and status."""
