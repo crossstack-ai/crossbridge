@@ -17,6 +17,7 @@ LABEL org.opencontainers.image.vendor="CrossStack AI"
 LABEL org.opencontainers.image.source="https://github.com/crossstack-ai/crossbridge"
 LABEL org.opencontainers.image.documentation="https://github.com/crossstack-ai/crossbridge/blob/main/docs/DOCKER_GUIDE.md"
 LABEL org.opencontainers.image.licenses="Proprietary"
+LABEL org.opencontainers.image.architecture="Plugin-based: ExecutionPlugin + StrategyPlugin + AdapterPlugin"
 
 # Maintainer
 LABEL maintainer="CrossStack AI Team <support@crossstack.ai>"
