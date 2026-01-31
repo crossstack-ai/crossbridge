@@ -24,7 +24,7 @@ A: 13+ frameworks including pytest, Selenium (Java/Python/.NET), Cypress, Playwr
 A: Yes! Observer mode lets you get intelligence without changing test code.
 
 **Q: How do I add support for my custom framework?**
-A: Implement the `FrameworkAdapter` interface. See [Custom Adapters Guide](frameworks/CUSTOM_ADAPTERS.md).
+A: Implement the `FrameworkAdapter` interface. See [Custom Adapters Guide](../../frameworks/CUSTOM_ADAPTERS.md).
 
 ---
 
@@ -106,11 +106,11 @@ A: Embeddings: $0.002-$0.013 per 1000 tests. LLM usage is optional and varies.
 A: GitHub Issues, Discussions, or community channels.
 
 **Q: How do I contribute?**
-A: See [Contributing Guidelines](contributing/CONTRIBUTING.md).
+A: See [Contributing Guidelines](../../contributing/CONTRIBUTING.md).
 
 **Q: Where's the documentation?**
-A: [docs/README.md](README.md)
+A: [docs/README.md](../../README.md)
 
 ---
 
-More questions? [Open an issue](https://github.com/crossstack-ai/crossbridge/issues) or check the [docs](README.md).
+More questions? [Open an issue](https://github.com/crossstack-ai/crossbridge/issues) or check the [docs](../../README.md).

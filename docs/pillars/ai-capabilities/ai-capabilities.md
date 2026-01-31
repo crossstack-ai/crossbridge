@@ -36,7 +36,7 @@ crossbridge analyze logs --log-file test_output.log --framework pytest
 - ✅ **Framework-agnostic** - Supports all 13 frameworks
 - ✅ **CI/CD integration** - Fail builds only on PRODUCT_DEFECT
 
-**Documentation**: [Execution Intelligence Guide](EXECUTION_INTELLIGENCE.md)
+**Documentation**: [Execution Intelligence Guide](../../EXECUTION_INTELLIGENCE.md)
 
 ---
 
@@ -66,7 +66,7 @@ crossbridge flaky report test_user_login
 - Historical trend analysis
 - Confidence score distribution
 
-**Documentation**: [Flaky Detection Guide](flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md)
+**Documentation**: [Flaky Detection Guide](../../flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md)
 
 ---
 
@@ -103,7 +103,7 @@ crossbridge semantic similar test_login_valid
 - Map legacy tests to modern equivalents
 - Discover coverage gaps
 
-**Documentation**: [Semantic Engine Guide](SEMANTIC_ENGINE.md)
+**Documentation**: [Semantic Engine Guide](../../SEMANTIC_ENGINE.md)
 
 ---
 
@@ -133,7 +133,7 @@ crossbridge exec run --framework pytest --strategy impacted --base-branch main
 crossbridge exec run --framework robot --strategy risk --max-tests 100
 ```
 
-**Documentation**: [Execution Orchestration Guide](EXECUTION_ORCHESTRATION.md)
+**Documentation**: [Execution Orchestration Guide](../../EXECUTION_ORCHESTRATION.md)
 
 ---
 
@@ -190,7 +190,7 @@ crossbridge ai-transform show ai-abc123 --show-diff
 crossbridge ai-transform approve ai-abc123 --apply
 ```
 
-**Documentation**: [AI Transformation Validation](ai/AI_TRANSFORMATION_VALIDATION.md)
+**Documentation**: [AI Transformation Validation](../../ai/AI_TRANSFORMATION_VALIDATION.md)
 
 ---
 
@@ -324,12 +324,12 @@ ollama pull nomic-embed-text
 
 ## 📚 Learn More
 
-- [Execution Intelligence](EXECUTION_INTELLIGENCE.md) - Failure classification details
-- [Semantic Engine](SEMANTIC_ENGINE.md) - Embedding system architecture
+- [Execution Intelligence](../../EXECUTION_INTELLIGENCE.md) - Failure classification details
+- [Semantic Engine](../../SEMANTIC_ENGINE.md) - Embedding system architecture
 - [Flaky Detection](flaky-detection/) - ML-based flaky test detection
-- [AI Transformation](ai/AI_TRANSFORMATION_VALIDATION.md) - Safe AI-generated code
-- [Explainability System](EXPLAINABILITY_SYSTEM.md) - How explanations work
+- [AI Transformation](../../ai/AI_TRANSFORMATION_VALIDATION.md) - Safe AI-generated code
+- [Explainability System](../../EXPLAINABILITY_SYSTEM.md) - How explanations work
 
 ---
 
-**Ready to enable AI features?** Check the [configuration guide](configuration/UNIFIED_CONFIGURATION_GUIDE.md).
+**Ready to enable AI features?** Check the [configuration guide](../../configuration/UNIFIED_CONFIGURATION_GUIDE.md).

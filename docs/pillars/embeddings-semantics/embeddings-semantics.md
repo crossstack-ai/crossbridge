@@ -475,11 +475,11 @@ filtered = [r for r in semantic_results if "timeout" in r.name]
 
 ## 📖 Learn More
 
-- [Semantic Engine Guide](SEMANTIC_ENGINE.md) - Full architecture
-- [Quick Start](ai/SEMANTIC_SEARCH_QUICK_START.md) - Setup guide
+- [Semantic Engine Guide](../../SEMANTIC_ENGINE.md) - Full architecture
+- [Quick Start](../../ai/SEMANTIC_SEARCH_QUICK_START.md) - Setup guide
 - [Memory System](memory/) - Implementation details
-- [Configuration](configuration/UNIFIED_CONFIGURATION_GUIDE.md) - Settings
+- [Configuration](../../configuration/UNIFIED_CONFIGURATION_GUIDE.md) - Settings
 
 ---
 
-**Ready to enable semantic search?** Follow the [quick start guide](ai/SEMANTIC_SEARCH_QUICK_START.md).
+**Ready to enable semantic search?** Follow the [quick start guide](../../ai/SEMANTIC_SEARCH_QUICK_START.md).

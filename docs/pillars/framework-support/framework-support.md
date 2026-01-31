@@ -69,20 +69,20 @@ CrossBridge includes comprehensive BDD adapters:
 - Step definition mapping (Java annotations)
 - Scenario outline expansion
 - Execution report analysis (cucumber.json)
-- [Full details →](bdd/BDD_IMPLEMENTATION_SUMMARY.md)
+- [Full details →](../../bdd/BDD_IMPLEMENTATION_SUMMARY.md)
 
 **Robot Framework BDD**:
 - Keyword-driven test support
 - Resource file parsing
 - Test suite discovery
 - Output.xml analysis
-- [Full details →](bdd/BDD_IMPLEMENTATION_SUMMARY.md)
+- [Full details →](../../bdd/BDD_IMPLEMENTATION_SUMMARY.md)
 
 **JBehave**:
 - Story file parsing
 - Step mapping with Java methods
 - JUnit XML report parsing
-- [Full details →](bdd/BDD_IMPLEMENTATION_SUMMARY.md)
+- [Full details →](../../bdd/BDD_IMPLEMENTATION_SUMMARY.md)
 
 ### Web Automation Features
 **Selenium** (Java, Python, .NET):
@@ -184,7 +184,7 @@ class FrameworkAdapter(ABC):
        enabled: true
    ```
 
-**Full guide**: [Custom Framework Adapters](frameworks/CUSTOM_ADAPTERS.md)
+**Full guide**: [Custom Framework Adapters](../../frameworks/CUSTOM_ADAPTERS.md)
 
 ---
 
@@ -231,4 +231,4 @@ class FrameworkAdapter(ABC):
 
 ---
 
-**Need help choosing a framework?** Check the [framework migration guide](framework-migration.md) for recommendations.
+**Need help choosing a framework?** Check the [framework migration guide](../../framework-migration.md) for recommendations.

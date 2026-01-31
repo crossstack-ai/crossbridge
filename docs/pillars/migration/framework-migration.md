@@ -314,17 +314,17 @@ crossbridge ai-transform approve ai-abc123 \
 
 ### By Framework
 
-- [Selenium Java → Playwright](migration/selenium-java-to-playwright.md)
-- [Selenium Python → Playwright](migration/selenium-python-to-playwright.md)
-- [Cucumber Java → Robot BDD](migration/cucumber-to-robot.md)
-- [Legacy BDD → Modern BDD](migration/legacy-bdd-modernization.md)
+- [Selenium Java → Playwright](../../migration/selenium-java-to-playwright.md)
+- [Selenium Python → Playwright](../../migration/selenium-python-to-playwright.md)
+- [Cucumber Java → Robot BDD](../../migration/cucumber-to-robot.md)
+- [Legacy BDD → Modern BDD](../../migration/legacy-bdd-modernization.md)
 
 ### By Use Case
 
-- [E2E UI Tests](migration/e2e-ui-migration.md)
-- [API Tests](migration/api-test-migration.md)
-- [BDD Scenarios](migration/bdd-migration.md)
-- [Integration Tests](migration/integration-test-migration.md)
+- [E2E UI Tests](../../migration/e2e-ui-migration.md)
+- [API Tests](../../migration/api-test-migration.md)
+- [BDD Scenarios](../../migration/bdd-migration.md)
+- [Integration Tests](../../migration/integration-test-migration.md)
 
 ---
 
@@ -438,4 +438,4 @@ crossbridge migrate run --batch 2
 
 ---
 
-**Ready to start migrating?** Check the [getting started guide](getting-started.md) or framework-specific [migration guides](migration/).
+**Ready to start migrating?** Check the [getting started guide](../../getting-started.md) or framework-specific [migration guides](migration/).

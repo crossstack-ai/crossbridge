@@ -171,17 +171,17 @@ crossbridge discover --framework pytest --path ./tests
 
 - **Framework-specific guides**: [quick-start/](quick-start/)
 - **Configuration deep-dive**: [configuration/](configuration/)
-- **Architecture overview**: [architecture.md](architecture.md)
-- **All features**: [README.md](README.md)
+- **Architecture overview**: [architecture.md](../../architecture.md)
+- **All features**: [README.md](../../README.md)
 
 ---
 
 ## 🤝 Getting Help
 
 - **GitHub Issues**: [Report bugs](https://github.com/crossstack-ai/crossbridge/issues)
-- **Documentation**: [Full docs](README.md)
+- **Documentation**: [Full docs](../../README.md)
 - **Community**: [Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
 
 ---
 
-**⚡ Ready to explore?** Check out the [framework support guide](framework-support.md) to see all supported frameworks.
+**⚡ Ready to explore?** Check out the [framework support guide](../../framework-support.md) to see all supported frameworks.

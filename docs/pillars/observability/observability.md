@@ -88,7 +88,7 @@ with SidecarRuntime() as sidecar:
     metrics = sidecar.export_metrics()
 ```
 
-**Documentation**: [Sidecar Runtime Guide](sidecar/SIDECAR_RUNTIME.md)
+**Documentation**: [Sidecar Runtime Guide](../../sidecar/SIDECAR_RUNTIME.md)
 
 ---
 
@@ -427,10 +427,10 @@ open http://localhost:3000
 
 ## 📚 Learn More
 
-- [Sidecar Runtime](sidecar/SIDECAR_RUNTIME.md) - Zero-impact observability
-- [Performance Profiling](profiling/README.md) - Profiling system details
-- [Test Infrastructure](TEST_INFRASTRUCTURE_AND_SIDECAR_HARDENING.md) - Hardening guide
-- [Configuration](configuration/UNIFIED_CONFIGURATION_GUIDE.md) - All settings
+- [Sidecar Runtime](../../sidecar/SIDECAR_RUNTIME.md) - Zero-impact observability
+- [Performance Profiling](../../profiling/README.md) - Profiling system details
+- [Test Infrastructure](../../TEST_INFRASTRUCTURE_AND_SIDECAR_HARDENING.md) - Hardening guide
+- [Configuration](../../configuration/UNIFIED_CONFIGURATION_GUIDE.md) - All settings
 
 ---
 
