@@ -5,13 +5,14 @@
 # Philosophy: Stateless container, externalized state
 # ============================================================================
 
-version: "3.9"
-
 services:
   # ==========================================================================
   # CrossBridge Orchestrator
   # ==========================================================================
   crossbridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: crossbridge/crossbridge:${CROSSBRIDGE_VERSION:-0.2.0}
     container_name: crossbridge
     

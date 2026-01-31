@@ -98,7 +98,7 @@ COPY search/ ./search/
 COPY migration/ ./migration/
 
 # Copy configuration examples
-COPY crossbridge.yml.example ./crossbridge.yml.example
+COPY crossbridge.yml ./crossbridge.yml
 COPY .env.example ./.env.example
 
 # Copy entry point script
