@@ -219,7 +219,7 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 |-----------|----------|------|--------|--------------|
 | **pytest** | Python | Unit/Integration | ✅ Production | 98% |
 | **Selenium Python** | Python | UI Automation | ✅ Production | 95% |
-| **Selenium Java** | Java | UI Automation | ✅ Beta | 92% |
+| **Selenium Java** | Java | UI Automation | ✅ Production | 96% |
 | **Cucumber/JBehave (Java BDD)** | Java | BDD | ✅ Production | 95% |
 | **Selenium .NET** | C# | UI Automation | ✅ Production | 95% |
 | **Cypress** | JavaScript/TS | E2E | ✅ Production | 98% |
