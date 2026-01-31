@@ -93,12 +93,12 @@ COPY hooks/ ./hooks/
 COPY services/ ./services/
 COPY persistence/ ./persistence/
 COPY grafana/ ./grafana/
-COPY memory/ ./memory/
-COPY search/ ./search/
 COPY migration/ ./migration/
 
-# Copy configuration examples
-COPY crossbridge.yml ./crossbridge.yml
+# Create empty directories for optional components
+RUN mkdir -p ./memory ./search
+
+# Copy configuration examples (crossbridge.yml is in .dockerignore, mount at runtime)
 COPY .env.example ./.env.example
 
 # Copy entry point script
