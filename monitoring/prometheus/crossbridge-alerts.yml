@@ -1,0 +1,396 @@
+# ============================================================================
+# CrossBridge Prometheus Alert Rules
+# ============================================================================
+# Alert rules for CrossBridge health monitoring
+#
+# Usage:
+#   prometheus --config.file=prometheus.yml --storage.tsdb.path=./data
+#
+# Reference: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+# ============================================================================
+
+groups:
+  # ==========================================================================
+  # Critical Alerts - Require Immediate Action
+  # ==========================================================================
+  - name: crossbridge_critical
+    interval: 30s
+    rules:
+      - alert: CrossBridgeUnhealthy
+        expr: crossbridge_health_status{status="unhealthy"} == 1
+        for: 2m
+        labels:
+          severity: critical
+          component: crossbridge
+          team: qa-platform
+        annotations:
+          summary: "CrossBridge is unhealthy"
+          description: |
+            CrossBridge health check has been unhealthy for more than 2 minutes.
+            
+            Current status: {{ $labels.status }}
+            Instance: {{ $labels.instance }}
+            
+            Check health endpoint: http://{{ $labels.instance }}/health/v2
+          
+          runbook_url: "https://github.com/crossstack-ai/crossbridge/blob/main/docs/runbooks/health-unhealthy.md"
+
+      - alert: CrossBridgeDown
+        expr: up{job="crossbridge"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: crossbridge
+          team: qa-platform
+        annotations:
+          summary: "CrossBridge is down"
+          description: |
+            CrossBridge instance {{ $labels.instance }} is down.
+            Cannot reach health endpoint.
+            
+            This indicates complete service failure.
+          
+          runbook_url: "https://github.com/crossstack-ai/crossbridge/blob/main/docs/runbooks/service-down.md"
+
+      - alert: ComponentUnhealthy
+        expr: crossbridge_component_health_status{status="unhealthy"} == 1
+        for: 2m
+        labels:
+          severity: critical
+          component: "{{ $labels.component_name }}"
+          team: qa-platform
+        annotations:
+          summary: "Component {{ $labels.component_name }} is unhealthy"
+          description: |
+            CrossBridge component {{ $labels.component_name }} has been unhealthy for more than 2 minutes.
+            
+            Component type: {{ $labels.component_type }}
+            Status: {{ $labels.status }}
+            
+            Check detailed health: http://{{ $labels.instance }}/health/v2
+          
+          runbook_url: "https://github.com/crossstack-ai/crossbridge/blob/main/docs/runbooks/component-{{ $labels.component_type }}-unhealthy.md"
+
+  # ==========================================================================
+  # Warning Alerts - Degraded State
+  # ==========================================================================
+  - name: crossbridge_warnings
+    interval: 1m
+    rules:
+      - alert: CrossBridgeDegraded
+        expr: crossbridge_health_status{status="degraded"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: crossbridge
+          team: qa-platform
+        annotations:
+          summary: "CrossBridge is in degraded state"
+          description: |
+            CrossBridge has been in degraded state for more than 5 minutes.
+            System is operational but performance may be impacted.
+            
+            Check health for details: http://{{ $labels.instance }}/health/v2
+          
+          runbook_url: "https://github.com/crossstack-ai/crossbridge/blob/main/docs/runbooks/degraded-performance.md"
+
+      - alert: ComponentDegraded
+        expr: crossbridge_component_health_status{status="degraded"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: "{{ $labels.component_name }}"
+          team: qa-platform
+        annotations:
+          summary: "Component {{ $labels.component_name }} is degraded"
+          description: |
+            Component {{ $labels.component_name }} has been degraded for 5+ minutes.
+            
+            This may affect:
+            - Performance
+            - Reliability
+            - Feature availability
+          
+          runbook_url: "https://github.com/crossstack-ai/crossbridge/blob/main/docs/runbooks/component-degraded.md"
+
+  # ==========================================================================
+  # SLI/SLO Alerts - Service Level Indicators
+  # ==========================================================================
+  - name: crossbridge_sli_slo
+    interval: 1m
+    rules:
+      - alert: AvailabilitySLOBreach
+        expr: crossbridge_sli_availability_percent < 99.9
+        for: 5m
+        labels:
+          severity: warning
+          sli: availability
+          team: qa-platform
+        annotations:
+          summary: "Availability SLO breach"
+          description: |
+            CrossBridge availability has fallen below 99.9% SLO.
+            
+            Current availability: {{ $value }}%
+            Target: 99.9%
+            
+            Measurement window: {{ $labels.measurement_window }}
+
+      - alert: LatencySLOBreach
+        expr: crossbridge_sli_latency_p95_ms > 100
+        for: 5m
+        labels:
+          severity: warning
+          sli: latency
+          team: qa-platform
+        annotations:
+          summary: "Latency P95 SLO breach"
+          description: |
+            95th percentile latency exceeded 100ms threshold.
+            
+            Current P95 latency: {{ $value }}ms
+            Target: 100ms
+            
+            This may indicate:
+            - High system load
+            - Database performance issues
+            - Network latency
+
+      - alert: ErrorRateSLOBreach
+        expr: crossbridge_sli_error_rate_percent > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          sli: error_rate
+          team: qa-platform
+        annotations:
+          summary: "Error rate SLO breach"
+          description: |
+            Error rate exceeded 1.0% threshold.
+            
+            Current error rate: {{ $value }}%
+            Target: <1.0%
+            
+            Check logs for error patterns and root causes.
+
+  # ==========================================================================
+  # Resource Alerts - CPU, Memory, Queue
+  # ==========================================================================
+  - name: crossbridge_resources
+    interval: 1m
+    rules:
+      - alert: HighCPUUsage
+        expr: crossbridge_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          resource: cpu
+          team: qa-platform
+        annotations:
+          summary: "High CPU usage"
+          description: |
+            CrossBridge CPU usage is above 80% for 10+ minutes.
+            
+            Current usage: {{ $value }}%
+            Instance: {{ $labels.instance }}
+            
+            Consider:
+            - Scaling horizontally
+            - Investigating high-cost operations
+            - Adjusting execution strategy
+
+      - alert: HighMemoryUsage
+        expr: crossbridge_memory_usage_percent > 85
+        for: 10m
+        labels:
+          severity: warning
+          resource: memory
+          team: qa-platform
+        annotations:
+          summary: "High memory usage"
+          description: |
+            CrossBridge memory usage is above 85% for 10+ minutes.
+            
+            Current usage: {{ $value }}%
+            Instance: {{ $labels.instance }}
+            
+            Potential causes:
+            - Memory leak
+            - Large test result sets
+            - Cache accumulation
+
+      - alert: QueueSaturation
+        expr: crossbridge_queue_utilization_percent > 90
+        for: 5m
+        labels:
+          severity: critical
+          resource: queue
+          team: qa-platform
+        annotations:
+          summary: "Event queue saturation"
+          description: |
+            Event queue is >90% full for 5+ minutes.
+            
+            Utilization: {{ $value }}%
+            Queue: {{ $labels.queue_name }}
+            
+            Actions:
+            - Enable adaptive sampling
+            - Increase queue capacity
+            - Scale processing workers
+            - Investigate slow consumers
+
+      - alert: HighEventDropRate
+        expr: rate(crossbridge_events_dropped_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          resource: queue
+          team: qa-platform
+        annotations:
+          summary: "High event drop rate"
+          description: |
+            Events are being dropped at {{ $value }} events/sec.
+            
+            This indicates:
+            - Queue capacity issues
+            - Processing bottleneck
+            - Potential data loss
+
+  # ==========================================================================
+  # Database Alerts
+  # ==========================================================================
+  - name: crossbridge_database
+    interval: 1m
+    rules:
+      - alert: DatabaseConnectionFailure
+        expr: crossbridge_database_connection_errors_total > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+          team: qa-platform
+        annotations:
+          summary: "Database connection failures detected"
+          description: |
+            CrossBridge cannot connect to database.
+            
+            Error count (last 5m): {{ $value }}
+            Database: {{ $labels.database_name }}
+            
+            Check:
+            - Database service health
+            - Network connectivity
+            - Credentials/permissions
+          
+          runbook_url: "https://github.com/crossstack-ai/crossbridge/blob/main/docs/runbooks/database-connection-failure.md"
+
+      - alert: SlowDatabaseQueries
+        expr: crossbridge_database_query_duration_p95_ms > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+          team: qa-platform
+        annotations:
+          summary: "Slow database queries detected"
+          description: |
+            95th percentile query duration is {{ $value }}ms (threshold: 1000ms).
+            
+            Possible causes:
+            - Missing indexes
+            - Large data volume
+            - Database resource constraints
+            - Complex queries
+
+  # ==========================================================================
+  # Integration Alerts - External Dependencies
+  # ==========================================================================
+  - name: crossbridge_integrations
+    interval: 2m
+    rules:
+      - alert: AIProviderDegraded
+        expr: crossbridge_ai_provider_errors_total > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: ai_provider
+          team: qa-platform
+        annotations:
+          summary: "AI provider experiencing errors"
+          description: |
+            AI provider {{ $labels.provider_name }} has {{ $value }} errors in last 5 minutes.
+            
+            This may affect:
+            - Test transformation
+            - Failure analysis
+            - Semantic search
+            
+            Check provider status and API keys.
+
+      - alert: SemanticEngineDegraded
+        expr: crossbridge_semantic_engine_errors_total > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: semantic_engine
+          team: qa-platform
+        annotations:
+          summary: "Semantic engine experiencing errors"
+          description: |
+            Semantic engine has {{ $value }} errors in last 5 minutes.
+            
+            Features affected:
+            - Test discovery
+            - Similarity matching
+            - Intelligent filtering
+
+  # ==========================================================================
+  # Trend Alerts - Historical Analysis
+  # ==========================================================================
+  - name: crossbridge_trends
+    interval: 5m
+    rules:
+      - alert: HealthTrendDeteriorating
+        expr: |
+          (
+            sum(crossbridge_component_health_status{status="healthy"}) 
+            / 
+            count(crossbridge_component_health_status)
+          ) < 0.7
+        for: 15m
+        labels:
+          severity: warning
+          trend: deteriorating
+          team: qa-platform
+        annotations:
+          summary: "Health trend is deteriorating"
+          description: |
+            Less than 70% of components are healthy for 15+ minutes.
+            
+            Healthy ratio: {{ $value }}
+            
+            System is showing signs of degradation.
+            Review component health and investigate root causes.
+
+      - alert: ErrorRateIncreasing
+        expr: |
+          (
+            rate(crossbridge_errors_total[10m]) 
+            / 
+            rate(crossbridge_errors_total[10m] offset 1h)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          trend: increasing
+          team: qa-platform
+        annotations:
+          summary: "Error rate doubled compared to 1 hour ago"
+          description: |
+            Error rate has more than doubled in the last hour.
+            
+            Current rate: {{ $value }} errors/sec
+            Previous rate (1h ago): {{ $value | humanize }}
+            
+            Investigate recent changes or external factors.

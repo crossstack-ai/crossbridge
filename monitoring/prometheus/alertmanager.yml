@@ -1,0 +1,248 @@
+# ============================================================================
+# CrossBridge Alertmanager Configuration
+# ============================================================================
+# Handles routing and notifications for Prometheus alerts
+#
+# Usage:
+#   alertmanager --config.file=monitoring/prometheus/alertmanager.yml \
+#                --storage.path=./alertmanager-data
+#
+# Access Alertmanager UI: http://localhost:9093
+# ============================================================================
+
+global:
+  # Default global settings
+  resolve_timeout: 5m
+  
+  # SMTP configuration for email alerts
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'crossbridge-alerts@yourcompany.com'
+  smtp_auth_username: 'crossbridge-alerts@yourcompany.com'
+  smtp_auth_password: '${SMTP_PASSWORD}'  # Set via environment variable
+  smtp_require_tls: true
+
+# Templates for notifications
+templates:
+  - 'templates/*.tmpl'
+
+# ============================================================================
+# Routing Configuration
+# ============================================================================
+route:
+  # Default receiver for all alerts
+  receiver: 'default'
+  
+  # Group alerts to reduce notification spam
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s          # Wait before sending initial notification
+  group_interval: 10s      # Wait before sending batch of new alerts
+  repeat_interval: 12h     # Re-send resolved alerts after this time
+  
+  # Route configuration
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 4h
+      continue: true  # Also send to default receiver
+    
+    # Warning alerts - less urgent
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+    
+    # Database-specific alerts
+    - match:
+        component: database
+      receiver: 'database-team'
+      continue: false
+    
+    # AI/ML component alerts
+    - match_re:
+        component: '(ai_provider|semantic_engine)'
+      receiver: 'ml-team'
+      continue: false
+
+# ============================================================================
+# Inhibition Rules
+# ============================================================================
+# Prevent certain alerts when others are already firing
+
+inhibit_rules:
+  # If CrossBridge is down, inhibit all component alerts
+  - source_match:
+      alertname: 'CrossBridgeDown'
+    target_match_re:
+      alertname: 'Component.*'
+    equal: ['instance']
+  
+  # If database connection fails, inhibit database query alerts
+  - source_match:
+      alertname: 'DatabaseConnectionFailure'
+    target_match:
+      component: 'database'
+    equal: ['instance']
+  
+  # Critical alerts inhibit warnings for same component
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance', 'component']
+
+# ============================================================================
+# Receivers (Notification Channels)
+# ============================================================================
+
+receivers:
+  # --------------------------------------------------------------------------
+  # Default receiver - catch-all
+  # --------------------------------------------------------------------------
+  - name: 'default'
+    email_configs:
+      - to: 'qa-platform-team@yourcompany.com'
+        headers:
+          Subject: '[CrossBridge] {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>CrossBridge Alert: {{ .GroupLabels.alertname }}</h2>
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong></p>
+          <pre>{{ .CommonAnnotations.description }}</pre>
+          
+          <h3>Affected Instances</h3>
+          <ul>
+          {{ range .Alerts }}
+            <li>{{ .Labels.instance }} - {{ .Labels.status }}</li>
+          {{ end }}
+          </ul>
+          
+          <p><a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+  
+  # --------------------------------------------------------------------------
+  # Critical alerts - multiple channels
+  # --------------------------------------------------------------------------
+  - name: 'critical-alerts'
+    # Slack notification
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'  # Set via environment variable
+        channel: '#crossbridge-alerts'
+        title: '🔴 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          *Severity:* {{ .CommonLabels.severity }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          
+          *Description:*
+          ```
+          {{ .CommonAnnotations.description }}
+          ```
+          
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+        send_resolved: true
+    
+    # PagerDuty integration
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .CommonAnnotations.summary }}'
+        details:
+          alert_name: '{{ .GroupLabels.alertname }}'
+          severity: '{{ .CommonLabels.severity }}'
+          instance: '{{ .GroupLabels.instance }}'
+          description: '{{ .CommonAnnotations.description }}'
+    
+    # Email
+    email_configs:
+      - to: 'oncall@yourcompany.com'
+        headers:
+          Subject: '🔴 CRITICAL: [CrossBridge] {{ .GroupLabels.alertname }}'
+        html: |
+          <h1 style="color: red;">🔴 CRITICAL ALERT</h1>
+          <h2>{{ .GroupLabels.alertname }}</h2>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong></p>
+          <pre>{{ .CommonAnnotations.description }}</pre>
+          <p><a href="{{ .CommonAnnotations.runbook_url }}" style="background-color: red; color: white; padding: 10px; text-decoration: none;">VIEW RUNBOOK</a></p>
+  
+  # --------------------------------------------------------------------------
+  # Warning alerts - Slack only
+  # --------------------------------------------------------------------------
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#crossbridge-warnings'
+        title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        text: |
+          *Severity:* {{ .CommonLabels.severity }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          
+          *Description:*
+          ```
+          {{ .CommonAnnotations.description }}
+          ```
+          
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+        send_resolved: true
+  
+  # --------------------------------------------------------------------------
+  # Database team
+  # --------------------------------------------------------------------------
+  - name: 'database-team'
+    email_configs:
+      - to: 'database-team@yourcompany.com'
+        headers:
+          Subject: '[CrossBridge DB] {{ .GroupLabels.alertname }}'
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#database-alerts'
+        title: '🗄️ Database: {{ .GroupLabels.alertname }}'
+        text: |
+          *Database:* {{ .CommonLabels.database_name }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          
+          {{ .CommonAnnotations.description }}
+  
+  # --------------------------------------------------------------------------
+  # ML/AI team
+  # --------------------------------------------------------------------------
+  - name: 'ml-team'
+    email_configs:
+      - to: 'ml-team@yourcompany.com'
+        headers:
+          Subject: '[CrossBridge AI/ML] {{ .GroupLabels.alertname }}'
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#ml-alerts'
+        title: '🤖 AI/ML: {{ .GroupLabels.alertname }}'
+        text: |
+          *Component:* {{ .CommonLabels.component }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          
+          {{ .CommonAnnotations.description }}
+
+# ============================================================================
+# Time-based muting
+# ============================================================================
+# Example: Mute non-critical alerts during maintenance windows
+
+# time_intervals:
+#   - name: 'maintenance-window'
+#     time_intervals:
+#       - weekdays: ['saturday', 'sunday']
+#         times:
+#           - start_time: '02:00'
+#             end_time: '06:00'
+#
+# route:
+#   routes:
+#     - match:
+#         severity: 'warning'
+#       mute_time_intervals:
+#         - 'maintenance-window'

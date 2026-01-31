@@ -1,0 +1,134 @@
+# ============================================================================
+# CrossBridge Prometheus Configuration
+# ============================================================================
+# Prometheus server configuration for CrossBridge monitoring
+#
+# Usage:
+#   prometheus --config.file=monitoring/prometheus/prometheus.yml \
+#              --storage.tsdb.path=./prometheus-data
+#
+# Access Prometheus UI: http://localhost:9091
+# ============================================================================
+
+global:
+  scrape_interval: 15s      # How frequently to scrape targets
+  evaluation_interval: 15s   # How frequently to evaluate rules
+  
+  # Attach these labels to any time series or alerts
+  external_labels:
+    cluster: 'crossbridge-main'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'localhost:9093'  # Alertmanager address
+
+# Load alert rules
+rule_files:
+  - 'crossbridge-alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # ==========================================================================
+  # CrossBridge Health Endpoints
+  # ==========================================================================
+  - job_name: 'crossbridge'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    
+    # Health endpoint metrics
+    metrics_path: '/metrics'
+    
+    static_configs:
+      - targets:
+          - 'localhost:9090'  # Main CrossBridge instance
+        labels:
+          service: 'crossbridge'
+          component: 'main'
+          
+    # Optional: Service discovery
+    # file_sd_configs:
+    #   - files:
+    #       - 'targets/crossbridge-*.json'
+    #     refresh_interval: 30s
+  
+  # ==========================================================================
+  # CrossBridge v2 Health API
+  # ==========================================================================
+  - job_name: 'crossbridge-health-v2'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    
+    metrics_path: '/health/v2'
+    
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+        labels:
+          service: 'crossbridge'
+          api_version: 'v2'
+    
+    # Convert JSON health response to metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: '.*'
+        action: labeldrop
+        
+  # ==========================================================================
+  # PostgreSQL Database (if exposed)
+  # ==========================================================================
+  - job_name: 'crossbridge-postgres'
+    scrape_interval: 30s
+    
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
+        labels:
+          service: 'postgres'
+          component: 'database'
+  
+  # ==========================================================================
+  # Prometheus Self-Monitoring
+  # ==========================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - 'localhost:9091'
+        labels:
+          component: 'prometheus'
+
+# ============================================================================
+# Recording Rules (Pre-aggregated Metrics)
+# ============================================================================
+# Uncomment to enable recording rules for faster dashboard queries
+
+# recording_rules:
+#   - 'recording_rules.yml'
+
+# ============================================================================
+# Remote Write (Optional - for long-term storage)
+# ============================================================================
+# Uncomment to send metrics to remote storage (Thanos, Cortex, etc.)
+
+# remote_write:
+#   - url: "http://thanos:19291/api/v1/receive"
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 50
+#       min_shards: 1
+
+# ============================================================================
+# Storage Configuration
+# ============================================================================
+storage:
+  tsdb:
+    # Retention period
+    retention.time: 30d
+    retention.size: 50GB
+    
+    # Compression
+    min_block_duration: 2h
+    max_block_duration: 36h
