@@ -220,7 +220,7 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 | **pytest** | Python | Unit/Integration | ✅ Production | 98% |
 | **Selenium Python** | Python | UI Automation | ✅ Production | 95% |
 | **Selenium Java** | Java | UI Automation | ✅ Beta | 92% |
-| **Selenium BDD Java** | Java | BDD | ⚠️ Beta | 85% (Read-only) |
+| **Cucumber/JBehave (Java BDD)** | Java | BDD | ✅ Production | 95% |
 | **Selenium .NET** | C# | UI Automation | ✅ Production | 95% |
 | **Cypress** | JavaScript/TS | E2E | ✅ Production | 98% |
 | **Robot Framework** | Robot | Keyword-Driven | ✅ Production | 95% |
@@ -232,7 +232,7 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 **Average Completeness: 95%** ✅ (Up from 88%)
 
-**Note**: Selenium BDD Java adapter supports test discovery and analysis but test execution requires manual runner integration.
+**BDD Framework Support:** CrossBridge now includes comprehensive BDD adapters for Cucumber Java, Robot Framework BDD, and JBehave with full feature parsing, step definition mapping, and execution report analysis. See [BDD Implementation Summary](BDD_IMPLEMENTATION_SUMMARY.md) for complete details.
 
 **Advanced Framework Features:**
 
