@@ -4,7 +4,7 @@
 # Product: CrossBridge by CrossStack AI (v0.2.0)
 # Description: AI-powered test automation modernization platform
 # Python Version: >=3.9, <3.15 (tested on 3.9-3.14)
-# Last Updated: January 29, 2026
+# Last Updated: January 31, 2026
 # ============================================================================
 
 # ============================================================================
@@ -82,9 +82,10 @@ playwright>=1.40.0                # Modern browser automation (Chromium/Firefox/
 
 # Note: Framework-specific dependencies installed as needed:
 # - selenium>=4.0.0              # For Selenium translation/analysis
-# - robotframework>=6.0          # For Robot Framework support
+# - robotframework>=6.0          # For Robot Framework support (adapters/robot/)
 # - cypress (via npm)            # npm install cypress
 # - pytest plugins               # pytest-bdd, pytest-selenium, etc.
+# - dotnet SDK 6.0+              # For Selenium .NET adapter (adapters/selenium_dotnet/)
 
 # ============================================================================
 # SOURCE CONTROL & REPOSITORY INTEGRATION (Optional)

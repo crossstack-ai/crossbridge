@@ -11,8 +11,8 @@ FROM python:3.11-slim
 # METADATA
 # ============================================================================
 LABEL org.opencontainers.image.title="crossbridge"
-LABEL org.opencontainers.image.description="Framework-agnostic test execution orchestrator"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.description="Framework-agnostic test execution orchestrator with 12+ framework support"
+LABEL org.opencontainers.image.version="0.2.0"
 LABEL org.opencontainers.image.vendor="CrossStack AI"
 LABEL org.opencontainers.image.source="https://github.com/crossstack-ai/crossbridge"
 LABEL org.opencontainers.image.documentation="https://github.com/crossstack-ai/crossbridge/blob/main/docs/DOCKER_GUIDE.md"

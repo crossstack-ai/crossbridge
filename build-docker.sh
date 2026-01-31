@@ -13,7 +13,7 @@ set -e  # Exit on error
 # ============================================================================
 
 # Default version (override with first argument)
-VERSION="${1:-1.0.0}"
+VERSION="${1:-0.2.0}"
 
 # Image name
 IMAGE_NAME="crossbridge/crossbridge"
