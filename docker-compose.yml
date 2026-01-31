@@ -47,16 +47,17 @@ services:
       - CROSSBRIDGE_LOG_LEVEL=${LOG_LEVEL:-INFO}
       
       # Database (optional)
-      - CROSSBRIDGE_DB_HOST=${DB_HOST:-10.55.12.99}
-      - CROSSBRIDGE_DB_PORT=${DB_PORT:-5432}
-      - CROSSBRIDGE_DB_NAME=${DB_NAME:-crossbridge}
-      - CROSSBRIDGE_DB_USER=${DB_USER:-postgres}
-      - CROSSBRIDGE_DB_PASSWORD=${DB_PASSWORD:-admin}
+      - CROSSBRIDGE_DB_HOST=${CROSSBRIDGE_DB_HOST:-10.55.12.99}
+      - CROSSBRIDGE_DB_PORT=${CROSSBRIDGE_DB_PORT:-5432}
+      - CROSSBRIDGE_DB_NAME=${CROSSBRIDGE_DB_NAME:-crossbridge}
+      - CROSSBRIDGE_DB_USER=${CROSSBRIDGE_DB_USER:-postgres}
+      - CROSSBRIDGE_DB_PASSWORD=${CROSSBRIDGE_DB_PASSWORD:-admin}
       
       # Application tracking
-      - PRODUCT_NAME=${PRODUCT_NAME:-CrossBridgeApp}
-      - APP_VERSION=${APP_VERSION:-v1.0.0}
-      - ENVIRONMENT=${ENVIRONMENT:-local}
+      - CROSSBRIDGE_PRODUCT_NAME=${CROSSBRIDGE_PRODUCT_NAME:-CrossBridgeApp}
+      - CROSSBRIDGE_APP_VERSION=${CROSSBRIDGE_APP_VERSION:-v1.0.0}
+      - CROSSBRIDGE_APPLICATION_VERSION=${CROSSBRIDGE_APPLICATION_VERSION:-v1.0.0}
+      - CROSSBRIDGE_ENVIRONMENT=${CROSSBRIDGE_ENVIRONMENT:-local}
     
     # Command to execute
     # Override this with your actual execution command
@@ -94,9 +95,9 @@ services:
     container_name: crossbridge-db
     
     environment:
-      - POSTGRES_DB=${DB_NAME:-crossbridge}
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-admin}
+      - POSTGRES_DB=${CROSSBRIDGE_DB_NAME:-crossbridge}
+      - POSTGRES_USER=${CROSSBRIDGE_DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${CROSSBRIDGE_DB_PASSWORD:-admin}
     
     volumes:
       - postgres-data:/var/lib/postgresql/data

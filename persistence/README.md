@@ -71,15 +71,15 @@ psql crossbridge < persistence/schema.sql
 ### 2. Configure Connection
 
 ```bash
-# Option 1: Full URL
+# Option 1: Full URL (Recommended)
 export CROSSBRIDGE_DB_URL=postgresql://user:pass@localhost:5432/crossbridge
 
 # Option 2: Individual components
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_NAME=crossbridge
-export DB_USER=crossbridge
-export DB_PASSWORD=your_password
+export CROSSBRIDGE_DB_HOST=localhost
+export CROSSBRIDGE_DB_PORT=5432
+export CROSSBRIDGE_DB_NAME=crossbridge
+export CROSSBRIDGE_DB_USER=crossbridge
+export CROSSBRIDGE_DB_PASSWORD=your_password
 ```
 
 ### 3. Use in CLI

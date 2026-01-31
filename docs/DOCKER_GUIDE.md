@@ -202,9 +202,10 @@ docker run --rm \
 
 | Variable | Description |
 |----------|-------------|
-| `PRODUCT_NAME` | Product/application name |
-| `APP_VERSION` | Application version |
-| `ENVIRONMENT` | Environment (dev, qa, staging, prod) |
+| `CROSSBRIDGE_PRODUCT_NAME` | Product/application name |
+| `CROSSBRIDGE_APP_VERSION` | Application version |
+| `CROSSBRIDGE_APPLICATION_VERSION` | Application version (alternative naming) |
+| `CROSSBRIDGE_ENVIRONMENT` | Environment (dev, qa, staging, prod) |
 
 ### Example
 
@@ -212,8 +213,8 @@ docker run --rm \
 docker run --rm \
   -e CROSSBRIDGE_LOG_LEVEL=DEBUG \
   -e CROSSBRIDGE_ENV=staging \
-  -e PRODUCT_NAME=MyApp \
-  -e APP_VERSION=v2.0.0 \
+  -e CROSSBRIDGE_PRODUCT_NAME=MyApp \
+  -e CROSSBRIDGE_APP_VERSION=v2.0.0 \
   -v $(pwd)/tests:/workspace:ro \
   crossbridge/crossbridge:1.0.0 exec run --framework pytest --strategy impacted
 ```
