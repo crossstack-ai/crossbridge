@@ -37,6 +37,20 @@ from .adapter import (
 from .value_retriever_handler import ValueRetrieverHandler
 from .specflow_plus_handler import SpecFlowPlusHandler
 
+# Scenario Outline expansion (Gap 3.1)
+_OUTLINE_EXPANDER_AVAILABLE = False
+try:
+    from .outline_expander import (
+        ScenarioOutlineExpander,
+        expand_scenario_outlines,
+        ExpandedScenario,
+        ScenarioOutline,
+        ExamplesTable,
+    )
+    _OUTLINE_EXPANDER_AVAILABLE = True
+except ImportError:
+    pass
+
 __all__ = [
     "SeleniumSpecFlowAdapter",
     "SeleniumSpecFlowExtractor",
@@ -48,3 +62,13 @@ __all__ = [
     "ValueRetrieverHandler",
     "SpecFlowPlusHandler",
 ]
+
+# Add outline expander exports if available
+if _OUTLINE_EXPANDER_AVAILABLE:
+    __all__.extend([
+        "ScenarioOutlineExpander",
+        "expand_scenario_outlines",
+        "ExpandedScenario",
+        "ScenarioOutline",
+        "ExamplesTable",
+    ])
