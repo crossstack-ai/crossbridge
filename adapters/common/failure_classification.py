@@ -176,12 +176,18 @@ class StackTraceParser:
         for line in stack_trace.split('\n'):
             match = cls.DOTNET_FRAME_PATTERN.match(line)
             if match:
+                class_name = match.group('class')
+                file_path = match.group('file')
+                
+                # Check if it's framework code by class name or file path
+                is_framework = cls._is_framework_class(class_name) or cls._is_framework_file(file_path)
+                
                 frames.append(StackFrame(
-                    file_path=match.group('file'),
+                    file_path=file_path,
                     line_number=int(match.group('line')),
                     function_name=match.group('method'),
-                    class_name=match.group('class'),
-                    is_framework_code=cls._is_framework_class(match.group('class'))
+                    class_name=class_name,
+                    is_framework_code=is_framework
                 ))
         
         return frames
@@ -219,7 +225,7 @@ class StackTraceParser:
         """Check if file is framework code (Python/JS)."""
         framework_indicators = [
             'site-packages', 'node_modules', 'pytest', 'playwright',
-            'selenium', 'cypress', 'robot', 'unittest'
+            'selenium', 'cypress', 'robot', 'unittest', 'Locator.cs'
         ]
         return any(indicator in file_path for indicator in framework_indicators)
 

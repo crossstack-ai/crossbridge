@@ -30,6 +30,20 @@ from .adapter import (
 )
 from .multi_language_enhancer import PlaywrightMultiLanguageEnhancer
 
+# Failure classification (Gap 2.1)
+_FAILURE_CLASSIFIER_AVAILABLE = False
+try:
+    from .failure_classifier import (
+        PlaywrightFailureClassifier,
+        BrowserFailureType,
+        BrowserComponentType,
+        PlaywrightFailureClassification,
+        classify_playwright_failure,
+    )
+    _FAILURE_CLASSIFIER_AVAILABLE = True
+except ImportError:
+    pass
+
 __all__ = [
     "PlaywrightAdapter",
     "PlaywrightExtractor",
@@ -39,3 +53,13 @@ __all__ = [
     "PlaywrightTestFramework",
     "PlaywrightMultiLanguageEnhancer",
 ]
+
+# Add failure classifier exports if available
+if _FAILURE_CLASSIFIER_AVAILABLE:
+    __all__.extend([
+        "PlaywrightFailureClassifier",
+        "BrowserFailureType",
+        "BrowserComponentType",
+        "PlaywrightFailureClassification",
+        "classify_playwright_failure",
+    ])
