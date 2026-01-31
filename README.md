@@ -1706,9 +1706,16 @@ CrossBridge exposes its capabilities as MCP tools that AI agents (Claude, GPT-4,
 **Available Tools:**
 - `run_tests` - Execute tests in any project (pytest, junit, robot)
 - `analyze_flaky_tests` - Detect flaky tests from execution history
-- `migrate_framework` - Convert tests between frameworks
+- `migrate_tests` - Convert tests between frameworks
 - `analyze_coverage` - Generate coverage reports and impact analysis
-- `generate_tests` - AI-powered test generation from requirements
+- `analyze_impact` - Analyze code changes and recommend affected tests
+- `analyze_bdd_features` - Analyze BDD features (Cucumber, Robot BDD, JBehave) ⭐ NEW
+- `orchestrate_execution` - Intelligent test execution with strategy selection (smoke, impacted, risk, full) ⭐ NEW
+- `semantic_search_tests` - Search tests using natural language queries ⭐ NEW
+- `classify_failure` - Classify test failures (product defect, locator issue, environment, flaky) ⭐ NEW
+- `sidecar_status` - Get sidecar runtime health and metrics ⭐ NEW
+- `get_profiling_report` - Get performance profiling report for test execution ⭐ NEW
+- `validate_transformation` - Validate AI-generated code with confidence scoring ⭐ NEW
 
 **Starting the MCP Server:**
 ```python
@@ -1732,12 +1739,37 @@ server.start()
 **Example: AI Agent Using CrossBridge**
 ```json
 {
-  "tool": "migrate_framework",
+  "tool": "orchestrate_execution",
   "inputs": {
-    "source_framework": "selenium_java_bdd",
-    "target_framework": "robot_playwright",
-    "repository_url": "https://github.com/org/repo",
-    "branch": "main"
+    "project_path": "/path/to/project",
+    "framework": "pytest",
+    "strategy": "impacted",
+    "base_branch": "origin/main"
+  }
+}
+```
+
+**Example: Semantic Search**
+```json
+{
+  "tool": "semantic_search_tests",
+  "inputs": {
+    "query": "tests covering login timeout handling",
+    "framework": "pytest",
+    "top_k": 5
+  }
+}
+```
+
+**Example: BDD Analysis**
+```json
+{
+  "tool": "analyze_bdd_features",
+  "inputs": {
+    "project_path": "/path/to/project",
+    "framework": "cucumber-java",
+    "features_dir": "src/test/resources/features",
+    "step_definitions_dir": "src/test/java"
   }
 }
 ```

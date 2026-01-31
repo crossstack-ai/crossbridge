@@ -92,6 +92,90 @@ def example_mcp_server():
     )
     print(f"  Result: {result}")
     
+    # Execute BDD analysis tool (NEW)
+    print("\n🚀 Executing NEW tool: analyze_bdd_features")
+    result = server.execute_tool(
+        "analyze_bdd_features",
+        inputs={
+            "project_path": "/my/project",
+            "framework": "cucumber-java",
+            "features_dir": "src/test/resources/features",
+            "step_definitions_dir": "src/test/java"
+        },
+        auth_token="demo-api-key-12345"
+    )
+    print(f"  Result: {result}")
+    
+    # Execute execution orchestration (NEW)
+    print("\n🚀 Executing NEW tool: orchestrate_execution")
+    result = server.execute_tool(
+        "orchestrate_execution",
+        inputs={
+            "project_path": "/my/project",
+            "framework": "pytest",
+            "strategy": "impacted",
+            "base_branch": "origin/main"
+        },
+        auth_token="demo-api-key-12345"
+    )
+    print(f"  Result: {result}")
+    
+    # Execute semantic search (NEW)
+    print("\n🚀 Executing NEW tool: semantic_search_tests")
+    result = server.execute_tool(
+        "semantic_search_tests",
+        inputs={
+            "query": "tests covering login timeout handling",
+            "framework": "pytest",
+            "top_k": 5
+        }
+    )
+    print(f"  Result: {result}")
+    
+    # Execute failure classification (NEW)
+    print("\n🚀 Executing NEW tool: classify_failure")
+    result = server.execute_tool(
+        "classify_failure",
+        inputs={
+            "log_file": "/logs/test_output.log",
+            "framework": "selenium",
+            "test_name": "test_login"
+        },
+        auth_token="demo-api-key-12345"
+    )
+    print(f"  Result: {result}")
+    
+    # Execute sidecar status check (NEW)
+    print("\n🚀 Executing NEW tool: sidecar_status")
+    result = server.execute_tool(
+        "sidecar_status",
+        inputs={"project_path": "/my/project"}
+    )
+    print(f"  Result: {result}")
+    
+    # Execute profiling report (NEW)
+    print("\n🚀 Executing NEW tool: get_profiling_report")
+    result = server.execute_tool(
+        "get_profiling_report",
+        inputs={
+            "project_path": "/my/project",
+            "test_run_id": "run-12345",
+            "framework": "pytest"
+        }
+    )
+    print(f"  Result: {result}")
+    
+    # Execute transformation validation (NEW)
+    print("\n🚀 Executing NEW tool: validate_transformation")
+    result = server.execute_tool(
+        "validate_transformation",
+        inputs={
+            "transformation_id": "ai-abc123",
+            "operation": "generate"
+        }
+    )
+    print(f"  Result: {result}")
+    
     # Show MCP spec
     print("\n📜 MCP Specification:")
     spec = server.to_mcp_spec()
@@ -231,9 +315,11 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("🎓 Key Takeaways:")
     print("=" * 60)
-    print("✅ CrossBridge MCP Server: Exposes test intelligence tools to AI agents")
+    print("✅ CrossBridge MCP Server: Exposes 15+ test intelligence tools to AI agents")
     print("✅ CrossBridge MCP Client: Integrates with Jira, GitHub, CI/CD")
     print("✅ Combined: Enables autonomous AI-driven test workflows")
+    print("✅ New Tools: BDD analysis, execution orchestration, semantic search,")
+    print("              failure classification, sidecar monitoring, profiling, AI validation")
     print("✅ All tests passing: 21/21 MCP tests pass")
     print("\n📚 Learn more:")
     print("  • MCP Client: core/ai/mcp/client.py")
