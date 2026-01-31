@@ -31,8 +31,6 @@ Whether you have Selenium, Cypress, Robot, or pytest suites — CrossBridge work
 
 ## 🧩 Core Capabilities
 
-## 🧩 Core Capabilities
-
 ### 🔹 1. **Legacy Support Without Migration**
 Work with existing tests as-is — zero code changes required.
 
@@ -138,7 +136,7 @@ Works with all 12+ frameworks. See [Sidecar Guide](docs/TEST_INFRASTRUCTURE_AND_
 
 ---
 
-### 🔹 5.1 **AI Semantic Engine**
+### 🔹 6. **AI Semantic Engine**
 Advanced semantic intelligence for test discovery, duplicate detection, and smart test selection:
 
 - 🔍 **Semantic Search** - Natural language search across tests, scenarios, and failures
@@ -175,7 +173,7 @@ See [Semantic Engine Guide](docs/SEMANTIC_ENGINE.md) for details.
 
 ---
 
-### 🔹 6. **Framework-Agnostic Architecture**
+### 🔹 7. **Framework-Agnostic Architecture**
 Plugin-based ecosystem supports 12+ existing frameworks:
 
 | Framework | Language | Type | Status | Completeness |
@@ -210,7 +208,7 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 ---
 
-### 🔹 7. **Execution Orchestration** 🆕
+### 🔹 8. **Execution Orchestration** 🆕
 Intelligent test execution that determines **WHAT**, **WHEN**, and **HOW** to run tests:
 
 **Key Features:**
@@ -290,7 +288,7 @@ See [Execution Orchestration Guide](docs/EXECUTION_ORCHESTRATION.md) for complet
 
 📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
 
-### 🔹 5. **Execution Intelligence Engine** 🆕
+### 🔹 9. **Execution Intelligence Engine** 🆕
 Framework-agnostic log analyzer that intelligently classifies test failures:
 
 ```
@@ -342,7 +340,7 @@ crossbridge analyze directory --log-dir ./test-output --pattern "*.log"
 
 📖 See [EXECUTION_INTELLIGENCE.md](docs/EXECUTION_INTELLIGENCE.md) for complete documentation
 
-### 🔹 6. **Application Log Integration** 🆕
+### 🔹 10. **Application Log Integration** 🆕
 **Released: January 30, 2026**
 
 Universal JSON log adapter for correlating test failures with application behavior:
@@ -418,7 +416,7 @@ print(f"Correlation confidence: {result.correlation_confidence}")
 
 📖 See [JSON_LOG_ADAPTER.md](docs/log_analysis/JSON_LOG_ADAPTER.md) for complete documentation
 
-### 🔹 7. **Semantic Search & Test Intelligence**
+### 🔹 11. **Semantic Search & Test Intelligence**
 Unified system combining test normalization, AST extraction, and AI-powered semantic search:
 
 ```
@@ -471,7 +469,7 @@ All settings in one place under `runtime.semantic_search` in [crossbridge.yml](c
 
 📖 See [SEMANTIC_SEARCH.md](docs/ai/SEMANTIC_SEARCH.md) and [Quick Start](docs/ai/SEMANTIC_SEARCH_QUICK_START.md)
 
-### 🔹 8. **Unified Intelligence Configuration**
+### 🔹 12. **Unified Intelligence Configuration**
 Centralize all framework-specific intelligence rules in one place:
 
 ```
@@ -523,7 +521,7 @@ crossbridge:
 
 📖 **Complete Guide**: [UNIFIED_CONFIGURATION_GUIDE.md](docs/configuration/UNIFIED_CONFIGURATION_GUIDE.md)
 
-### 🔹 8. **Production Hardening & Runtime Protection**
+### 🔹 13. **Production Hardening & Runtime Protection**
 Enterprise-grade production runtime features for resilient test execution:
 
 ```
@@ -594,7 +592,7 @@ if not registry.is_healthy():
 - [All Gaps Fixed Summary](docs/hardening/PRODUCTION_HARDENING_ALL_GAPS_FIXED.md)
 - [Module Documentation](core/runtime/README.md)
 
-### 🔹 6. **Debuggable Sidecar Runtime** 🆕
+### 🔹 14. **Debuggable Sidecar Runtime** 🆕
 Resilient, low-overhead observer that provides observability without impacting test execution:
 
 ```
@@ -654,7 +652,7 @@ with SidecarRuntime() as sidecar:
 - [Configuration Reference](crossbridge.yml)
 - [Usage Examples](examples/sidecar_examples.py)
 
-### 🔹 7. **Performance Profiling & Observability**
+### 🔹 15. **Performance Profiling & Observability**
 Passive, non-invasive performance profiling for all test executions:
 
 ```
@@ -702,7 +700,7 @@ crossbridge:
 
 📖 **Learn More**: [Performance Profiling Documentation](docs/profiling/README.md)
 
-### 🔹 8. **AI Transformation Validation** 🆕
+### 🔹 16. **AI Transformation Validation** 🆕
 Never auto-merge AI-generated code again! Comprehensive validation system with confidence scoring, human review workflows, and audit trails:
 
 ```
