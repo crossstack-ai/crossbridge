@@ -1,0 +1,2183 @@
+# CrossBridge AI
+
+> **AI-Powered Test Automation Modernization & Transformation Platform**  
+> Reduce test automation debt, unlock legacy test value, and accelerate delivery with AI-guided modernization.
+
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Development Status](https://img.shields.io/badge/status-v0.2.0-green.svg)](https://github.com/crossstack-ai/crossbridge)
+[![Production Ready](https://img.shields.io/badge/production-98%25-brightgreen.svg)](docs/releases/V0.2.0_RELEASE_NOTES.md)
+[![CrossStack AI](https://img.shields.io/badge/by-CrossStack%20AI-blue)](https://crossstack.ai)
+
+CrossBridge AI is an open-source platform by **CrossStack AI** that helps organizations and teams **modernize, analyze, and optimize test automation** in a framework-agnostic way.
+
+**Latest Release:** v0.2.0 (January 29, 2026) - [Release Notes](docs/releases/V0.2.0_RELEASE_NOTES.md)
+
+---
+
+## 🚀 Mission
+
+Modern test automation ecosystems are fragmented, brittle, and expensive to maintain.  
+CrossBridge AI enables teams to:
+
+- 🧠 **Analyze existing automation across languages & frameworks**
+- 🔄 **Upgrade legacy tests intelligently**
+- 🚫 **Avoid costly rewrites**
+- 🚀 **Accelerate QA velocity with AI-infused insights**
+
+Whether you have Selenium, Cypress, Robot, or pytest suites — CrossBridge works **with or without migration changes**.
+
+---
+
+## 🧩 Core Capabilities
+
+### 🔹 1. **Legacy Support Without Migration**
+Work with existing tests as-is — zero code changes required.
+
+**NO MIGRATION MODE** (Sidecar Observer):
+```
+┌─────────────────────┐         ┌──────────────────┐         
+│   Your Tests        │         │   CrossBridge    │         
+│   (NO CHANGES!)     │────────▶│   (Observer)     │────────▶ 📊 Intelligence
+│                     │         │                  │         
+│  • Selenium Java    │         │  • Auto-detect   │         • Coverage tracking
+│  • Cypress          │         │  • Auto-register │         • Flaky detection  
+│  • pytest           │         │  • AI analysis   │         • Risk scores
+│  • Robot Framework  │         │  • Zero impact   │         • Test optimization
+└─────────────────────┘         └──────────────────┘         
+```
+
+**Features:**
+- Sidecar observer — no code changes
+- Continuous intelligence dashboards
+- Works with 12+ frameworks
+
+✔ Selenium, pytest, Cypress, Robot, JUnit, TestNG, NUnit, BDD frameworks, and more
+
+### 🔹 2. **Intelligent Test Migration & Transformation**
+Automate conversion from outdated frameworks to modern ones:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Legacy Tests      │         │   CrossBridge    │         │   Modern Tests      │
+│                     │         │                  │         │                     │
+│  • Selenium Java    │────────▶│  • Smart Parser  │────────▶│  • Robot Framework  │
+│  • Cucumber BDD     │         │  • AI Enhancement│         │  • Playwright       │
+│  • Pytest Selenium  │         │  • Pattern Match │         │  • Maintainable     │
+│  • .NET SpecFlow    │         │  • Validation    │         │  • Modern Syntax    │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- Selenium → Playwright transformation
+- Legacy BDD → Modern structured tests
+- AI-assisted locator improvement
+- Pattern-based intelligent parsing
+
+### 🔹 3. **AI-Powered Test Intelligence**
+Reduce maintenance costs with intelligent insights:
+
+- 🔍 **Flaky test detection** with ML-based analysis
+- 📊 **Coverage analysis** across behavioral and functional dimensions
+- 🎯 **Test risk insight and prioritization**
+- 🔧 **Self-healing locator suggestions**
+- 📈 **Impact analysis** linking tests to code changes
+
+### 🔹 4. **Intelligent Parsers & Unified Embeddings** ⭐
+**Released: January 2026**
+
+CrossBridge now includes advanced parsing capabilities and a unified embeddings system:
+
+**Intelligent Parsers:**
+- 🔍 **Java Step Definition Parser** - Parse Cucumber/BDD step definitions with AST-level analysis
+- 📊 **Robot Framework Log Parser** - Analyze Robot output.xml for keywords, tags, and performance metrics
+- 🧪 **Pytest Intelligence Plugin** - Extract execution signals and test metadata at runtime
+
+**Unified Embeddings System:**
+- 🎯 Framework-agnostic embedding interface for semantic search across all test types
+- 🔌 Support for OpenAI, Anthropic, HuggingFace, Ollama, and custom embedding providers
+- 💾 Vector stores: FAISS, pgvector, ChromaDB, Pinecone
+- 🔎 Semantic test similarity and intelligent test matching
+
+**Test Coverage:**
+- ✅ 32/32 comprehensive parser tests (100% passing)
+- ✅ 174/184 total tests passing (94.6% pass rate)
+- ✅ Performance: 50 steps parsed in <1s, 30 Robot tests in <1s
+
+📖 **Documentation:** [Feature Guide](docs/releases/historical/intelligence_features.md) | [QA Report](docs/releases/historical/intelligence_qa_report.md)
+
+---
+
+### 🔹 5. **Sidecar Observer** ⭐ NEW
+**Zero-impact test observability without code changes**
+
+Monitor and analyze tests without modifying a single line of test code:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Execution    │         │   Sidecar        │         │   Observability     │
+│   (No Changes!)     │         │   Runtime        │         │                     │
+│                     │         │                  │         │                     │
+│  • Existing tests   │────────▶│  • Sampler       │────────▶│  • Prometheus       │
+│  • Any framework    │  events │  • Observer      │ metrics │  • Grafana          │
+│  • Zero impact      │         │  • Profiler      │         │  • Health checks    │
+│                     │         │  • <5% CPU       │         │  • Alerts           │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Key Features:**
+- ⚡ **Fail-open execution** - Never blocks test runs (catches all exceptions)
+- 📦 **Bounded queues** - Load shedding with 5000-10000 event capacity
+- 🎲 **Smart sampling** - Configurable rates (1-100%, default: 10% events, 5% logs, 1% profiling)
+- 🔄 **Adaptive sampling** - Auto-boost 5x for 60s on anomalies
+- 💾 **Resource budgets** - Auto-throttles at 5% CPU / 100MB RAM limits
+- 🏥 **Health endpoints** - `/health`, `/ready`, `/metrics` for monitoring
+- 📊 **Prometheus metrics** - Production-grade observability with Grafana dashboards
+- 🔧 **Runtime configurable** - No rebuild/redeploy required
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+runtime:
+  sidecar:
+    enabled: true
+    sampling:
+      events: 0.1          # 10% sampling rate
+      adaptive: enabled    # Auto-boost on anomalies
+    resources:
+      max_queue_size: 10000
+      max_cpu_percent: 5.0
+      max_memory_mb: 100
+```
+
+**Usage Example:**
+```python
+from core.sidecar import SidecarRuntime
+
+with SidecarRuntime() as sidecar:
+    # Observe events
+    sidecar.observe('test_event', {'test_id': 'test_123', 'status': 'passed'})
+    
+    # Get health status
+    health = sidecar.get_health()  # {'status': 'healthy', 'components': {...}}
+    
+    # Export metrics (Prometheus format)
+    metrics = sidecar.export_metrics()
+```
+
+Works with all 12+ frameworks. 
+
+📖 **Learn More**:
+- [Sidecar Runtime Guide](docs/sidecar/SIDECAR_RUNTIME.md)
+- [Test Infrastructure & Hardening](docs/TEST_INFRASTRUCTURE_AND_SIDECAR_HARDENING.md)
+- [Configuration Reference](crossbridge.yml)
+- [Usage Examples](examples/sidecar_examples.py)
+
+---
+
+### 🔹 6. **AI Semantic Engine**
+Advanced semantic intelligence for test discovery, duplicate detection, and smart test selection:
+
+- 🔍 **Semantic Search** - Natural language search across tests, scenarios, and failures
+- 🔄 **Duplicate Detection** - Automatic identification of duplicate test cases (threshold: similarity ≥ 0.9, confidence ≥ 0.8)
+- 📊 **Clustering** - DBSCAN-based grouping of similar entities
+- 🎯 **Smart Test Selection** - AI-powered test selection for code changes using multi-signal scoring:
+  - 40% Semantic similarity (code/test relationship)
+  - 30% Coverage relevance (code coverage mapping)
+  - 20% Failure history (historical patterns)
+  - 10% Flakiness penalty
+- 📐 **Confidence Calibration** - Logarithmic confidence scoring for reliable results
+- 💬 **Explainability** - Every result includes human-readable reasons
+
+**Framework Compatibility:** Works with all 13 frameworks (pytest, selenium, Robot, Cypress, Playwright, JUnit, TestNG, RestAssured, Cucumber, NUnit, SpecFlow, Behave, BDD)
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+ai:
+  semantic_engine:
+    enabled: true
+    embedding:
+      provider: openai
+      model: text-embedding-3-large
+    test_selection:
+      weights:
+        semantic_similarity: 0.4
+        coverage_relevance: 0.3
+        failure_history: 0.2
+        flakiness_penalty: 0.1
+```
+
+See [Semantic Engine Guide](docs/SEMANTIC_ENGINE.md) for details.
+
+---
+
+### 🔹 7. **Framework-Agnostic Architecture**
+Plugin-based ecosystem supports 12+ existing frameworks:
+
+| Framework | Language | Type | Status | Completeness |
+|-----------|----------|------|--------|--------------|
+| **pytest** | Python | Unit/Integration | ✅ Production | 98% |
+| **Selenium Python** | Python | UI Automation | ✅ Production | 95% |
+| **Selenium Java** | Java | UI Automation | ✅ Beta | 92% |
+| **Cucumber/JBehave (Java BDD)** | Java | BDD | ✅ Production | 95% |
+| **Selenium .NET** | C# | UI Automation | ✅ Production | 95% |
+| **Cypress** | JavaScript/TS | E2E | ✅ Production | 98% |
+| **Robot Framework** | Robot | Keyword-Driven | ✅ Production | 95% |
+| **JUnit/TestNG** | Java | Unit/Enterprise | ✅ Production | 95% |
+| **NUnit/SpecFlow** | C# / .NET | Unit/BDD | ✅ Production | 96% |
+| **Playwright** | JavaScript/TS/Python | E2E | ✅ Production | 96% |
+| **RestAssured** | Java | API | ✅ Production | 95% |
+| **Cucumber/Behave** | Gherkin | BDD | ✅ Production | 96% |
+
+**Average Completeness: 95%** ✅ (Up from 88%)
+
+**BDD Framework Support:** CrossBridge now includes comprehensive BDD adapters for Cucumber Java, Robot Framework BDD, and JBehave with full feature parsing, step definition mapping, and execution report analysis. See [BDD Implementation Summary](BDD_IMPLEMENTATION_SUMMARY.md) for complete details.
+
+**Advanced Framework Features:**
+
+*BDD Framework Support:*
+- 🔹 **Multi-line String Handler** (Behave): Docstring and text block extraction
+- 🔹 **Behave-pytest Bridge**: Hybrid testing with context fixture integration
+- 🔹 **Step Parameters**: Behave regex group and parameter extraction
+- 🔹 **Custom Matchers**: Behave custom step matcher detection
+- 🔹 **DI Container Support** (SpecFlow): Microsoft.Extensions.DependencyInjection integration
+- 🔹 **ScenarioContext Handler**: Context state management and pytest conversion
+- 🔹 **Table Conversion Handler**: SpecFlow table transformations and TableConverter support
+
+---
+
+### 🔹 8. **Execution Orchestration** 🆕
+Intelligent test execution that determines **WHAT**, **WHEN**, and **HOW** to run tests:
+
+**Key Features:**
+- **4 Execution Strategies**: Smoke (fast), Impacted (changes), Risk-based (quality), Full (comprehensive)
+- **60-80% Test Reduction**: Smart selection reduces CI/CD time significantly
+- **Framework-Agnostic**: Works with TestNG, Robot, Pytest, Cypress, Playwright, and more
+- **Non-Invasive**: Zero test code changes - invokes frameworks via CLI
+- **CI/CD Native**: Designed for Jenkins, GitHub Actions, GitLab CI, Azure DevOps, etc.
+
+**Execution Strategies:**
+
+| Strategy | Purpose | Selection Criteria | Reduction | Use Case |
+|----------|---------|-------------------|-----------|----------|
+| **Smoke** | Fast signal | Tagged smoke/critical tests | 80-95% | PR validation, quick checks |
+| **Impacted** | Code changes | Git diff + coverage mapping + semantic | 60-80% | Feature dev, targeted regression |
+| **Risk** | Historical risk | Failure rate + churn + criticality | 40-60% | Release pipelines, high-confidence |
+| **Full** | Comprehensive | All tests | 0% | Baseline, nightly regression |
+
+**CLI Examples:**
+```bash
+# Quick smoke test
+crossbridge exec run --framework pytest --strategy smoke
+
+# Impacted tests (PR validation)
+crossbridge exec run --framework testng --strategy impacted --base-branch origin/main --ci
+
+# Risk-based with budget (release)
+crossbridge exec run --framework robot --strategy risk --max-tests 100 --env prod
+
+# Dry-run to see plan
+crossbridge exec plan --framework pytest --strategy impacted --json
+```
+
+**How It Works:**
+```
+┌─────────────────────────────────────────────────┐
+│ Crossbridge (Orchestrator)                      │
+│  • Decides WHAT to run  (Strategy)              │
+│  • Decides HOW to invoke (Adapter)              │
+└──────────────────┬──────────────────────────────┘
+                   │ CLI Invocation
+                   ▼
+┌─────────────────────────────────────────────────┐
+│ Test Framework (Unchanged)                      │
+│  TestNG | Robot | Pytest | Cypress | etc.      │
+└─────────────────────────────────────────────────┘
+```
+
+**Supported Frameworks (13 Total):** 
+- **Java**: TestNG, JUnit 4/5, RestAssured, Cucumber
+- **Python**: Robot Framework, Pytest, Behave
+- **JavaScript/TypeScript**: Cypress, Playwright
+- **.NET**: SpecFlow, NUnit
+
+See [Execution Orchestration Guide](docs/EXECUTION_ORCHESTRATION.md) for complete documentation.
+
+*Web Framework Support:*
+- 🔹 **Component Testing** (Cypress): React and Vue component test detection
+- 🔹 **Multi-Config Handler**: Environment-specific Cypress configurations
+- 🔹 **TypeScript Types**: Cypress custom command type generation
+
+*API Testing Support:*
+- 🔹 **Request Filter Chains** (RestAssured): Filter chain extraction and Python conversion
+- 🔹 **Enhanced POJO Mapping**: Jackson/Gson annotations and Python dataclass generation
+- 🔹 **Fluent API Chains**: RestAssured method chaining analysis
+
+*Enterprise Features:*
+- 🔹 **Dependency Injection Support**: Guice, Spring DI extraction for Java
+- 🔹 **Reporting Integration**: Allure & ExtentReports integration
+- 🔹 **.NET Version Handler**: .NET Core/5/6/8 version detection and compatibility
+
+*pytest Advanced Features:*
+- 🔹 **Autouse Fixture Chains**: Complex pytest fixture dependency handling
+- 🔹 **Custom Hooks**: pytest_configure, pytest_collection_modifyitems support
+- 🔹 **Plugin Detection**: Automatic pytest plugin discovery and analysis
+- 🔹 **Enhanced Logging**: Framework-specific loggers with comprehensive support
+
+📖 See [MULTI_FRAMEWORK_SUPPORT.md](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md) for complete details
+
+### 🔹 9. **Execution Intelligence Engine** 🆕
+Framework-agnostic log analyzer that intelligently classifies test failures:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Raw Logs          │         │   Intelligence   │         │   Classification    │
+│  (All Frameworks)   │────────▶│   Engine         │────────▶│   + CI Actions      │
+│                     │         │                  │         │                     │
+│  • JUnit XML        │         │  • Extract       │         │  • Product Defect   │
+│  • pytest output    │         │  • Normalize     │         │  • Locator Issue    │
+│  • Robot logs       │         │  • Classify      │         │  • Environment      │
+│  • App logs         │         │  • Resolve code  │         │  • Flaky Test       │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🎯 **Intelligent Classification** - 5 failure types: Product Defect, Automation Issue, Locator Issue, Environment, Flaky
+- 🔧 **Works Without AI** - Deterministic, explainable, rule-based classification (AI optional for enhancement)
+- 📊 **Dual Log Support** - Analyze automation logs + application logs together
+- 🔍 **Code Resolution** - Pinpoints exact test file/line causing automation failures
+- 🚦 **CI/CD Integration** - Fail builds only on product defects, ignore flaky/env issues
+- 📈 **Confidence Scoring** - Provides confidence levels for each classification
+- 🌐 **Framework-Agnostic** - Supports all 13 frameworks with unified interface
+
+**Quick Usage:**
+```bash
+# Analyze single test log
+crossbridge analyze logs --log-file test_output.log --test-name test_login --framework pytest
+
+# Analyze with application logs for correlation
+crossbridge analyze-logs --framework selenium --logs-automation target/surefire-reports --logs-application app/logs/
+
+# Batch analyze directory
+crossbridge analyze directory --log-dir ./test-output --pattern "*.log"
+```
+
+**Failure Classification Categories:**
+1. **PRODUCT_DEFECT** 🐛 - Real bugs in application code → Fail CI/CD
+2. **AUTOMATION_ISSUE** 🔧 - Test code problems (syntax, imports, setup)
+3. **LOCATOR_ISSUE** 🎯 - UI element selectors broken/changed
+4. **ENVIRONMENT_ISSUE** 🌐 - Infrastructure failures (network, DB, timeouts)
+5. **FLAKY_TEST** 🔀 - Intermittent failures, timing issues
+
+**Use Cases:**
+1. **Automated Triage** - Classify 100s of failures in seconds
+2. **Smart CI/CD** - Fail pipeline only for real product defects
+3. **Team Routing** - Send automation issues to QA, product bugs to dev
+4. **Failure Analysis** - "Find similar timeout failures"
+5. **Root Cause** - Trace failure to exact test file and line number
+
+📖 See [EXECUTION_INTELLIGENCE.md](docs/EXECUTION_INTELLIGENCE.md) for complete documentation
+
+### 🔹 10. **Application Log Integration** 🆕
+**Released: January 30, 2026**
+
+Universal JSON log adapter for correlating test failures with application behavior:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Application Logs  │         │   JSON Adapter   │         │  Test Correlation   │
+│  (JSON/ELK/K8s)     │────────▶│  + Sampling      │────────▶│  + Root Cause       │
+│                     │         │  + Signal Extract│         │  + Context Analysis │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🔍 **Universal JSON Support** - ELK, Fluentd, Kubernetes, CloudWatch, custom formats
+- 🎯 **Auto Signal Extraction** - Errors, timeouts, retries, circuit breakers
+- 🔗 **Multi-Strategy Correlation** - Trace ID (1.0), execution ID (0.9), timestamp (0.7), service (0.5)
+- 📊 **Intelligent Sampling** - Level-based (DEBUG: 1%, ERROR: 100%), rate limiting, adaptive
+- 💾 **PostgreSQL Storage** - JSONB for flexible querying, batch inserts, indexed fields
+- 🎭 **Framework Compatible** - Works with all 13 CrossBridge frameworks
+- 🔄 **Retry & Circuit Breaker** - Resilient error handling and storage protection
+- 📈 **Health Monitoring** - Integrated with CrossBridge health status framework
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+execution:
+  log_ingestion:
+    enabled: true
+    adapters:
+      json:
+        enabled: true
+    sampling:
+      rates:
+        debug: 0.01    # 1% of DEBUG logs
+        error: 1.0     # 100% of ERROR logs
+    correlation:
+      strategies: [trace_id, execution_id, timestamp, service]
+```
+
+**Example Usage:**
+```python
+from core.execution.intelligence.log_adapters import get_registry
+from core.execution.intelligence.log_adapters.correlation import LogCorrelator
+
+# Parse application logs
+registry = get_registry()
+adapter = registry.get_adapter('application.log')
+app_logs = [adapter.parse(line) for line in log_file]
+
+# Correlate with test failures
+correlator = LogCorrelator()
+result = correlator.correlate(test_event, app_logs)
+
+print(f"Found {len(result.correlated_logs)} related logs")
+print(f"Correlation confidence: {result.correlation_confidence}")
+```
+
+**Supported Log Formats:**
+- Standard JSON logs
+- ELK/Elasticsearch (@timestamp, severity)
+- Fluentd/FluentBit (time, msg)
+- Kubernetes container logs (JSON)
+- CloudWatch logs (JSON)
+- Custom JSON formats (configurable field mapping)
+
+**Use Cases:**
+- Correlate test failures with application errors
+- Trace distributed transaction failures
+- Identify root causes in microservices
+- Detect timeout and retry patterns
+- Analyze circuit breaker events
+- Performance bottleneck detection
+
+📖 See [JSON_LOG_ADAPTER.md](docs/log_analysis/JSON_LOG_ADAPTER.md) for complete documentation
+
+### 🔹 11. **Semantic Search & Test Intelligence**
+Unified system combining test normalization, AST extraction, and AI-powered semantic search:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Files        │         │  Normalization   │         │  UnifiedTestMemory  │
+│  (All Frameworks)   │────────▶│  + AST Extract   │────────▶│  + Structural Sigs  │
+└─────────────────────┘         └──────────────────┘         └──────────┬──────────┘
+                                                                          │
+                                                                          ▼
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Similar Tests     │         │   Embedding API  │         │   Text Builder      │
+│  + Recommendations  │◀────────│  Vector Search   │◀────────│  (Domain Context)   │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🔄 **Universal Normalization** - Convert all frameworks to UnifiedTestMemory format
+- 🌳 **AST Extraction** - Structural signals (imports, functions, assertions, API calls, UI interactions)
+- 🔍 **Natural Language Search** - Find tests using plain English queries
+- 🧠 **Multi-Provider Support** - OpenAI, Anthropic (Voyage AI), or local sentence-transformers
+- 📊 **Vector Database** - PostgreSQL + pgvector for production-scale similarity search
+- 🔄 **Versioned Embeddings** - Reindex with new models without losing old data
+- 🚀 **Auto-Enable in Migration** - Automatically enabled during framework migration
+
+**Quick Usage**:
+```bash
+# Index your tests (auto-normalizes + extracts AST)
+crossbridge semantic index -f pytest -p ./tests
+
+# Search using natural language
+crossbridge semantic search "login timeout error"
+
+# Find similar tests
+crossbridge semantic similar test_user_login
+
+# View statistics
+crossbridge semantic stats
+```
+
+**Use Cases:**
+- Find similar test failures to identify patterns
+- Discover tests affected by code changes
+- Map legacy tests to modern equivalents during migration
+- Recommend new tests based on existing patterns
+- Detect duplicate or redundant test coverage
+- Analyze structural patterns across frameworks
+
+**Configuration:**
+All settings in one place under `runtime.semantic_search` in [crossbridge.yml](crossbridge.yml)
+
+📖 See [SEMANTIC_SEARCH.md](docs/ai/SEMANTIC_SEARCH.md) and [Quick Start](docs/ai/SEMANTIC_SEARCH_QUICK_START.md)
+
+### 🔹 12. **Unified Intelligence Configuration**
+Centralize all framework-specific intelligence rules in one place:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   crossbridge.yml   │         │   Rule Engine    │         │   All Frameworks    │
+│                     │         │                  │         │                     │
+│  intelligence:      │────────▶│  • Auto-detect   │────────▶│  • Selenium ✓      │
+│    rules:           │         │  • Auto-load     │         │  • Pytest ✓        │
+│      selenium: []   │         │  • Fallback      │         │  • Robot ✓         │
+│      pytest: []     │         │  • Validation    │         │  • Playwright ✓    │
+│      robot: []      │         │                  │         │  • +9 more ✓       │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Benefits:**
+- 📦 **Single Source of Truth** - All 13 frameworks in one crossbridge.yml file
+- 🔄 **Automatic Loading** - Framework detected, rules loaded automatically
+- 🎯 **Priority System** - crossbridge.yml → framework.yaml → generic.yaml
+- ⚡ **Zero Migration** - Existing YAML files work as templates/fallback
+- 🧪 **Fully Tested** - 53 comprehensive tests covering all scenarios
+
+**Quick Start:**
+```yaml
+# crossbridge.yml
+crossbridge:
+  intelligence:
+    rules:
+      selenium:
+        - id: SEL001
+          match_any: ["NoSuchElementException", "element not found"]
+          failure_type: LOCATOR_ISSUE
+          confidence: 0.9
+      
+      pytest:
+        - id: PYT001
+          match_any: ["AssertionError", "assert False"]
+          failure_type: ASSERTION_FAILURE
+          confidence: 0.95
+      
+      robot:
+        - id: ROB001
+          match_any: ["Element not found", "keyword failed"]
+          failure_type: LOCATOR_ISSUE
+          confidence: 0.85
+```
+
+**Supported Frameworks (13 Total):**
+✅ Selenium • Pytest • Robot • Playwright • Cypress • RestAssured • Cucumber • Behave • JUnit • TestNG • SpecFlow • NUnit • Generic
+
+📖 **Complete Guide**: [UNIFIED_CONFIGURATION_GUIDE.md](docs/configuration/UNIFIED_CONFIGURATION_GUIDE.md)
+
+### 🔹 13. **Production Hardening & Runtime Protection**
+Enterprise-grade production runtime features for resilient test execution:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Execution    │         │   Runtime Layer  │         │   Protected Ops     │
+│                     │         │                  │         │                     │
+│  • AI generation    │────────▶│  • Rate limiting │────────▶│  • Fair throttling  │
+│  • API calls        │         │  • Retry logic   │         │  • Auto-recovery    │
+│  • Embeddings       │         │  • Health checks │         │  • Proactive detect │
+│  • Database ops     │         │  • YAML config   │         │  • No manual retry  │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 🚦 **Rate Limiting** - Token bucket algorithm, per-user/org fair throttling
+- 🔄 **Exponential Backoff Retry** - Intelligent retry with jitter for transient failures
+- 🏥 **Health Checks** - Provider monitoring for AI, embeddings, database
+- ⚙️ **YAML Configuration** - All settings in crossbridge.yml, no code changes
+- 🪵 **Structured Logging** - Integrated with CrossBridgeLogger
+- ⚡ **Performance** - <0.1ms per rate limit check, <1ms retry overhead
+- 🧵 **Thread-Safe** - Production-ready concurrency handling
+
+**Quick Enable**:
+```yaml
+# crossbridge.yml
+runtime:
+  rate_limiting:
+    enabled: true
+    defaults:
+      search: {capacity: 30, window_seconds: 60}
+      embed: {capacity: 60, window_seconds: 60}
+  
+  retry:
+    enabled: true
+    default_policy:
+      max_attempts: 3
+      base_delay: 0.5
+      jitter: true
+  
+  health_checks:
+    enabled: true
+    interval: 30
+    providers:
+      ai_provider: {enabled: true}
+      database: {enabled: true}
+```
+
+**Usage Example**:
+```python
+from core.runtime import retry_with_backoff, check_rate_limit, get_health_registry
+
+# Automatic retry with exponential backoff
+result = retry_with_backoff(lambda: ai_provider.generate(prompt))
+
+# Rate limiting per user
+if not check_rate_limit(key=f"user:{user_id}", operation="embed"):
+    raise RateLimitExceeded("Too many requests")
+
+# Health checks
+registry = get_health_registry()
+if not registry.is_healthy():
+    logger.warning("Some providers degraded")
+```
+
+📖 **Learn More**: 
+- [Production Hardening Guide](docs/hardening/PRODUCTION_HARDENING.md)
+- [Quick Reference](docs/hardening/PRODUCTION_HARDENING_QUICK_REF.md)
+- [All Gaps Fixed Summary](docs/hardening/PRODUCTION_HARDENING_ALL_GAPS_FIXED.md)
+- [Module Documentation](core/runtime/README.md)
+
+### 🔹 14. **Performance Profiling & Observability**
+Passive, non-invasive performance profiling for all test executions:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Execution    │         │   Profiling      │         │   Observability     │
+│                     │         │   (Background)   │         │                     │
+│  • Test lifecycle   │────────▶│  • Event capture │────────▶│  • Grafana          │
+│  • WebDriver calls  │         │  • Queue batch   │         │  • PostgreSQL       │
+│  • HTTP requests    │         │  • Async write   │         │  • InfluxDB         │
+│  • Setup/teardown   │         │  • <1% overhead  │         │  • Dashboards       │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Features:**
+- 📊 **Test execution timing** - duration, setup, teardown
+- 🌐 **HTTP request profiling** - API calls, status codes, latency
+- 🖱️ **WebDriver command tracking** - clicks, navigations, waits
+- 📈 **Performance regression detection** - historical trend analysis
+- 🎯 **Framework-agnostic** - works with all 12 supported frameworks
+- 💾 **Multiple storage backends** - PostgreSQL, InfluxDB, Local files
+- 📉 **Grafana dashboards** - 12 pre-built panels + alerting
+- 🚫 **Disabled by default** - zero impact unless enabled
+- ⚡ **Non-blocking async** - never slows down test execution
+- 🛡️ **Exception-safe** - profiling failures never fail tests
+
+**Quick Enable**:
+```yaml
+# crossbridge.yml
+crossbridge:
+  profiling:
+    enabled: true
+    storage:
+      backend: postgres
+      postgres:
+        host: 10.60.67.247
+        port: 5432
+        database: cbridge-unit-test-db
+```
+
+**Supported Frameworks** (All features: Profiling, Intelligence, Flaky Detection, Impact Analysis, Embeddings):
+- ✅ **Python**: pytest, Robot Framework, Selenium Python, requests
+- ✅ **Java**: TestNG, JUnit, RestAssured, Selenium Java
+- ✅ **.NET/C#**: NUnit, SpecFlow, Selenium .NET (with or without test framework)
+- ✅ **JavaScript**: Cypress, Playwright
+
+📖 **Learn More**: [Performance Profiling Documentation](docs/profiling/README.md)
+
+### 🔹 15. **AI Transformation Validation** 🆕
+Never auto-merge AI-generated code again! Comprehensive validation system with confidence scoring, human review workflows, and audit trails:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   AI Generation     │         │   Validation     │         │   Review & Apply    │
+│                     │         │   System         │         │                     │
+│  • Generate test    │────────▶│  • Confidence    │────────▶│  • Human review     │
+│  • Modify code      │  output │  • Diff analysis │ score   │  • Approve/Reject   │
+│  • Refactor         │         │  • Syntax check  │         │  • Apply to files   │
+│  • Auto-complete    │         │  • Multi-signal  │         │  • Rollback ready   │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Key Principles:**
+- 🚫 **Never Auto-Merge** - All AI output requires validation
+- 🎯 **Numeric Confidence Scoring** - Multi-signal algorithm (0.0-1.0)
+- 📸 **Full Snapshots** - Complete before/after state capture
+- 👤 **Mandatory Review** - Low confidence (<0.8) requires human approval
+- ↶ **Idempotent Rollback** - Safe, repeatable revert operations
+- 📋 **Complete Audit Trail** - Track model, prompt, reviewer, timestamps
+
+**Confidence Scoring Signals:**
+| Signal | Impact | Description |
+|--------|--------|-------------|
+| Model Confidence | Base multiplier | AI model's self-reported confidence |
+| Diff Size | -0.1 to -0.3 penalty | Lines changed (>100/-0.3, >50/-0.2, >20/-0.1) |
+| Rule Violations | -0.1 per violation | Linting/style issues (max -0.3) |
+| Similarity | -0.1 to -0.2 penalty | Cosine similarity to existing code |
+| Historical Rate | Multiplier | Previous approval rate for similar changes |
+| Syntax Valid | -0.4 penalty | Code parses successfully |
+| Coverage | -0.2 penalty | Test coverage maintained |
+
+**Confidence Levels:**
+- 🟢 **HIGH (≥0.8)**: Optional review, can auto-apply
+- 🟡 **MEDIUM (0.5-0.79)**: Requires human review
+- 🔴 **LOW (<0.5)**: Requires human review
+
+**Quick Enable:**
+```python
+from core.ai.transformation_service import AITransformationService
+from core.ai.transformation_validation import ConfidenceSignals
+
+# Initialize service
+service = AITransformationService()
+
+# Generate transformation with validation
+transformation = service.generate(
+    operation="generate",
+    artifact_type="test",
+    artifact_path="tests/test_login.py",
+    before_content="",
+    after_content=ai_generated_code,
+    model="gpt-4",
+    prompt="Generate login test",
+    signals=ConfidenceSignals(
+        model_confidence=0.92,
+        diff_size=45,
+        syntax_valid=True
+    )
+)
+
+# Handle based on confidence
+if transformation.requires_review:
+    print(f"⚠ Review required: crossbridge ai-transform show {transformation.id}")
+else:
+    service.apply(transformation.id)
+    print(f"✓ Applied automatically (confidence: {transformation.confidence})")
+```
+
+**CLI Workflow:**
+```bash
+# List transformations needing review
+$ crossbridge ai-transform list --needs-review
+
+# Review with diff
+$ crossbridge ai-transform show ai-abc123 --show-diff
+
+# Approve and apply
+$ crossbridge ai-transform approve ai-abc123 \
+    --reviewer john@example.com \
+    --comments "Looks good" \
+    --apply
+
+# Rollback if needed
+$ crossbridge ai-transform rollback ai-abc123
+
+# View audit trail
+$ crossbridge ai-transform audit ai-abc123
+
+# System statistics
+$ crossbridge ai-transform stats
+```
+
+**Features:**
+- ✓ Multi-signal confidence computation
+- ✓ Human review workflow (approve/reject)
+- ✓ Unified diff generation
+- ✓ Before/after snapshots
+- ✓ Idempotent rollback
+- ✓ Complete audit trail
+- ✓ CLI commands (8 commands)
+- ✓ JSON persistence
+- ✓ Custom apply/rollback functions
+- ✓ Analytics and statistics
+
+📖 **Learn More**: 
+- [AI Transformation Validation Guide](docs/ai/AI_TRANSFORMATION_VALIDATION.md)
+- [Quick Start](docs/ai/QUICK_START_AI_TRANSFORM.md)
+- [CLI Reference](docs/ai/AI_TRANSFORMATION_VALIDATION.md#cli-reference)
+
+---
+
+## 🎯 Who Should Use CrossBridge AI
+
+CrossBridge AI is ideal for:
+
+✔ **QA Engineers** modernizing legacy Selenium test suites  
+✔ **Test Architects** planning framework migrations and reducing technical debt  
+✔ **DevOps Teams** optimizing CI/CD test validation pipelines  
+✔ **Engineering Leaders** accelerating release cycles and improving quality  
+✔ **QA Managers** seeking data-driven testing insights  
+✔ **Organizations** embracing modern test ecosystems and AI-driven quality
+
+### You Should Use CrossBridge If You:
+- ✅ Have 100+ tests needing modernization
+- ✅ Want intelligence on existing tests without migration
+- ✅ Need automated failure triage and classification
+- ✅ Need to migrate before losing team knowledge
+- ✅ Require audit trails and reproducible transformations
+- ✅ Value open-source and extensibility
+
+### This May Not Be For You If:
+- ❌ You have < 50 tests (manual rewrite may be faster)
+- ❌ Your tests are already modern (Playwright/Cypress native)
+- ❌ Your framework isn't supported yet (contributions welcome!)
+
+---
+
+## 💡 Why It Matters
+
+Traditional test automation modernization is:
+- ❌ **Expensive** — months of engineering effort
+- ❌ **Risky** — potential loss of test coverage  
+- ❌ **Slow** — manual rewrites delay delivery
+- ❌ **Inconsistent** — varying quality across migrated tests
+
+**CrossBridge AI** makes it:
+- ✅ **Faster** — automated transformation in hours
+- ✅ **Data-driven** — intelligence-based decisions
+- ✅ **Scalable** — handles hundreds of tests
+- ✅ **AI-enhanced** — smart insights and recommendations
+- ✅ **Intelligent** — automated failure triage saves hours/week
+
+**Result:** Teams get better maintainability and measurable ROI in weeks, not months.
+
+---
+
+## 🐳 Docker Quick Start
+
+**Run CrossBridge as a Docker container for immediate use:**
+
+### Pull and Run
+
+```bash
+# Pull the image
+docker pull crossbridge/crossbridge:1.0.0
+
+# Run a smoke test
+docker run --rm \
+  -v $(pwd)/test-repo:/workspace:ro \
+  -v $(pwd)/crossbridge-data/logs:/data/logs \
+  -v $(pwd)/crossbridge-data/reports:/data/reports \
+  crossbridge/crossbridge:1.0.0 exec run \
+  --framework pytest \
+  --strategy smoke
+```
+
+### Using docker-compose
+
+```bash
+# Copy environment file
+cp .env.docker.example .env
+
+# Edit .env to customize
+
+# Run tests
+docker-compose up
+```
+
+### CI/CD Integration
+
+**GitHub Actions:**
+```yaml
+- name: Run CrossBridge
+  run: |
+    docker run --rm \
+      -v $(pwd):/workspace:ro \
+      -v $(pwd)/crossbridge-data/logs:/data/logs \
+      crossbridge/crossbridge:1.0.0 exec run \
+      --framework pytest \
+      --strategy impacted \
+      --ci
+```
+
+### Available Tags
+- `1.0.0` - Specific version (recommended for production)
+- `1.0` - Minor version (gets patch updates)
+- `1` - Major version (latest in v1.x)
+- `latest` - Latest release
+
+**Exit Codes** (CI/CD friendly):
+- `0` - All tests passed ✅
+- `1` - Test failures ❌
+- `2` - Execution error ⚠️
+- `3` - Configuration error 🔧
+
+📖 **Complete Guide**: [Docker Guide](docs/DOCKER_GUIDE.md)
+
+---
+
+## 🎛️ CLI Commands
+
+CrossBridge provides comprehensive CLI commands for all major features:
+
+### 📊 Execution Intelligence & Log Analysis
+```bash
+# Analyze single test log
+crossbridge analyze logs --log-file test_output.log --test-name test_login --framework pytest
+
+# Analyze with application logs
+crossbridge analyze-logs --framework selenium --logs-automation target/surefire-reports --logs-application app/logs/
+
+# Batch analyze directory
+crossbridge analyze directory --log-dir ./test-output --pattern "*.log"
+```
+
+### 🔄 Test Transformation & Migration
+```bash
+# Transform Selenium to Playwright
+crossbridge transform --from selenium --to playwright --input tests/selenium/ --output tests/playwright/
+
+# BDD transformation
+crossbridge transform --from cucumber --to robot --input features/ --output robot/
+```
+
+### 🔍 Semantic Search & Intelligence
+```bash
+# Index tests for semantic search
+crossbridge semantic index -f pytest -p ./tests
+
+# Search using natural language
+crossbridge semantic search "login timeout error"
+
+# Find similar tests
+crossbridge semantic similar test_user_login
+```
+
+### 🐛 Flaky Test Detection
+```bash
+# Detect flaky tests
+crossbridge flaky detect --framework pytest --test-results ./results/
+
+# Analyze flaky patterns
+crossbridge flaky analyze --test-id test_checkout
+```
+
+### 🤖 AI Transformation Validation
+```bash
+# Generate with validation
+crossbridge ai-transform generate --prompt "Create login test" --framework playwright
+
+# Review pending transformations
+crossbridge ai-transform review --id abc123
+
+# Apply approved changes
+crossbridge ai-transform apply --id abc123
+```
+
+### 📈 Coverage & Analysis
+```bash
+# Analyze test coverage
+crossbridge coverage analyze --source-dir src/ --test-dir tests/
+
+# Generate coverage report
+crossbridge coverage report --format html
+```
+
+### ⚙️ Configuration & Setup
+```bash
+# Validate configuration
+crossbridge config validate
+
+# Initialize workspace
+crossbridge init --framework pytest
+
+# Check system status
+crossbridge status
+```
+
+📖 **Full CLI Reference**: Run `crossbridge --help` or see [CLI Documentation](cli/README.md)
+
+---
+
+## 🚀 Quick Start
+
+### 📥 Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/crossstack-ai/crossbridge.git
+cd crossbridge
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### ⚙️ Configuration
+
+CrossBridge uses a single configuration file for all features:
+
+**📄 Configuration File:**
+- **`crossbridge.yml`** - Main configuration file with all options
+
+**🔧 Setup:**
+```bash
+# Edit crossbridge.yml with your settings
+nano crossbridge.yml
+
+# Use environment variables for sensitive data
+export DATABASE_URL="postgresql://user:pass@host:5432/db"
+export OPENAI_API_KEY="sk-..."
+export CONFLUENCE_TOKEN="your-token"
+```
+
+**💡 Best Practice:** Use environment variables for secrets:
+```yaml
+database:
+  url: "${DATABASE_URL}"  # Reads from environment
+  
+api_change:
+  intelligence:
+    ai:
+      api_key: ${OPENAI_API_KEY}  # Secure!
+```
+
+### 🎯 Option 1: NO MIGRATION MODE (Recommended!)
+
+Work with existing tests — **zero code changes required**.
+
+**Step 1: Configure Environment**
+```bash
+export CROSSBRIDGE_ENABLED=true
+export CROSSBRIDGE_DB_HOST=localhost
+export CROSSBRIDGE_APPLICATION_VERSION=v2.0.0
+```
+
+**Step 2: Add Framework Listener/Plugin**
+
+**For Selenium Java (TestNG):**
+```xml
+<!-- testng.xml -->
+<listeners>
+  <listener class-name="com.crossbridge.CrossBridgeListener"/>
+</listeners>
+```
+
+**For Python pytest:**
+```python
+# conftest.py
+pytest_plugins = ["crossbridge.pytest_plugin"]
+```
+
+**For Cypress:**
+```javascript
+// cypress.config.js
+const crossbridge = require('crossbridge-cypress');
+crossbridge.register(on, { enabled: true });
+```
+
+**Step 3: Run Tests Normally**
+```bash
+# Run your tests as you normally would
+# CrossBridge observes and provides intelligence automatically
+```
+
+**That's it!** View insights in Grafana dashboards or via CLI.
+
+📖 **Learn More**: [NO_MIGRATION_FRAMEWORK_SUPPORT.md](docs/sidecar/NO_MIGRATION_IMPLEMENTATION_COMPLETE.md)
+
+### 🔄 Option 2: FULL MIGRATION MODE (Auto-Configured!)
+
+Transform legacy tests to modern frameworks with **automatic configuration**:
+
+```bash
+# Start the interactive CLI
+python -m cli.app
+
+# Follow the prompts:
+# 1. Select "Migration + Transformation"
+# 2. Choose source framework (e.g., Selenium Java BDD)
+# 3. Connect repository (GitHub/Bitbucket/Azure DevOps)
+# 4. Configure paths
+# 5. Run migration ✨
+```
+
+**Output**: Transformed tests + **Auto-configured CrossBridge features**:
+
+#### ✅ Automatically Configured Features
+
+When you migrate with CrossBridge, **all recent features are automatically set up**:
+
+**Performance Profiling**:
+- ✅ Framework-specific hooks (pytest conftest, Robot listener, TestNG listener, etc.)
+- ✅ PostgreSQL storage configuration
+- ✅ Grafana dashboard templates
+- ✅ Environment variable templates
+
+**Continuous Intelligence**:
+- ✅ Database schema for test results
+- ✅ Flaky test detection enabled
+- ✅ Embedding/semantic search configured
+- ✅ Test coverage tracking
+
+**Configuration Files Created**:
+- ✅ `crossbridge.yml` - Complete configuration with all features
+- ✅ `.env.template` - Environment variables for database, AI, etc.
+- ✅ `SETUP.md` - Step-by-step setup instructions
+- ✅ Framework hooks (conftest.py, listeners, plugins)
+- ✅ Database configuration
+- ✅ CI/CD templates
+
+#### 📋 What You Get
+
+**For Robot Framework Migration**:
+```
+✅ tests/robot/libraries/crossbridge_listener.py  # Performance profiling + intelligence
+✅ crossbridge.yml                                 # All features configured
+✅ .env.template                                   # Database + AI settings
+✅ SETUP.md                                        # Quick start guide
+✅ robot.yaml                                      # Framework configuration
+✅ requirements.txt                                # Dependencies with profiling
+```
+
+**For pytest/Playwright Migration**:
+```
+✅ tests/conftest.py                               # Profiling + intelligence hooks
+✅ crossbridge.yml                                 # All features configured
+✅ .env.template                                   # Database + AI settings
+✅ SETUP.md                                        # Quick start guide
+✅ pytest.ini                                      # Framework configuration
+```
+
+**For Java/TestNG Migration**:
+```
+✅ src/test/java/com/crossbridge/profiling/CrossBridgeProfilingListener.java
+✅ testng.xml                                      # Listener configured
+✅ crossbridge.yml                                 # All features configured
+✅ .env.template                                   # Database + AI settings
+✅ SETUP.md                                        # Environment setup
+```
+
+**For .NET/SpecFlow Migration**:
+```
+✅ CrossBridge.Profiling/CrossBridgeProfilingHook.cs  # NUnit/SpecFlow hook
+✅ crossbridge.yml                                     # All features configured
+✅ .env.template                                       # Database + AI settings
+✅ SETUP.md                                            # Environment setup
+✅ AssemblyInfo.cs                                     # Profiling attribute configured
+```
+
+> **Note**: .NET Selenium works with or without NUnit/SpecFlow. The profiling hook uses direct PostgreSQL connection via Npgsql.
+
+#### 🚀 Ready to Use
+
+After migration, simply:
+
+```bash
+# 1. Configure database
+cp .env.template .env
+# Edit .env with your database credentials
+
+# 2. Enable profiling
+export CROSSBRIDGE_PROFILING=true
+
+# 3. Run tests - profiling and intelligence work automatically!
+robot tests/  # or pytest tests/  # or mvn test
+```
+
+**No manual configuration needed!** All hooks and listeners are pre-configured.
+
+📖 **Learn More**: 
+- [AI Transformation Validation](docs/ai/AI_TRANSFORMATION_VALIDATION.md)
+- [Performance Profiling Setup](docs/profiling/QUICK_REFERENCE.md)
+- [Framework Integration Guide](docs/profiling/FRAMEWORK_INTEGRATION.md)
+
+---
+
+## 🎛️ Core Features
+
+### 1. Migration Modes
+
+```
+Manual Mode         → Creates placeholders with TODOs (fast, requires review)
+Enhanced Mode       → Smart extraction with pattern matching (recommended)
+Hybrid Mode         → AI-enhanced with human review markers (best quality)
+```
+
+**🤖 AI-Powered Enhancement** (Optional):
+- Enable OpenAI/Anthropic integration for intelligent transformation
+- Supports **step definitions**, **page objects**, and **locators**
+- Better Cucumber pattern recognition and Playwright action generation
+- **Self-healing locator strategies** - prioritizes data-testid > id > CSS > XPath
+- **Locator extraction tracking** - counts and reports all locators extracted from page objects
+- **AI metrics & cost analysis** - detailed token usage, cost per file, and transformation statistics
+- **Confidence Scoring & Validation** - comprehensive quality checks with automated validation 🆕
+- **Human-in-the-Loop Feedback** - review integration with continuous improvement tracking 🆕
+- **Rollback & Diff Reporting** - detailed transformation reports for audit trails 🆕
+- Natural language documentation and best practice implementations
+- Automatic fallback to pattern-based if AI unavailable
+- See [`docs/ai/AI_TRANSFORMATION_VALIDATION.md`](docs/ai/AI_TRANSFORMATION_VALIDATION.md) for setup
+
+```python
+# Enable AI transformation for all file types
+request.use_ai = True
+request.ai_config = {
+    'provider': 'openai',  # or 'anthropic'
+    'api_key': 'sk-...',
+    'model': 'gpt-3.5-turbo'  # or 'gpt-4', 'claude-3-sonnet'
+}
+
+# AI will transform:
+# • Step Definitions: Cucumber → Robot Framework with smart pattern matching
+# • Page Objects: Selenium → Playwright with locator extraction (tracked!)
+# • Locators: Quality analysis + self-healing recommendations
+# • Generates comprehensive AI summary with cost breakdown and metrics
+```
+
+**📊 AI Transformation Summary** (displayed after migration):
+```
+🤖 AI Transformation Statistics:
+  ✓ Total Files Transformed: 50
+  ✓ Step Definitions: 35
+  ✓ Page Objects: 15
+  ✓ Standalone Locator Files: 0
+  ✓ Locators Extracted from Page Objects: 243  ← NEW!
+
+🛡️  Self-Healing Locator Strategy Applied:  ← NEW!
+  ✓ Priority: data-testid > id > CSS > XPath
+  ✓ Text-based matching for visible elements
+  ✓ Avoided brittle positional XPath selectors
+  ✓ Modern Playwright locator best practices
+
+💰 Token Usage & Cost:
+  • Total Tokens: 125,430
+  • Total Cost: $0.1254
+  • Avg Tokens/File: 2,508
+  • Avg Cost/File: $0.0025
+```
+
+### 2. Transformation Tiers
+
+```
+Tier 1: Quick Refresh     → Syntax updates only
+Tier 2: Content Validation → Parse + validate structure  
+Tier 3: Deep Regeneration → Full AI-powered rewrite
+```
+
+### 3. Repository Integration
+
+- **Direct Git Operations**: Read from and write to repositories
+- **Branch Management**: Automatic PR/MR creation
+- **Batch Commits**: Configurable commit sizes for large migrations
+- **Credential Caching**: Secure storage of API tokens
+
+### 4. API Change Intelligence 🆕
+
+**Automatic API change detection and documentation** for OpenAPI/Swagger specifications:
+
+```bash
+# Run API diff analysis
+crossbridge api-diff run
+
+# With AI-enhanced recommendations
+crossbridge api-diff run --ai
+
+# Check if oasdiff is installed
+crossbridge api-diff check-deps
+```
+
+**Key Features:**
+- ✅ **Automatic Change Detection**: Compare OpenAPI specs (file/URL/Git)
+- ✅ **Breaking Change Analysis**: Identify backward-incompatible changes
+- ✅ **Risk Classification**: Low/Medium/High/Critical risk levels
+- ✅ **Test Recommendations**: Rule-based + AI-powered test suggestions
+- ✅ **Incremental Documentation**: Auto-generated Markdown change logs
+- ✅ **Grafana Dashboards**: 8 panels for API change monitoring
+- ✅ **CI/CD Integration**: GitHub Actions, GitLab CI ready
+- ✅ **PostgreSQL Storage**: Full change history and analytics
+
+**Configuration Example:**
+```yaml
+crossbridge:
+  api_change:
+    enabled: true
+    spec_source:
+      type: file  # file | url | git
+      current: specs/openapi-v2.yaml
+      previous: specs/openapi-v1.yaml
+    
+    intelligence:
+      mode: hybrid  # rules | hybrid | ai-only
+      ai:
+        enabled: false  # Optional AI enhancement
+        provider: openai
+        model: gpt-4.1-mini
+    
+    documentation:
+      enabled: true
+      output_dir: docs/api-changes
+```
+
+**Output Example:**
+```markdown
+## API Changes – 2026-01-29
+
+**Summary:**
+- Total Changes: 5
+- Breaking Changes: 1  
+- High Risk: 2
+
+### ➕ Added
+#### `POST /api/v1/backup/jobs`
+- Risk: MEDIUM
+- Recommended Tests:
+  - Create positive test for POST /api/v1/backup/jobs
+  - Verify authentication/authorization
+  - Test error responses (400, 401, 403, 500)
+```
+
+📄 **Documentation**: [API Change Intelligence Spec](docs/implementation/API_CHANGE_INTELLIGENCE_SPEC.md) | [Setup Guide](docs/api-change/API_CHANGE_SETUP_GUIDE.md)
+
+---
+
+### 5. Flaky Test Detection 🎯
+
+**Machine Learning-powered flaky test detection** with comprehensive analytics:
+
+```bash
+# Detect flaky tests using ML (Isolation Forest)
+crossbridge flaky detect --db-url postgresql://user:pass@host:5432/db
+
+# List flaky tests with severity filtering
+crossbridge flaky list --severity critical
+
+# Get detailed report for a specific test
+crossbridge flaky report test_user_login
+
+# Export flaky test data
+crossbridge flaky export --format json --output flaky_tests.json
+```
+
+**Key Features:**
+- ✅ **ML-Based Detection**: Isolation Forest algorithm with 200 decision trees
+- ✅ **10 Feature Analysis**: Failure rate, pass/fail switching, timing variance, error diversity, retry patterns
+- ✅ **Severity Classification**: Critical, High, Medium, Low based on failure rate and confidence
+- ✅ **PostgreSQL Persistence**: 3 database tables (test_execution, flaky_test, flaky_test_history)
+- ✅ **Grafana Dashboards**: 9 interactive panels for real-time monitoring
+- ✅ **CI/CD Integration**: GitHub Actions, GitLab CI, Jenkins, Azure DevOps, CircleCI
+- ✅ **External Test IDs**: TestRail, Zephyr, qTest integration
+
+**Grafana Dashboard Panels:**
+1. 📊 Flaky Test Summary - Total count with color-coded thresholds
+2. 🍩 Flaky Tests by Severity - Donut chart (Critical/High/Medium/Low)
+3. 📏 Average Flaky Score - Gauge visualization (0-1 scale)
+4. 📈 Flaky Test Trend - 30-day historical trend
+5. 📋 Top 10 Flaky Tests - Table with scores and external test IDs
+6. 📊 Flaky Tests by Framework - Bar chart (pytest, junit, etc.)
+7. 📊 Test Execution Status - Stacked timeseries (Passed/Failed/Skipped)
+8. 📊 Confidence Score Distribution - Bar chart grouped by confidence levels
+9. 🔍 Recent Test Failures - Table with timestamps and error types
+
+**Database Setup:**
+```bash
+# Option 1: Using environment variables
+export CROSSBRIDGE_DB_URL="postgresql://postgres:admin@10.55.12.99:5432/your-database"
+python tests/populate_flaky_test_db.py
+
+# Option 2: Using crossbridge.yml (automatic)
+# Configure database in crossbridge.yml:
+crossbridge:
+  database:
+    enabled: true
+    host: ${CROSSBRIDGE_DB_HOST:-localhost}
+    port: ${CROSSBRIDGE_DB_PORT:-5432}
+    database: ${CROSSBRIDGE_DB_NAME:-crossbridge}
+    user: ${CROSSBRIDGE_DB_USER:-postgres}
+    password: ${CROSSBRIDGE_DB_PASSWORD:-admin}
+
+# Run population script (reads config automatically)
+python tests/populate_flaky_test_db.py
+```
+
+**Grafana Integration:**
+1. Import dashboard: `grafana/flaky_dashboard_fixed.json`
+2. Configure PostgreSQL datasource
+3. View real-time flaky test analytics
+
+**CI/CD Pipeline Example (GitHub Actions):**
+```yaml
+- name: Detect Flaky Tests
+  run: |
+    python scripts/store_test_results.py \
+      --format pytest-json \
+      --input results.json \
+      --db-url ${{ secrets.CROSSBRIDGE_DB_URL }}
+    
+    crossbridge flaky detect \
+      --db-url ${{ secrets.CROSSBRIDGE_DB_URL }} \
+      --threshold 0.7 \
+      --fail-on-flaky
+```
+
+📖 **See [FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md](docs/flaky-detection/FLAKY_DETECTION_IMPLEMENTATION_SUMMARY.md) and [CI_CD_FLAKY_INTEGRATION.md](docs/ci-cd/CI_CD_FLAKY_INTEGRATION.md)**
+
+### 5. Memory & Embeddings System 🎯 NEW!
+
+**Semantic memory for intelligent test discovery and AI-powered search:**
+
+```bash
+# Ingest tests into memory system
+crossbridge memory ingest --source discovery.json
+
+# Natural language search
+crossbridge search query "tests covering login timeout"
+
+# Find similar tests
+crossbridge search similar test_login_valid
+
+# Check memory statistics
+crossbridge memory stats
+```
+
+**Key Features:**
+- ✅ **Semantic Search**: Find tests by intent, not keywords - "timeout handling tests" vs "test_timeout"
+- ✅ **Pluggable Embeddings**: OpenAI (text-embedding-3-large/small), local Ollama, HuggingFace
+- ✅ **Vector Storage**: PostgreSQL + pgvector (production) or FAISS (local development)
+- ✅ **Entity Types**: Tests, scenarios, steps, page objects, failures, assertions, locators
+- ✅ **Similarity Detection**: Find duplicates (>0.9), related tests (0.7-0.9), complementary tests (0.5-0.7)
+- ✅ **AI Integration**: Memory-augmented prompts for intelligent test generation
+- ✅ **Production Ready**: Full embedding pipeline with standardized persistence schema
+- ✅ **Regression Testing**: Comprehensive similarity regression test suite
+
+**What Gets Stored:**
+| Entity Type | Example | Use Case |
+|-------------|---------|----------|
+| `test` | `LoginTest.testValidLogin` | Find tests by behavior/intent |
+| `scenario` | `Scenario: Valid Login` | Search BDD scenarios |
+| `step` | `When user enters valid credentials` | Find step definitions |
+| `page` | `LoginPage.login()` | Locate page objects |
+| `failure` | `TimeoutException during login` | Pattern matching for failures |
+
+**Semantic Search Examples:**
+
+```bash
+# Find timeout-related tests
+crossbridge search query "tests covering login timeout" --type test
+
+# Find duplicate tests (>0.9 similarity)
+crossbridge search similar test_login_valid --top 10
+
+# Search with framework filter
+crossbridge search query "authentication tests" --framework pytest
+
+# Explain top match
+crossbridge search query "flaky auth tests" --explain
+```
+
+**Configuration (crossbridge.yml):**
+```yaml
+memory:
+  enabled: true
+  
+  embedding_provider:
+    type: openai                        # or 'local', 'huggingface'
+    model: text-embedding-3-large       # 3072 dimensions
+    api_key: ${OPENAI_API_KEY}
+  
+  vector_store:
+    type: pgvector                      # or 'faiss'
+    connection_string: postgresql://...
+    dimension: 3072                     # Must match embedding model
+  
+  auto_ingest_on_discovery: true       # Ingest after test discovery
+  update_on_change: true               # Re-embed when tests change
+```
+
+**Supported Embedding Providers:**
+| Provider | Model | Dimension | Cost | Best For |
+|----------|-------|-----------|------|----------|
+| OpenAI | text-embedding-3-large | 3072 | $0.13/1M tokens | Production, highest quality |
+| OpenAI | text-embedding-3-small | 1536 | $0.02/1M tokens | Fast, cost-effective |
+| Ollama | nomic-embed-text | 768 | Free | Private, no API calls |
+| HuggingFace | all-MiniLM-L6-v2 | 384 | Free | Air-gapped environments |
+
+**Cost Example (OpenAI):**
+- 1,000 tests @ ~100 tokens each = 100K tokens
+- **Cost: $0.002 - $0.013** (less than a penny!)
+
+**Use Cases:**
+1. **Duplicate Detection**: Find tests with >90% similarity
+2. **Test Discovery**: "Find all payment-related tests"
+3. **Coverage Gaps**: "Which areas lack timeout handling tests?"
+4. **Failure Analysis**: "Find similar timeout failures"
+5. **AI Context**: Memory-augmented prompts for intelligent test generation
+
+**Setup:**
+```bash
+# 1. Install pgvector extension in PostgreSQL
+CREATE EXTENSION IF NOT EXISTS vector;
+
+# 2. Run setup script
+python scripts/setup_memory_db.py --dimension 3072
+
+# 3. Set API key (if using OpenAI)
+export OPENAI_API_KEY=sk-your-key-here
+
+# 4. Ingest tests
+crossbridge discover --framework pytest --output discovery.json
+crossbridge memory ingest --source discovery.json
+
+# 5. Search!
+crossbridge search query "authentication timeout tests"
+```
+
+**Programmatic Usage:**
+```python
+from core.memory import (
+    MemoryIngestionPipeline,
+    SemanticSearchEngine,
+    create_embedding_provider,
+    create_vector_store,
+)
+
+# Setup
+provider = create_embedding_provider('openai', model='text-embedding-3-large')
+store = create_vector_store('pgvector', connection_string='postgresql://...', dimension=3072)
+
+# Search
+engine = SemanticSearchEngine(provider, store)
+results = engine.search("login timeout tests", top_k=10)
+
+for result in results:
+    print(f"{result.rank}. {result.record.id} (score: {result.score:.3f})")
+
+# Find duplicates
+similar = engine.find_similar("test_login_valid", top_k=5)
+duplicates = [r for r in similar if r.score > 0.9]
+```
+
+📖 **See [MEMORY_EMBEDDINGS_SYSTEM.md](docs/memory/MEMORY_EMBEDDINGS_SYSTEM.md) and [MEMORY_QUICK_START.md](docs/memory/MEMORY_QUICK_START.md)**
+
+### 6. Impact Analysis
+
+```bash
+# Discover which tests use specific page objects
+crossbridge impact --page-object LoginPage
+
+# Find tests affected by code changes
+crossbridge analyze-impact --changed-files src/pages/HomePage.java
+```
+
+### 6. Post-Migration Testing
+
+- **Validation Reports**: Syntax checks, missing imports, undefined keywords
+- **Execution Readiness**: Verify tests can run in Robot Framework
+- **Documentation**: Auto-generated setup guides per repository
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     CLI / Interactive Menu                   │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+        ┌─────────────┴──────────────┐
+        │   Core Orchestrator         │
+        │   - Migration Pipeline      │
+        │   - Transformation Engine   │
+        │   - Validation Framework    │
+        └─────────────┬───────────────┘
+                      │
+    ┌─────────────────┼─────────────────┐
+    │                 │                 │
+┌───▼────┐      ┌────▼─────┐     ┌────▼─────┐
+│Adapters│      │Generators│     │Connectors│
+│        │      │          │     │          │
+│Selenium│      │Robot FW  │     │Git/BB/ADO│
+│Pytest  │      │pytest-bdd│     │Local FS  │
+│SpecFlow│      │          │     │          │
+└────────┘      └──────────┘     └──────────┘
+```
+
+**Plugin Architecture**: Add new frameworks by implementing adapter interfaces.
+
+---
+
+## 📊 Project Maturity & Limitations
+
+### Current Status: **Alpha (v0.1.1)**
+
+**What Works Well:**
+- ✅ Selenium Java + Cucumber → Robot Framework migrations
+- ✅ Step definition parsing and transformation
+- ✅ Bitbucket/GitHub/Azure DevOps integration
+- ✅ Page object extraction and locator migration
+- ✅ Impact analysis and coverage mapping
+- ✅ Multi-threaded processing for large repositories
+- ✅ **Flaky test detection with ML-based analysis** 🎯 NEW!
+- ✅ **PostgreSQL persistence and Grafana dashboards** 🎯 NEW!
+- ✅ **CI/CD integration for automated flaky detection** 🎯 NEW!
+- ✅ **Memory & Embeddings System with semantic search** 🎯 NEW!
+- ✅ **AI-powered test discovery and duplicate detection** 🎯 NEW!
+- ✅ **Pluggable embedding providers (OpenAI, Ollama, HuggingFace)** 🎯 NEW!
+- ✅ **Semantic memory and embeddings system** 🎯 NEW!
+- ✅ **AI-powered semantic search for tests** 🎯 NEW!
+- ✅ **Intelligent duplicate detection and similarity analysis** 🎯 NEW!
+
+**Known Limitations:**
+- ⚠️ **Parser Coverage**: Complex Java patterns may not parse (fallback generates TODOs)
+- ⚠️ **Manual Review Required**: Output needs human validation before production use
+- ⚠️ **AI Features**: Optional and require API keys (Azure OpenAI)
+- ⚠️ **Error Handling**: Large repos may hit API rate limits
+- ⚠️ **Documentation**: Some advanced features lack complete docs
+- ⚠️ **Windows Paths**: Primary development on Windows; Unix path handling improving
+
+**Not Yet Supported:**
+- ❌ Dynamic locators or runtime-generated selectors
+- ❌ Custom Selenium extensions or third-party frameworks
+- ❌ Non-English test files (internationalization planned)
+- ❌ Parallel test execution during validation
+
+### Production Readiness
+
+| Use Case | Readiness | Recommendation |
+|----------|-----------|----------------|
+| Personal projects | ✅ Ready | Great for experimentation |
+| Internal tools/POCs | 🟡 Use with caution | Review output carefully |
+| Production test suites | ❌ Not recommended | Wait for beta/v1.0 or contribute! |
+| Enterprise deployments | ❌ Not recommended | Pilot programs only |
+
+**Expected Timeline:**
+- **Beta (v0.5)**: Q2 2026 (improved stability, more adapters)
+- **v1.0 (Stable)**: Q4 2026 (production-ready, comprehensive testing)
+
+---
+
+## � AI Monetization & Cost Management
+
+CrossBridge provides transparent AI cost tracking to help you optimize your migration budget:
+
+### Cost Transparency Features
+- **Real-time cost tracking** - See token usage and costs during transformation
+- **Per-file cost breakdown** - Identify expensive files (complex step definitions, large page objects)
+- **Model comparison** - Compare costs between GPT-3.5-turbo, GPT-4, Claude, etc.
+- **Cost savings calculator** - Shows potential savings with different models
+- **Budget-friendly defaults** - Uses GPT-3.5-turbo by default (~15x cheaper than GPT-4)
+
+### Typical Migration Costs
+
+| Project Size | Files | Estimated Tokens | GPT-3.5-turbo | GPT-4 |
+|--------------|-------|------------------|---------------|-------|
+| Small (50 files) | 50 | ~125K tokens | $0.12 | $1.80 |
+| Medium (200 files) | 200 | ~500K tokens | $0.50 | $7.20 |
+| Large (500 files) | 500 | ~1.25M tokens | $1.25 | $18.00 |
+| Enterprise (2000 files) | 2000 | ~5M tokens | $5.00 | $72.00 |
+
+**💡 Cost Optimization Tips:**
+- Use **GPT-3.5-turbo** for initial migrations (93% cost savings vs GPT-4)
+- Enable AI only for **complex files** (step definitions, page objects)
+- Use **pattern-based transformation** for simple utility files (free!)
+- Set **batch limits** to control spending per run
+- Review **top cost files** in AI summary to optimize retry strategies
+
+**🎯 Hybrid Approach** (Recommended):
+```python
+# Use pattern-based for utilities (free)
+# Use AI for complex logic (paid)
+transformation_mode: "hybrid"
+
+# Result: ~60% cost savings while maintaining quality
+```
+
+### AI Summary Cost Breakdown
+After each migration, CrossBridge displays:
+- **Total cost and token usage**
+- **Cost per file type** (step definitions vs page objects vs locators)
+- **Top 5 most expensive files** - helps identify optimization opportunities
+- **Model comparison** - shows savings with alternative models
+
+Example:
+```
+💵 Top Cost Files:
+  1. DataStoreSteps.robot (Step Definition): $0.0234 (5,430 tokens)
+  2. BackUpJobStep.robot (Step Definition): $0.0198 (4,102 tokens)
+  3. AddPolicies.robot (Step Definition): $0.0187 (3,988 tokens)
+
+💡 Cost Savings:
+  • Using gpt-3.5-turbo: $1.25
+  • Same with gpt-4: ~$18.00
+  • Savings: ~$16.75 (93% reduction)
+```
+
+---
+## 🔌 Model Context Protocol (MCP) Integration
+
+CrossBridge is **both an MCP Client and MCP Server**, enabling seamless integration with AI agents and external tools.
+
+### 🖥️ MCP Server: Expose CrossBridge as Tools
+
+CrossBridge exposes its capabilities as MCP tools that AI agents (Claude, GPT-4, etc.) can consume:
+
+**Available Tools:**
+- `run_tests` - Execute tests in any project (pytest, junit, robot)
+- `analyze_flaky_tests` - Detect flaky tests from execution history
+- `migrate_tests` - Convert tests between frameworks
+- `analyze_coverage` - Generate coverage reports and impact analysis
+- `analyze_impact` - Analyze code changes and recommend affected tests
+- `analyze_bdd_features` - Analyze BDD features (Cucumber, Robot BDD, JBehave) ⭐ NEW
+- `orchestrate_execution` - Intelligent test execution with strategy selection (smoke, impacted, risk, full) ⭐ NEW
+- `semantic_search_tests` - Search tests using natural language queries ⭐ NEW
+- `classify_failure` - Classify test failures (product defect, locator issue, environment, flaky) ⭐ NEW
+- `sidecar_status` - Get sidecar runtime health and metrics ⭐ NEW
+- `get_profiling_report` - Get performance profiling report for test execution ⭐ NEW
+- `validate_transformation` - Validate AI-generated code with confidence scoring ⭐ NEW
+
+**Starting the MCP Server:**
+```python
+from core.ai.mcp.server import MCPServer, MCPServerConfig
+
+# Configure server
+config = MCPServerConfig(
+    host="localhost",
+    port=8080,
+    auth_enabled=True,
+    api_key="your-api-key"
+)
+
+# Start server
+server = MCPServer(config)
+server.start()
+
+# AI agents can now call CrossBridge tools via MCP!
+```
+
+**Example: AI Agent Using CrossBridge**
+```json
+{
+  "tool": "orchestrate_execution",
+  "inputs": {
+    "project_path": "/path/to/project",
+    "framework": "pytest",
+    "strategy": "impacted",
+    "base_branch": "origin/main"
+  }
+}
+```
+
+**Example: Semantic Search**
+```json
+{
+  "tool": "semantic_search_tests",
+  "inputs": {
+    "query": "tests covering login timeout handling",
+    "framework": "pytest",
+    "top_k": 5
+  }
+}
+```
+
+**Example: BDD Analysis**
+```json
+{
+  "tool": "analyze_bdd_features",
+  "inputs": {
+    "project_path": "/path/to/project",
+    "framework": "cucumber-java",
+    "features_dir": "src/test/resources/features",
+    "step_definitions_dir": "src/test/java"
+  }
+}
+```
+
+### 🔄 MCP Client: Consume External Tools
+
+CrossBridge can connect to external MCP servers (Jira, GitHub, CI/CD) to enhance workflows:
+
+**Supported External Tools:**
+- **Jira**: Create issues, search, update
+- **GitHub**: Create PRs, get status, merge
+- **CI/CD**: Trigger builds, get status
+
+**Using External Tools:**
+```python
+from core.ai.mcp.client import MCPClient, MCPToolRegistry
+
+# Discover tools from Jira server
+registry = MCPToolRegistry(config_path="config/mcp_servers.json")
+tools = registry.discover_tools("jira_server")
+
+# Use MCP client to call tool
+client = MCPClient(registry)
+result = client.call_tool(
+    "jira_create_issue",
+    inputs={
+        "project": "TEST",
+        "summary": "Migration failed for LoginTest.java",
+        "description": "AI transformation returned empty content",
+        "issue_type": "Bug"
+    }
+)
+```
+
+**Configuration (config/mcp_servers.json):**
+```json
+{
+  "servers": {
+    "jira_server": {
+      "url": "https://jira.example.com",
+      "authentication": {
+        "type": "bearer",
+        "token": "your-jira-token"
+      }
+    },
+    "github_server": {
+      "url": "https://api.github.com",
+      "authentication": {
+        "type": "token",
+        "token": "ghp_your-token"
+      }
+    }
+  }
+}
+```
+
+### 🎯 MCP Use Cases
+
+**1. AI-Driven Workflows:**
+```
+AI Agent → CrossBridge MCP Server → Run tests → Create Jira issue (MCP Client)
+```
+
+**2. Automated Test Intelligence:**
+```
+Claude detects flaky test → CrossBridge analyzes → GitHub PR created → CI triggered
+```
+
+**3. Self-Service Test Migration:**
+```
+AI Agent → CrossBridge migrate_framework → PR opened → Slack notification
+```
+
+### 📚 MCP Documentation
+
+- **[MCP Client Implementation](core/ai/mcp/client.py)** - Connect to external tools
+- **[MCP Server Implementation](core/ai/mcp/server.py)** - Expose CrossBridge tools
+- **[Unit Tests](tests/unit/core/ai/test_mcp_and_memory.py)** - Comprehensive test coverage
+
+---
+## �🛠️ Configuration Example
+
+```yaml
+# Example: Selenium Java BDD migration
+migration:
+  source_framework: selenium_bdd_java
+  target_framework: robot_playwright
+  
+  paths:
+    features: "src/test/resources/features"
+    step_definitions: "src/main/java/com/example/stepdefinition"
+    page_objects: "src/main/java/com/example/pagefactory"
+  
+  transformation:
+    mode: enhanced  # manual | enhanced | hybrid
+    tier: 2  # 1 (quick) | 2 (standard) | 3 (deep)
+    batch_size: 10
+  
+  repository:
+    type: bitbucket
+    workspace: your-workspace
+    repo: your-repo
+    branch: feature/robot-migration
+```
+
+---
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! This project needs help with:
+
+- 🔧 **Adapters**: Support for new frameworks (Cypress, Katalon, etc.)
+- 🐛 **Bug Fixes**: Parser improvements, edge case handling
+- 📖 **Documentation**: Tutorials, examples, API docs
+- 🧪 **Testing**: Unit tests, integration tests, real-world validations
+- 🌍 **Internationalization**: Non-English test support
+
+**See [CONTRIBUTING.md](docs/community/CONTRIBUTING.md)** for guidelines and [CLA.md](docs/community/CLA.md) for contributor license agreement.
+
+### Quick Contribution Guide
+
+```bash
+# Fork and clone
+git clone https://github.com/yourusername/crossbridge.git
+
+# Create a feature branch
+git checkout -b feature/my-adapter
+
+# Make changes and test
+pytest tests/
+
+# Submit a pull request
+```
+
+---
+
+## 📚 Documentation
+
+Comprehensive guides for test automation modernization and AI-powered transformation:
+
+### 🚀 Getting Started
+- **[Quick Start Guide](#-quick-start)** - Get started in 5 minutes
+- **[Installation & Setup](docs/quick-start/)** - Detailed setup instructions
+- **[Configuration Guide](docs/config/CONFIG.md)** - All configuration options
+
+### 🔧 Implementation & Features
+- **[AI Validation System](docs/implementation/AI_VALIDATION_IMPLEMENTATION.md)** - 5-stage validation pipeline ✅ NEW!
+- **[Framework Integration Status](docs/implementation/FRAMEWORK_INTEGRATION.md)** - Logging, retry, resilience ✅ NEW!
+- **[Sidecar Hardening](docs/implementation/SIDECAR_HARDENING.md)** - Circuit breakers, health checks ✅ NEW!
+- **[Multi-Framework Support](docs/frameworks/MULTI_FRAMEWORK_SUPPORT.md)** - 12+ supported frameworks
+
+### 🤖 AI & Intelligence
+- **[Execution Intelligence Engine](docs/EXECUTION_INTELLIGENCE.md)** - Automated failure classification & log analysis ✅ NEW!
+- **[AI Transformation](docs/ai/AI_TRANSFORMATION_USAGE.md)** - AI-powered test migration
+- **[Memory & Embeddings](docs/memory/MEMORY_EMBEDDINGS_SYSTEM.md)** - Semantic search
+- **[Intelligent Assistance](docs/intelligence/INTELLIGENT_TEST_ASSISTANCE.md)** - AI-powered insights
+
+### 📊 Quality & Testing
+- **[Test Results & Coverage](docs/testing/TEST_RESULTS.md)** - Current test status ✅ NEW!
+- **[Flaky Test Detection](docs/flaky-detection/FLAKY_DETECTION_QUICK_START.md)** - ML-based detection
+- **[Coverage Tracking](docs/coverage/FUNCTIONAL_COVERAGE_QUICKSTART.md)** - Behavioral coverage
+
+### 🔍 Observability
+- **[Grafana Dashboards](docs/observability/CONTINUOUS_INTELLIGENCE_README.md)** - Real-time monitoring
+- **[System Verification](docs/reports/SYSTEM_VERIFICATION_2025-01-24.md)** - Historical verification reports
+
+### �️ Development Scripts
+- **[Scripts Directory](scripts/README.md)** - Utility scripts organized by purpose
+  - **[Demos](scripts/demos/)** - Feature demonstration scripts
+  - **[Utilities](scripts/utilities/)** - Development and setup tools
+  - **[Maintenance](scripts/maintenance/)** - Bug fixes and patches
+  - **[Validation](scripts/validation/)** - System verification scripts
+
+### �📖 Complete Documentation
+For full documentation index, visit: **[docs/project/DOCUMENTATION_INDEX.md](docs/project/DOCUMENTATION_INDEX.md)**
+
+---
+
+## 🤝 Get Involved
+
+CrossBridge AI is **open source and community-driven**.  
+We welcome contributions from developers, QA engineers, and organizations worldwide.
+
+### How to Contribute
+- 📝 **Read** [CONTRIBUTING.md](docs/community/CONTRIBUTING.md) for guidelines
+- 🔑 **Sign** [Contributor License Agreement](docs/community/CLA.md)
+- 💻 **Submit** pull requests for features or fixes
+- 🐛 **Report** bugs and issues
+- 📢 **Share** your experience
+
+### Author & Maintainer
+- **Vikas Verma** - Creator & Lead Developer
+- **Email**: vikas.sdet@gmail.com
+- **Organization**: CrossStack AI
+
+See [AUTHORS.md](docs/community/AUTHORS.md) and [GOVERNANCE.md](docs/community/GOVERNANCE.md) for details.
+
+---
+
+## 🏆 Why Choose CrossBridge AI
+
+### ✅ Framework Agnostic
+Work with any testing framework — Selenium, Cypress, pytest, Robot, and more.
+
+### ✅ Zero Lock-In
+Use sidecar mode with existing tests — no migration required.
+
+### ✅ AI-Enhanced
+Optional AI features for smarter transformation and insights.
+
+### ✅ Open Source
+Apache 2.0 license — free forever, transparent, community-driven.
+
+### ✅ Proven Architecture
+Plugin-based design supports extensibility and custom integrations.
+
+---
+
+## 📜 License
+
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
+
+**Commercial Use**: Allowed under the terms of the Apache 2.0 license. 
+**Attribution**: Required as per Apache 2.0 terms.
+**Patent Grant**: Includes explicit patent protection for contributors and users.
+
+---
+
+## 🙏 Acknowledgments
+
+Built by **CrossStack AI** for the global QA and DevOps community. Special thanks to:
+- Robot Framework and Playwright communities
+- Contributors to Selenium and Cucumber projects
+- Early adopters providing feedback and bug reports
+
+---
+
+## 📞 Support & Community
+
+- **Issues**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
+- **Email**: vikas.sdet@gmail.com
+- **Website**: https://crossstack.ai
+
+**Response Time**: Community-driven support with commercial options available.
+
+---
+
+## 🧪 Test Status
+
+**Current Test Results** (v0.2.0):
+- **Total Tests**: ~1,908
+- **Overall Passing**: ~1,583 (83%)
+- **Unit Tests**: ~1,700 tests (85-87% passing)
+- **Integration Tests**: 26 tests (96% passing - 20/26)
+- **Persistence Tests**: 149 tests (56% passing - UUID migration in progress)
+- **Performance Tests**: 33 tests (structure complete, API alignment needed)
+- **Adapter Tests**: Comprehensive test suite with base classes for all 12+ adapters 🆕
+- **Embedding Tests**: Regression test suite for similarity calculations 🆕
+
+**Detailed Reports**:
+- [Unit Test Execution Report](docs/reports/UNIT_TEST_EXECUTION_REPORT.md)
+- [UUID Migration Guide](docs/testing/UUID_MIGRATION_GUIDE.md) 🆕
+- [Production Readiness Report](docs/reports/PRODUCTION_READINESS_FINAL_REPORT.md) 🆕
+
+**Run Tests**:
+```bash
+# All tests
+pytest tests/
+
+# Unit tests only
+pytest tests/unit/
+
+# Integration tests
+pytest tests/integration/
+
+# Specific module
+pytest tests/unit/adapters/selenium_bdd_java/
+
+# Persistence tests (UUID migration in progress)
+pytest tests/unit/persistence/ -v
+```
+
+**Test Highlights**:
+- ✅ Core transformation pipeline: 100% passing
+- ✅ Selenium BDD Java transformers: 100% passing
+- ✅ Integration workflows: 96%+ passing (excluding environment deps)
+- ✅ Database and models: 100% passing
+- 🟡 Repository unit tests: 56% passing (UUID migration documented)
+- 📝 Performance tests: Created, API alignment needed
+
+**Documentation**:
+- [UUID Migration Guide](docs/testing/UUID_MIGRATION_GUIDE.md) - Complete guide for fixing persistence tests
+- [Production Readiness Report](docs/reports/PRODUCTION_READINESS_FINAL_REPORT.md) - Remaining work and recommendations
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Completed (Q4 2025 - Q1 2026)
+- [x] Core Selenium Java migration
+- [x] Multi-framework intelligence (12+ frameworks)
+- [x] Bitbucket/GitHub/Azure DevOps integration
+- [x] Impact analysis and coverage mapping
+- [x] **Flaky test detection with ML**
+- [x] **PostgreSQL persistence + Grafana dashboards**
+- [x] **Memory & Embeddings with semantic search**
+- [x] **No-Migration sidecar mode**
+- [x] **AI Transformation Validation Framework** 🆕
+- [x] **Comprehensive Adapter Test Infrastructure** 🆕
+- [x] **Standardized Persistence Schema with Migrations** 🆕
+- [x] **Confidence Scoring & Quality Feedback System** 🆕
+
+### 🚀 In Progress (Q1 2026)
+- [x] AI transformation validation framework with confidence scoring ✅
+- [x] Comprehensive adapter test infrastructure ✅
+- [x] Standardized persistence schema with formal migrations ✅
+- [ ] Complete persistence repository test fixes (UUID migration)
+- [ ] Enhanced error handling and logging
+- [ ] Comprehensive test coverage (>90%)
+- [ ] Enhanced documentation and examples
+
+### 📅 Planned (Q2 2026)
+- [ ] Beta release (v0.5)
+- [ ] Enhanced AI features (GPT-4, Claude 3.5 support)
+- [ ] Web UI for migrations
+- [ ] Docker containerization
+- [ ] Playwright Java/Python adapters
+
+### 🔮 Future (Q3-Q4 2026)
+- [ ] v1.0 Stable release
+- [ ] Enterprise features (LDAP, SSO)
+- [ ] Cloud-hosted service option
+- [ ] Plugin marketplace
+- [ ] Internationalization support
+- [ ] Certification program
+
+---
+
+## 📈 SEO Keywords
+
+`test automation modernization` • `AI test transformation` • `legacy test migration` • `framework agnostic testing` • `test automation platform` • `selenium migration` • `flaky test detection` • `test intelligence` • `automated test migration` • `test framework conversion` • `AI-powered testing` • `test optimization` • `qa automation` • `devops testing` • `continuous testing`
+
+---
+
+## 💬 Testimonials
+
+*Coming soon! We'd love to hear about your experience with CrossBridge.*
+
+---
+
+## ⭐ Show Your Support
+
+If CrossBridge AI helps your team modernize test automation, please:
+
+- ⭐ **Star this repository** to increase visibility
+- 📢 **Share on LinkedIn** and social media
+- 🐛 **Report issues** to improve quality
+- 💻 **Contribute code** via pull requests
+- 💬 **Join discussions** to share experiences
+
+**Together, we can eliminate test automation debt worldwide.**
+
+---
+
+## 📞 Support & Community
+
+### Get Help
+- **📖 Documentation**: [docs/project/DOCUMENTATION_INDEX.md](docs/project/DOCUMENTATION_INDEX.md)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/crossstack-ai/crossbridge/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/crossstack-ai/crossbridge/discussions)
+- **📧 Email**: vikas.sdet@gmail.com
+
+### Stay Connected
+- **Organization**: CrossStack AI
+- **Website**: https://crossstack.ai (coming soon)
+- **Repository**: https://github.com/crossstack-ai/crossbridge
+
+**Response Time**: This is a community-driven project. Please be patient! 🙂
+
+---
+
+## ⚖️ Legal & License
+
+### License
+CrossBridge AI is licensed under the [Apache License 2.0](LICENSE).
+
+**Copyright (c) 2025 Vikas Verma**
+
+- ✅ **Commercial use allowed**
+- ✅ **Modification and distribution permitted**  
+- ✅ **Patent grant included**
+- ✅ **Attribution required**
+
+### Disclaimer
+**CrossBridge AI is an independent open-source project** developed by Vikas Verma in a personal capacity.
+
+This project is:
+- ✅ NOT affiliated with any employer
+- ✅ Developed using personal time and resources
+- ✅ Open-source for the testing community
+
+For details, see [AUTHORS.md](docs/community/AUTHORS.md) and [CLA.md](docs/community/CLA.md).
+
+---
+
+**Built with ❤️ by [CrossStack AI](https://crossstack.ai) for the global test automation community.**
+
+*Bridging Legacy Test Systems to AI-Powered Quality Engineering*
