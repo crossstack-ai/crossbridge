@@ -232,7 +232,7 @@ Plugin-based ecosystem supports 12+ existing frameworks:
 
 **Average Completeness: 96%** ✅ (Up from 88%)
 
-**BDD Framework Support:** CrossBridge now includes comprehensive BDD adapters for Cucumber Java, Robot Framework BDD, and JBehave with full feature parsing, step definition mapping, and execution report analysis. See [BDD Implementation Summary](BDD_IMPLEMENTATION_SUMMARY.md) for complete details.
+**BDD Framework Support:** CrossBridge now includes comprehensive BDD adapters for Cucumber Java, Robot Framework BDD, and JBehave with full feature parsing, step definition mapping, and execution report analysis. See [BDD Implementation Summary](docs/pillars/framework-support/BDD_IMPLEMENTATION_SUMMARY.md) for complete details.
 
 **Recent Framework Enhancements (Sprints 1-3):**
 - 🆕 **Robot Framework**: Advanced failure classification, comprehensive metadata extraction, and fast static test discovery
