@@ -15,6 +15,23 @@ Supported frameworks (13 total):
 - JavaScript/TypeScript: Cypress, Playwright
 - .NET: NUnit, SpecFlow
 - BDD: Cucumber (Java), Behave (Python), SpecFlow (.NET)
+
+PLUGIN ARCHITECTURE:
+-------------------
+Adapters are EXECUTION PLUGINS in CrossBridge's plugin architecture.
+They determine HOW to run tests, not WHAT to run (that's the strategy's job).
+
+Each adapter can be:
+- Extended by inheriting from FrameworkAdapter
+- Registered dynamically via PluginRegistry
+- Used with any execution strategy
+- Combined with sidecar or orchestration modes
+
+KEY CHARACTERISTICS:
+- Framework-agnostic at the adapter boundary
+- Non-invasive (frameworks unchanged)
+- CLI-level integration only
+- Sidecar-compatible
 """
 
 from abc import ABC, abstractmethod
@@ -33,9 +50,17 @@ logger = logging.getLogger(__name__)
 
 class FrameworkAdapter(ABC):
     """
-    Base adapter for framework execution.
+    Base adapter for framework execution (Execution Plugin).
     
-    Adapters are stateless - they just translate plans to commands.
+    Adapters are stateless plugins that translate execution plans into
+    framework-specific commands and parse results back into standard format.
+    
+    PLUGIN PATTERN:
+    - Each adapter is a pluggable execution component
+    - Adapters are strategy-agnostic
+    - Adapters can be registered dynamically
+    - Third-party adapters can be added
+    - Adapters work in both sidecar and orchestration modes
     """
     
     def __init__(self, framework_name: str):
@@ -45,6 +70,9 @@ class FrameworkAdapter(ABC):
     def plan_to_command(self, plan: ExecutionPlan, workspace: Path) -> List[str]:
         """
         Convert execution plan to framework CLI command.
+        
+        This is the adapter's translation method - it takes the WHAT (plan)
+        and converts it to HOW (CLI command).
         
         Args:
             plan: Execution plan with selected tests
@@ -60,6 +88,9 @@ class FrameworkAdapter(ABC):
         """
         Parse framework output into ExecutionResult.
         
+        This is the adapter's normalization method - it takes framework-specific
+        output and converts it to CrossBridge's standard result format.
+        
         Args:
             plan: Original execution plan
             workspace: Path to project workspace
@@ -71,12 +102,15 @@ class FrameworkAdapter(ABC):
     
     def execute(self, plan: ExecutionPlan, workspace: Path) -> ExecutionResult:
         """
-        Execute the plan (main entry point).
+        Execute the plan (main plugin entry point).
         
-        This handles the full lifecycle:
-        1. Generate inputs
-        2. Run command
-        3. Parse outputs
+        This handles the full adapter lifecycle:
+        1. Generate inputs (plan_to_command)
+        2. Run command (subprocess invocation)
+        3. Parse outputs (parse_result)
+        
+        This method is the same for all adapters - the plugin pattern
+        is implemented through the two abstract methods above.
         """
         start_time = datetime.utcnow()
         

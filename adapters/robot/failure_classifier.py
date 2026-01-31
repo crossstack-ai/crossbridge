@@ -91,8 +91,15 @@ class RobotFailureType(Enum):
 
 @dataclass
 class RobotFailureClassification(BaseFailureClassification):
-    """Robot Framework-specific failure classification."""
-    failure_type: RobotFailureType = RobotFailureType.UNKNOWN
+    """
+    Robot Framework-specific failure classification.
+    
+    Note: Inherits required fields from BaseFailureClassification:
+    - failure_type: str (use RobotFailureType.value)
+    - exception_type: str
+    - error_message: str
+    """
+    # Robot-specific optional fields
     keyword_name: Optional[str] = None              # Failed keyword name
     library_name: Optional[str] = None              # Library containing keyword
     locator: Optional[str] = None                   # Locator string (for locator failures)

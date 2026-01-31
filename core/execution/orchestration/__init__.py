@@ -15,6 +15,14 @@ Core Components:
 - ExecutionStrategies: Intelligent test selection (Smoke, Impacted, Risk, Full)
 - FrameworkAdapters: Framework-specific invocation patterns
 - ExecutionOrchestrator: Coordinates the entire execution flow
+
+Plugin Architecture:
+- ExecutionPlugin: Base interface for execution plugins
+- PluginRegistry: Centralized plugin management
+- OrchestrationExecutionPlugin: Default plugin wrapping the orchestrator
+- Strategy & Adapter plugins for extensibility
+
+KEY INSIGHT: Execution Orchestration IS the plugin architecture.
 """
 
 from .api import (
@@ -33,6 +41,21 @@ from .strategies import (
     FullStrategy,
     StrategyType,
     create_strategy,
+)
+from .plugin import (
+    ExecutionPlugin,
+    OrchestrationExecutionPlugin,
+    StrategyPluginExtension,
+    AdapterPluginExtension,
+    strategy_plugin,
+    adapter_plugin,
+    execution_plugin,
+)
+from .plugin_registry import (
+    PluginRegistry,
+    get_plugin_registry,
+    get_execution_plugin,
+    list_available_plugins,
 )
 
 __all__ = [
@@ -53,4 +76,16 @@ __all__ = [
     "FullStrategy",
     "StrategyType",
     "create_strategy",
+    # Plugin System
+    "ExecutionPlugin",
+    "OrchestrationExecutionPlugin",
+    "StrategyPluginExtension",
+    "AdapterPluginExtension",
+    "strategy_plugin",
+    "adapter_plugin",
+    "execution_plugin",
+    "PluginRegistry",
+    "get_plugin_registry",
+    "get_execution_plugin",
+    "list_available_plugins",
 ]

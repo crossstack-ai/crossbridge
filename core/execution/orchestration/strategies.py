@@ -9,6 +9,17 @@ Implements different strategies for intelligent test selection:
 
 Each strategy decides WHAT to run, not HOW to run it.
 Framework adapters handle the HOW.
+
+PLUGIN ARCHITECTURE:
+-------------------
+Strategies are DECISION PLUGINS in CrossBridge's plugin architecture.
+They determine WHAT tests to run, not HOW to run them.
+
+Each strategy can be:
+- Extended by inheriting from ExecutionStrategy
+- Registered dynamically via PluginRegistry
+- Used with any framework adapter
+- Combined with sidecar or orchestration modes
 """
 
 from abc import ABC, abstractmethod
@@ -22,13 +33,19 @@ logger = logging.getLogger(__name__)
 
 class ExecutionStrategy(ABC):
     """
-    Base class for execution strategies.
+    Base class for execution strategies (Decision Plugins).
     
     Strategies determine which tests to run based on various signals:
     - Code changes (impacted)
     - Historical failures (risk)
     - Tags/annotations (smoke)
     - Everything (full)
+    
+    PLUGIN PATTERN:
+    - Each strategy is a pluggable decision component
+    - Strategies are framework-agnostic
+    - Strategies can be registered dynamically
+    - Third-party strategies can be added
     """
     
     def __init__(self, name: str):
@@ -39,6 +56,9 @@ class ExecutionStrategy(ABC):
         """
         Select tests to execute based on strategy logic.
         
+        This is the plugin's decision method - it returns WHAT to run,
+        not HOW to run it (that's the adapter's job).
+        
         Args:
             context: Execution context with all available data
             
@@ -46,6 +66,10 @@ class ExecutionStrategy(ABC):
             ExecutionPlan with selected tests and metadata
         """
         pass
+    
+    def get_name(self) -> str:
+        """Get strategy name (for plugin registry)."""
+        return self.name
     
     def _create_plan(
         self,

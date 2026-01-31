@@ -213,8 +213,24 @@ See [Semantic Engine Guide](docs/SEMANTIC_ENGINE.md) for details.
 
 ---
 
-### 🔹 7. **Framework-Agnostic Architecture**
-Plugin-based ecosystem supports 12+ existing frameworks:
+### 🔹 7. **Framework-Agnostic Plugin Architecture**
+CrossBridge implements a clean plugin architecture through its Execution Orchestration layer:
+
+**KEY INSIGHT:** Execution Orchestration IS the plugin architecture.
+- **ExecutionOrchestrator** = Plugin Host
+- **Execution Strategies** = Decision Plugins (WHAT to run)
+- **Framework Adapters** = Execution Plugins (HOW to run)
+
+**Plugin System Features:**
+- 🧩 **Pluggable Strategies**: Smoke, Impacted, Risk-Based, Full (extensible)
+- 🔌 **Pluggable Adapters**: 12+ framework adapters (extensible)
+- 🔧 **Dynamic Registration**: Third-party plugins via PluginRegistry
+- 🚀 **Non-Invasive**: Frameworks unchanged, CLI-level integration
+- 🔄 **Sidecar-Compatible**: Works in both observer and orchestration modes
+
+See [Plugin Architecture Guide](docs/architecture/PLUGIN_ARCHITECTURE.md) for complete design philosophy and extension points.
+
+**Supported Frameworks (12+ adapters):**
 
 | Framework | Language | Type | Status | Completeness |
 |-----------|----------|------|--------|--------------|
@@ -1567,6 +1583,8 @@ crossbridge analyze-impact --changed-files src/pages/HomePage.java
 
 ## 🏗️ Architecture
 
+### Core Architecture Diagram
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     CLI / Interactive Menu                   │
@@ -1590,18 +1608,62 @@ crossbridge analyze-impact --changed-files src/pages/HomePage.java
 └────────┘      └──────────┘     └──────────┘
 ```
 
-**Plugin Architecture**: Add new frameworks by implementing adapter interfaces.
+### Plugin Architecture
+
+CrossBridge uses a **formal plugin architecture** through Execution Orchestration:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      CROSSBRIDGE PLUGIN HOST                     │
+│                    (ExecutionOrchestrator)                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐     │
+│  │   Strategy   │───▶│    Plan      │───▶│   Adapter    │     │
+│  │  (Decision)  │    │              │    │ (Execution)  │     │
+│  └──────────────┘    └──────────────┘    └──────────────┘     │
+│   WHAT to run      Framework-Agnostic     HOW to run          │
+│                    Boundary Layer                              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+                ┌────────────────────────┐
+                │  TEST FRAMEWORKS       │
+                │  (Unchanged)           │
+                ├────────────────────────┤
+                │ • pytest               │
+                │ • TestNG               │
+                │ • Robot Framework      │
+                │ • Cypress              │
+                │ • Playwright           │
+                │ • JUnit                │
+                │ • And more...          │
+                └────────────────────────┘
+```
+
+**Key Principles:**
+- 🧩 **Orchestrator = Plugin Host**: Coordinates all plugin interactions
+- 🎯 **Strategies = Decision Plugins**: Determine WHAT tests to run
+- 🔌 **Adapters = Execution Plugins**: Determine HOW to invoke frameworks
+- 🚫 **Non-Invasive**: Frameworks remain unchanged, CLI-level integration
+- 🔄 **Extensible**: Third-party plugins via PluginRegistry
+
+See [Plugin Architecture Guide](docs/architecture/PLUGIN_ARCHITECTURE.md) for complete design philosophy.
 
 ---
 
 ## 📊 Project Maturity & Limitations
 
-### Current Status: **Alpha (v0.1.1)**
+### Current Status: **v0.2.0 - Production Ready**
 
 **What Works Well:**
 - ✅ Selenium Java + Cucumber → Robot Framework migrations
 - ✅ Step definition parsing and transformation
 - ✅ Bitbucket/GitHub/Azure DevOps integration
+- ✅ Plugin-based execution orchestration
+- ✅ 12+ framework adapters (96% average completeness)
+- ✅ Sidecar integration for Java and Robot Framework
 - ✅ Page object extraction and locator migration
 - ✅ Impact analysis and coverage mapping
 - ✅ Multi-threaded processing for large repositories
