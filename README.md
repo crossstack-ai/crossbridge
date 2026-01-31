@@ -113,26 +113,65 @@ CrossBridge now includes advanced parsing capabilities and a unified embeddings 
 
 Monitor and analyze tests without modifying a single line of test code:
 
-**Features:**
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   Test Execution    │         │   Sidecar        │         │   Observability     │
+│   (No Changes!)     │         │   Runtime        │         │                     │
+│                     │         │                  │         │                     │
+│  • Existing tests   │────────▶│  • Sampler       │────────▶│  • Prometheus       │
+│  • Any framework    │  events │  • Observer      │ metrics │  • Grafana          │
+│  • Zero impact      │         │  • Profiler      │         │  • Health checks    │
+│                     │         │  • <5% CPU       │         │  • Alerts           │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Key Features:**
 - ⚡ **Fail-open execution** - Never blocks test runs (catches all exceptions)
-- 📦 **Bounded queues** - Load shedding with 5000 event capacity
-- 🎲 **Smart sampling** - Configurable rates (10% events, 5% logs, 1% profiling)
+- 📦 **Bounded queues** - Load shedding with 5000-10000 event capacity
+- 🎲 **Smart sampling** - Configurable rates (1-100%, default: 10% events, 5% logs, 1% profiling)
+- 🔄 **Adaptive sampling** - Auto-boost 5x for 60s on anomalies
 - 💾 **Resource budgets** - Auto-throttles at 5% CPU / 100MB RAM limits
 - 🏥 **Health endpoints** - `/health`, `/ready`, `/metrics` for monitoring
-- 📊 **Prometheus metrics** - Production-grade observability
+- 📊 **Prometheus metrics** - Production-grade observability with Grafana dashboards
+- 🔧 **Runtime configurable** - No rebuild/redeploy required
 
 **Quick Start:**
 ```yaml
 # crossbridge.yml
-crossbridge:
+runtime:
   sidecar:
     enabled: true
     sampling:
-      rates:
-        events: 0.1  # Sample 10% of events
+      events: 0.1          # 10% sampling rate
+      adaptive: enabled    # Auto-boost on anomalies
+    resources:
+      max_queue_size: 10000
+      max_cpu_percent: 5.0
+      max_memory_mb: 100
 ```
 
-Works with all 12+ frameworks. See [Sidecar Guide](docs/TEST_INFRASTRUCTURE_AND_SIDECAR_HARDENING.md).
+**Usage Example:**
+```python
+from core.sidecar import SidecarRuntime
+
+with SidecarRuntime() as sidecar:
+    # Observe events
+    sidecar.observe('test_event', {'test_id': 'test_123', 'status': 'passed'})
+    
+    # Get health status
+    health = sidecar.get_health()  # {'status': 'healthy', 'components': {...}}
+    
+    # Export metrics (Prometheus format)
+    metrics = sidecar.export_metrics()
+```
+
+Works with all 12+ frameworks. 
+
+📖 **Learn More**:
+- [Sidecar Runtime Guide](docs/sidecar/SIDECAR_RUNTIME.md)
+- [Test Infrastructure & Hardening](docs/TEST_INFRASTRUCTURE_AND_SIDECAR_HARDENING.md)
+- [Configuration Reference](crossbridge.yml)
+- [Usage Examples](examples/sidecar_examples.py)
 
 ---
 
@@ -592,67 +631,7 @@ if not registry.is_healthy():
 - [All Gaps Fixed Summary](docs/hardening/PRODUCTION_HARDENING_ALL_GAPS_FIXED.md)
 - [Module Documentation](core/runtime/README.md)
 
-### 🔹 14. **Debuggable Sidecar Runtime** 🆕
-Resilient, low-overhead observer that provides observability without impacting test execution:
-
-```
-┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
-│   Test Execution    │         │   Sidecar        │         │   Observability     │
-│   (No Changes!)     │         │   Runtime        │         │                     │
-│                     │         │                  │         │                     │
-│  • Existing tests   │────────▶│  • Sampler       │────────▶│  • Prometheus       │
-│  • Any framework    │  events │  • Observer      │ metrics │  • Grafana          │
-│  • Zero impact      │         │  • Profiler      │         │  • Health checks    │
-│                     │         │  • <5% CPU       │         │  • Alerts           │
-└─────────────────────┘         └──────────────────┘         └─────────────────────┘
-```
-
-**Key Features:**
-- 🛡️ **Fail-Open Design** - Never breaks test execution
-- 📊 **Configurable Sampling** - 1-100% event sampling rates
-- ⚡ **Adaptive Sampling** - Auto-boost on anomalies (5x for 60s)
-- 💾 **Bounded Queues** - Graceful degradation under load
-- 📈 **Prometheus Metrics** - Export for Grafana dashboards
-- 🏥 **Health Monitoring** - Component status tracking
-- 🔧 **Runtime Configurable** - No rebuild/redeploy required
-- 🎯 **Resource Budgets** - <5% CPU, <100MB memory guaranteed
-
-**Quick Enable:**
-```yaml
-# crossbridge.yml
-runtime:
-  sidecar:
-    enabled: true
-    sampling:
-      events: 0.1          # 10% sampling
-      adaptive: enabled    # Auto-boost on anomalies
-    resources:
-      max_queue_size: 10000
-      max_cpu_percent: 5.0
-      max_memory_mb: 100
-```
-
-**Usage:**
-```python
-from core.sidecar import SidecarRuntime
-
-with SidecarRuntime() as sidecar:
-    # Observe events
-    sidecar.observe('test_event', {'test_id': 'test_123', 'status': 'passed'})
-    
-    # Get health
-    health = sidecar.get_health()  # {'status': 'healthy', 'components': {...}}
-    
-    # Export metrics (Prometheus format)
-    metrics = sidecar.export_metrics()
-```
-
-📖 **Learn More**: 
-- [Sidecar Runtime Guide](docs/sidecar/SIDECAR_RUNTIME.md)
-- [Configuration Reference](crossbridge.yml)
-- [Usage Examples](examples/sidecar_examples.py)
-
-### 🔹 15. **Performance Profiling & Observability**
+### 🔹 14. **Performance Profiling & Observability**
 Passive, non-invasive performance profiling for all test executions:
 
 ```
@@ -700,7 +679,7 @@ crossbridge:
 
 📖 **Learn More**: [Performance Profiling Documentation](docs/profiling/README.md)
 
-### 🔹 16. **AI Transformation Validation** 🆕
+### 🔹 15. **AI Transformation Validation** 🆕
 Never auto-merge AI-generated code again! Comprehensive validation system with confidence scoring, human review workflows, and audit trails:
 
 ```
