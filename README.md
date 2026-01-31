@@ -812,6 +812,159 @@ $ crossbridge ai-transform stats
 - [Quick Start](docs/ai/QUICK_START_AI_TRANSFORM.md)
 - [CLI Reference](docs/ai/AI_TRANSFORMATION_VALIDATION.md#cli-reference)
 
+### 🔹 16. **Enhanced Health Monitoring & Observability** 🆕
+Production-grade health monitoring with sub-component tracking, SLI/SLO support, and Prometheus integration:
+
+```
+┌─────────────────────┐         ┌──────────────────┐         ┌─────────────────────┐
+│   CrossBridge       │         │   Health Monitor │         │   Observability     │
+│   Components        │         │   (v2 API)       │         │                     │
+│  • Database         │────────▶│  • Component     │────────▶│  • Prometheus       │
+│  • AI Service       │  status │    Health        │ metrics │  • Grafana          │
+│  • Embeddings       │         │  • SLI/SLO       │         │  • Alertmanager     │
+│  • Sidecar          │         │  • History       │         │  • /health APIs     │
+└─────────────────────┘         └──────────────────┘         └─────────────────────┘
+```
+
+**Key Features:**
+- 🏥 **Versioned Health APIs** - v1 (simple) and v2 (detailed) endpoints with full backward compatibility
+- 🔍 **Sub-Component Tracking** - Monitor database, AI service, embeddings, sidecar, execution engine individually
+- 📊 **SLI/SLO Support** - Service Level Indicators with configurable targets (uptime ≥99%, latency ≤500ms, error rate ≤1%)
+- 🔄 **Historical Health Data** - Track component health trends with 1-hour retention
+- 🚨 **Prometheus Integration** - 20+ pre-configured alert rules for production monitoring
+- ⚡ **Zero Impact** - Non-blocking health checks, never affect test execution
+- 🎯 **Kubernetes-Ready** - `/ready`, `/live` endpoints for k8s liveness/readiness probes
+
+**Health Endpoints:**
+
+| Endpoint | Purpose | Response Time | Use Case |
+|----------|---------|---------------|----------|
+| `GET /health` | Overall system status | <10ms | Quick status check |
+| `GET /health/v1` | Simple health (backward compatible) | <10ms | Legacy integrations |
+| `GET /health/v2` | Detailed component health + SLI | <50ms | Production monitoring |
+| `GET /ready` | Readiness check (Kubernetes) | <10ms | K8s readiness probe |
+| `GET /live` | Liveness check (Kubernetes) | <5ms | K8s liveness probe |
+| `GET /metrics` | Prometheus metrics export | <100ms | Metrics scraping |
+| `GET /sli` | Service Level Indicators | <20ms | SLO monitoring |
+
+**Health States:**
+- 🟢 **HEALTHY**: All systems operational (SLI targets met)
+- 🟡 **DEGRADED**: Partial functionality (some SLI targets missed, non-critical components down)
+- 🔴 **UNHEALTHY**: Critical failure (database down, multiple SLI targets missed)
+
+**Example v2 Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-31T10:30:00Z",
+  "uptime_seconds": 86400,
+  "version": "0.2.0",
+  "components": {
+    "database": {
+      "status": "healthy",
+      "response_time_ms": 15,
+      "details": {"connections": 5, "pool_size": 20}
+    },
+    "ai_service": {
+      "status": "healthy",
+      "response_time_ms": 245,
+      "details": {"model": "gpt-4", "requests_today": 1523}
+    },
+    "embeddings": {
+      "status": "healthy",
+      "response_time_ms": 120,
+      "details": {"vector_count": 15420, "index_size_mb": 234}
+    }
+  },
+  "sli": {
+    "uptime_percent": 99.95,
+    "avg_latency_ms": 127,
+    "error_rate_percent": 0.12,
+    "targets_met": true
+  }
+}
+```
+
+**Prometheus Alerts (20+ Rules):**
+- 🚨 CrossBridge Unhealthy (critical)
+- ⚠️ CrossBridge Degraded (warning)
+- 🔴 Component Down (critical: database, ai_service)
+- 🟡 Component Degraded (warning: embeddings, sidecar)
+- ⏱️ High Latency (>500ms for 5m)
+- 💥 High Error Rate (>1% for 5m)
+- 🎯 SLO Violation (uptime <99%, latency >500ms, errors >1%)
+- 🗄️ Database Issues (connection failures, slow queries)
+- 💾 Memory Pressure (>500MB for 5m)
+
+**Quick Setup:**
+```yaml
+# crossbridge.yml
+observability:
+  health:
+    enabled: true
+    version: 2  # Use v2 API with SLI/SLO
+    port: 9090  # Health endpoint port
+    sli_targets:
+      uptime_percent: 99.0    # 99% uptime SLO
+      latency_ms: 500         # 500ms latency SLO
+      error_rate_percent: 1.0 # 1% error rate SLO
+  
+  prometheus:
+    enabled: true
+    scrape_interval: 15s
+    alert_rules: monitoring/prometheus/crossbridge-alerts.yml
+```
+
+**CI/CD Integration:**
+```bash
+# Wait for health before running tests
+curl -f http://localhost:9090/health || exit 1
+
+# Check readiness (Kubernetes)
+curl -f http://localhost:9090/ready || exit 1
+
+# Verify SLI targets met
+curl http://localhost:9090/sli | jq '.targets_met' | grep true
+```
+
+**Alertmanager Integration:**
+```yaml
+# monitoring/prometheus/alertmanager.yml
+route:
+  receiver: crossbridge-team
+  routes:
+    - match:
+        severity: critical
+      receiver: pagerduty
+    - match:
+        severity: warning
+      receiver: slack
+
+receivers:
+  - name: crossbridge-team
+    email_configs:
+      - to: team@example.com
+  - name: pagerduty
+    pagerduty_configs:
+      - service_key: <YOUR_KEY>
+  - name: slack
+    slack_configs:
+      - api_url: <WEBHOOK_URL>
+        channel: '#alerts'
+```
+
+**Grafana Dashboards:**
+- 📊 **CrossBridge Health Overview** - System-wide health status and trends
+- 🔍 **Component Health Details** - Per-component metrics and history
+- 🎯 **SLI/SLO Dashboard** - Track service level targets and violations
+- 🚨 **Alert Dashboard** - Active alerts and alert history
+
+📖 **Complete Documentation**: 
+- [Enhanced Health Monitoring Guide](docs/observability/ENHANCED_HEALTH_MONITORING_GUIDE.md) (comprehensive 785-line guide)
+- [Health Unhealthy Runbook](docs/runbooks/health-unhealthy.md) (troubleshooting)
+- [Prometheus Configuration](monitoring/prometheus/)
+- [Validation Report](docs/implementation/HEALTH_MONITORING_VALIDATION_REPORT.md)
+
 ---
 
 ## 🎯 Who Should Use CrossBridge AI
