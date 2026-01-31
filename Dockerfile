@@ -164,17 +164,40 @@ CMD ["--help"]
 # ============================================================================
 # 
 # Build:
-#   docker build -t crossbridge/crossbridge:1.0.0 .
+#   docker build -t crossbridge/crossbridge:0.2.0 .
 #
 # Run help:
-#   docker run --rm crossbridge/crossbridge:1.0.0
+#   docker run --rm crossbridge/crossbridge:0.2.0
 #
 # Run smoke tests:
 #   docker run --rm \
 #     -v $(pwd)/test-repo:/workspace \
 #     -v $(pwd)/crossbridge-data/logs:/data/logs \
 #     -v $(pwd)/crossbridge-data/reports:/data/reports \
-#     crossbridge/crossbridge:1.0.0 exec run --framework pytest --strategy smoke
+#     crossbridge/crossbridge:0.2.0 exec run --framework pytest --strategy smoke
+#
+# Sidecar Observer Mode (Java Selenium BDD):
+#   docker run -d \
+#     --name crossbridge-observer \
+#     -e CROSSBRIDGE_MODE=observer \
+#     -e CROSSBRIDGE_DB_HOST=10.55.12.99 \
+#     -e PRODUCT_NAME=MyJavaApp \
+#     -e APP_VERSION=v2.0.0 \
+#     -v $(pwd)/crossbridge-data:/data \
+#     --network bridge \
+#     crossbridge/crossbridge:0.2.0
+#
+# Sidecar Observer Mode (Robot Framework):
+#   docker run -d \
+#     --name crossbridge-observer \
+#     -e CROSSBRIDGE_MODE=observer \
+#     -e CROSSBRIDGE_DB_HOST=10.55.12.99 \
+#     -e PRODUCT_NAME=MyRobotApp \
+#     -e APP_VERSION=v2.0.0 \
+#     -e CROSSBRIDGE_HOOKS_ENABLED=true \
+#     -v $(pwd)/crossbridge-data:/data \
+#     --network bridge \
+#     crossbridge/crossbridge:0.2.0
 #
 # With docker-compose:
 #   docker-compose up

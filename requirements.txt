@@ -81,8 +81,10 @@ faiss-cpu>=1.7.4,<2.0.0           # FAISS vector similarity search (CPU)
 playwright>=1.40.0                # Modern browser automation (Chromium/Firefox/WebKit)
 
 # Note: Framework-specific dependencies installed as needed:
-# - selenium>=4.0.0              # For Selenium translation/analysis
+# - selenium>=4.0.0              # For Selenium translation/analysis (Java, Python, .NET)
 # - robotframework>=6.0          # For Robot Framework support (adapters/robot/)
+# - robotframework-requests>=0.9 # For Robot + RequestsLibrary API testing
+# - robotframework-seleniumlibrary>=6.0  # For Robot + Selenium UI testing
 # - cypress (via npm)            # npm install cypress
 # - pytest plugins               # pytest-bdd, pytest-selenium, etc.
 # - dotnet SDK 6.0+              # For Selenium .NET adapter (adapters/selenium_dotnet/)

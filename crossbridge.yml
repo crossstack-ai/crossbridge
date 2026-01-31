@@ -29,7 +29,7 @@ crossbridge:
     # Application version being tested (e.g., "2.1.0", "v3.0.0-beta")
     # Override with: APP_VERSION or CROSSBRIDGE_APP_VERSION
     # CI/CD Tip: export APP_VERSION=$(git describe --tags)
-    application_version: ${APP_VERSION:-v1.0.0}
+    application_version: ${APP_VERSION:-v0.2.0}
     
     # Environment name (e.g., "dev", "staging", "production")
     # Override with: ENVIRONMENT or CROSSBRIDGE_ENVIRONMENT
@@ -2153,3 +2153,178 @@ execution:
       exclude_flaky_by_default: true
       flaky_threshold: 0.2  # 20% failure rate
 
+
+# ============================================================================
+# SIDECAR INTEGRATION EXAMPLES
+# ============================================================================
+# CrossBridge can run as a sidecar container alongside your test execution,
+# providing continuous intelligence without requiring test migration.
+#
+# Supported Frameworks:
+# - Java (Selenium, RestAssured, TestNG, JUnit)
+# - Robot Framework (Python, SeleniumLibrary, RequestsLibrary)
+# - pytest, Cypress, Playwright, and 8+ more
+#
+# ────────────────────────────────────────────────────────────────────────────
+# Example 1: Java Selenium BDD (TestNG + Cucumber)
+# ────────────────────────────────────────────────────────────────────────────
+#
+# Prerequisites:
+# ✅ Java 11+ installed
+# ✅ Maven or Gradle project
+# ✅ Selenium WebDriver configured
+# ✅ TestNG or JUnit with Cucumber
+#
+# Integration Steps:
+#
+# 1. Add CrossBridge Java Listener to testng.xml:
+#    <listeners>
+#      <listener class-name="com.crossbridge.CrossBridgeListener"/>
+#    </listeners>
+#
+# 2. OR add via JUnit annotation:
+#    @RunWith(CrossBridgeRunner.class)
+#    public class MyTests extends TestBase { ... }
+#
+# 3. Set system properties (pom.xml or gradle.properties):
+#    <systemPropertyVariables>
+#      <crossbridge.enabled>true</crossbridge.enabled>
+#      <crossbridge.db.host>10.55.12.99</crossbridge.db.host>
+#      <crossbridge.db.port>5432</crossbridge.db.port>
+#      <crossbridge.db.name>crossbridge</crossbridge.db.name>
+#      <crossbridge.product.name>${project.artifactId}</crossbridge.product.name>
+#      <crossbridge.application.version>${project.version}</crossbridge.application.version>
+#      <crossbridge.environment>${env}</crossbridge.environment>
+#    </systemPropertyVariables>
+#
+# 4. Run tests normally - CrossBridge observes automatically:
+#    mvn clean test -Dcrossbridge.enabled=true
+#    gradle test --info
+#
+# Maven Docker Command:
+#   docker run --rm \
+#     -v $(pwd):/workspace \
+#     -v $(pwd)/crossbridge-data:/data \
+#     --network bridge \
+#     -e CROSSBRIDGE_DB_HOST=10.55.12.99 \
+#     -e PRODUCT_NAME=MyJavaApp \
+#     -e APP_VERSION=v2.0.0 \
+#     maven:3.9-eclipse-temurin-11 \
+#     mvn test -Dcrossbridge.enabled=true
+#
+# ────────────────────────────────────────────────────────────────────────────
+# Example 2: Robot Framework (Python + Requests + Selenium)
+# ────────────────────────────────────────────────────────────────────────────
+#
+# Prerequisites:
+# ✅ Python 3.9+ installed
+# ✅ Robot Framework: pip install robotframework
+# ✅ RequestsLibrary: pip install robotframework-requests
+# ✅ SeleniumLibrary: pip install robotframework-seleniumlibrary (optional)
+#
+# Integration Steps:
+#
+# 1. Add CrossBridge listener to robot command:
+#    robot --listener crossbridge.hooks.robot_hooks.CrossBridgeListener tests/
+#
+# 2. OR add to robot.toml / robot.yaml:
+#    [robot]
+#    listeners = [\"crossbridge.hooks.robot_hooks.CrossBridgeListener\"]
+#
+# 3. OR add to Robot file:
+#    *** Settings ***
+#    Library    crossbridge.hooks.robot_hooks.CrossBridgeListener
+#
+# 4. Set environment variables:
+#    export CROSSBRIDGE_HOOKS_ENABLED=true
+#    export CROSSBRIDGE_DB_HOST=10.55.12.99
+#    export CROSSBRIDGE_DB_PORT=5432
+#    export CROSSBRIDGE_DB_NAME=crossbridge
+#    export PRODUCT_NAME=MyRobotApp
+#    export APP_VERSION=v2.0.0
+#    export ENVIRONMENT=test
+#
+# 5. Run tests normally - CrossBridge observes automatically:
+#    robot --listener crossbridge.hooks.robot_hooks.CrossBridgeListener \
+#          --variable CROSSBRIDGE_ENABLED:true \
+#          tests/
+#
+# Docker Command:
+#   docker run --rm \
+#     -v $(pwd):/workspace \
+#     -v $(pwd)/crossbridge-data:/data \
+#     --network bridge \
+#     -e CROSSBRIDGE_HOOKS_ENABLED=true \
+#     -e CROSSBRIDGE_DB_HOST=10.55.12.99 \
+#     -e PRODUCT_NAME=MyRobotApp \
+#     -e APP_VERSION=v2.0.0 \
+#     python:3.11-slim \
+#     bash -c \"pip install robotframework robotframework-requests robotframework-seleniumlibrary && \
+#              robot --listener crossbridge.hooks.robot_hooks.CrossBridgeListener tests/\"
+#
+# ────────────────────────────────────────────────────────────────────────────
+# Docker Compose Sidecar Pattern
+# ────────────────────────────────────────────────────────────────────────────
+#
+# For both frameworks, use docker-compose for easier orchestration:
+#
+# services:
+#   crossbridge-observer:
+#     image: crossbridge/crossbridge:0.2.0
+#     environment:
+#       - CROSSBRIDGE_MODE=observer
+#       - CROSSBRIDGE_DB_HOST=10.55.12.99
+#       - PRODUCT_NAME=MyApp
+#       - APP_VERSION=v2.0.0
+#     volumes:
+#       - ./crossbridge-data:/data
+#     network_mode: bridge
+#     restart: unless-stopped
+#
+#   java-tests:
+#     image: maven:3.9-eclipse-temurin-11
+#     depends_on:
+#       - crossbridge-observer
+#     environment:
+#       - crossbridge.enabled=true
+#       - crossbridge.db.host=10.55.12.99
+#     volumes:
+#       - ./java-project:/workspace
+#     working_dir: /workspace
+#     command: mvn test
+#
+#   robot-tests:
+#     image: python:3.11-slim
+#     depends_on:
+#       - crossbridge-observer
+#     environment:
+#       - CROSSBRIDGE_HOOKS_ENABLED=true
+#       - CROSSBRIDGE_DB_HOST=10.55.12.99
+#     volumes:
+#       - ./robot-project:/workspace
+#     working_dir: /workspace
+#     command: bash -c \"pip install robotframework robotframework-requests && \
+#              robot --listener crossbridge.hooks.robot_hooks.CrossBridgeListener tests/\"
+#
+# Run: docker-compose up --abort-on-container-exit
+#
+# ────────────────────────────────────────────────────────────────────────────
+# Verification
+# ────────────────────────────────────────────────────────────────────────────
+#
+# 1. Check CrossBridge logs:
+#    tail -f crossbridge-data/logs/crossbridge.log
+#
+# 2. Verify database entries:
+#    psql -h 10.55.12.99 -U postgres -d crossbridge \
+#         -c \"SELECT * FROM test_executions ORDER BY created_at DESC LIMIT 10;\"
+#
+# 3. Check health endpoint (if enabled):
+#    curl http://localhost:9090/health
+#    curl http://localhost:9090/ready
+#    curl http://localhost:9090/metrics
+#
+# 4. View Grafana dashboards (if configured):
+#    http://localhost:3000
+#
+# ============================================================================

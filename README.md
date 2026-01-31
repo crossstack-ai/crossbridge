@@ -169,6 +169,7 @@ Works with all 12+ frameworks.
 
 📖 **Learn More**:
 - [Sidecar Runtime Guide](docs/sidecar/SIDECAR_RUNTIME.md)
+- [Sidecar Integration Guide](docs/quick-start/SIDECAR_INTEGRATION_GUIDE.md) ⭐ **NEW**
 - [Test Infrastructure & Hardening](docs/TEST_INFRASTRUCTURE_AND_SIDECAR_HARDENING.md)
 - [Configuration Reference](crossbridge.yml)
 - [Usage Examples](examples/sidecar_examples.py)
