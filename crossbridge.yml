@@ -133,7 +133,7 @@ crossbridge:
     max_tokens: 2048           # Max response length
     timeout: 60                # Request timeout in seconds
     
-    # ── Phase-2: True AI Semantic Engine ──────────────────────────────────
+    # ── AI Semantic Engine ────────────────────────────────────────────────
     # Semantic search, duplicate detection, and smart test selection
     semantic_engine:
       enabled: true
@@ -200,7 +200,7 @@ crossbridge:
       duplicate_detection:
         enabled: true
         
-        # Thresholds (from Phase-2 spec)
+        # Thresholds
         similarity_threshold: 0.9    # Minimum similarity for duplicates
         confidence_threshold: 0.8    # Minimum confidence for duplicates
         
