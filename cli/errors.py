@@ -191,3 +191,27 @@ def log_error(error: Exception, context: Optional[str] = None):
         logger.error(f"Error in {context}: {error}", exc_info=True)
     else:
         logger.error(f"Error: {error}", exc_info=True)
+
+
+def handle_cli_error(error: Exception, context: Optional[str] = None):
+    """
+    Handle CLI error with user-friendly display and logging.
+    
+    Args:
+        error: Exception to handle
+        context: Optional context description
+    """
+    # Log full error details to file
+    log_error(error, context)
+    
+    # Get user-friendly error information
+    error_info = get_user_friendly_error(error)
+    
+    # Display to user
+    print(f"\n❌ Error: {error_info['message']}")
+    if context:
+        print(f"   Context: {context}")
+    print(f"   Code: {error_info['code']}")
+    if error_info.get('suggestion'):
+        print(f"   💡 Suggestion: {error_info['suggestion']}")
+    print()
