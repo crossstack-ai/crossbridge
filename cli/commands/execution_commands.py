@@ -19,8 +19,25 @@ from core.execution.orchestration import (
     StrategyType,
     create_orchestrator,
 )
-from cli.branding import console_print, format_success, format_error, format_info
+from cli.branding import show_info, show_error, show_step
 from cli.errors import handle_cli_error
+
+# Simple console output helpers
+def console_print(msg):
+    """Print message to console"""
+    print(msg)
+
+def format_info(msg):
+    """Format info message"""
+    return f"ℹ️  {msg}"
+
+def format_success(msg):
+    """Format success message"""
+    return f"✅ {msg}"
+
+def format_error(msg):
+    """Format error message"""
+    return f"❌ {msg}"
 
 
 @click.group(name="exec")

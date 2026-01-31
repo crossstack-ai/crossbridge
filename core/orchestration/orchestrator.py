@@ -162,7 +162,7 @@ TIER 1 (Quick Header Enhancement) is applied by default to maintain
 stability while adding CrossStack platform metadata.
 """
 
-from typing import Callable, Optional, Dict
+from typing import Callable, Optional, Dict, List
 import re
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -192,7 +192,8 @@ logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 try:
     from adapters.selenium_bdd_java.step_definition_parser import (
         JavaStepDefinitionParser,
-        StepDefinitionIntent
+        StepDefinitionIntent,
+        SeleniumAction
     )
     from migration.generators.robot_generator import (
         RobotTestGenerator,

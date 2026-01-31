@@ -24,7 +24,7 @@ Usage:
 
 import re
 from pathlib import Path
-from typing import List, Dict, Optional, Set, Tuple
+from typing import List, Dict, Optional, Set, Tuple, Any
 from dataclasses import dataclass, field
 from enum import Enum
 

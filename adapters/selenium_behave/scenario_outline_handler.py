@@ -4,7 +4,7 @@ Scenario Outline handler for Behave.
 Handles Scenario Outline with Examples tables and parameterization.
 """
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 from pathlib import Path
 import re
 
