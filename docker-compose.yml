@@ -16,9 +16,6 @@ services:
     image: crossbridge/crossbridge:${CROSSBRIDGE_VERSION:-0.2.0}
     container_name: crossbridge
     
-    # Working directory (mounted test repository)
-    working_dir: /workspace
-    
     # Volume mounts (externalized state)
     volumes:
       # Test repository (read-only recommended for safety)

@@ -7,7 +7,7 @@ NOT regex-based - uses proper Java parsing.
 
 import re
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pathlib import Path
 
 from .models import PageObject
