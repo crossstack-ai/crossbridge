@@ -39,7 +39,19 @@ def setup_logging(
         else:
             log_dir = Path.home() / ".crossbridge" / "logs"
     
-    log_dir.mkdir(parents=True, exist_ok=True)
+    # Ensure directory exists with proper permissions
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure directory is writable
+        log_dir.chmod(0o777)
+    except (PermissionError, OSError) as e:
+        # Fall back to temp directory if mount point is not writable
+        import tempfile
+        log_dir = Path(tempfile.gettempdir()) / "crossbridge" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        logging.getLogger(__name__).warning(
+            f"Could not write to {log_dir_env}, using temp dir: {log_dir}"
+        )
     
     # Generate log filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

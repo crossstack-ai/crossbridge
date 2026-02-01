@@ -134,8 +134,12 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 RUN groupadd -r crossbridge && \
     useradd -r -g crossbridge -u 1000 -m -s /bin/bash crossbridge
 
+# Create data directories with proper ownership
+RUN mkdir -p /data/logs /data/reports /data/cache && \
+    chmod -R 777 /data
+
 # Set ownership
-RUN chown -R crossbridge:crossbridge /opt/crossbridge /data
+RUN chown -R crossbridge:crossbridge /opt/crossbridge
 
 # Switch to non-root user
 USER crossbridge
