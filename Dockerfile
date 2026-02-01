@@ -103,11 +103,12 @@ RUN mkdir -p ./memory ./search
 # Copy configuration examples (crossbridge.yml is in .dockerignore, mount at runtime)
 COPY .env.example ./.env.example
 
-# Copy entry point script
+# Copy entry point scripts
 COPY run_cli.py ./run_cli.py
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
-# Make CLI executable
-RUN chmod +x run_cli.py
+# Make scripts executable
+RUN chmod +x run_cli.py docker-entrypoint.sh
 
 # ============================================================================
 # VOLUME DIRECTORIES
