@@ -60,6 +60,7 @@ services:
     # Command to execute
     # Override this with your actual execution command
     command: >
+      python run_cli.py
       exec run
       --framework ${FRAMEWORK:-pytest}
       --strategy ${STRATEGY:-smoke}
