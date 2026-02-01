@@ -56,10 +56,12 @@ ENV CROSSBRIDGE_LOG_LEVEL=INFO
 # ============================================================================
 
 # Install minimal system dependencies
+# - su-exec: For dropping privileges from root to non-root user in entrypoint
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     ca-certificates \
+    su-exec \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================================
@@ -138,11 +140,11 @@ RUN groupadd -r crossbridge && \
 RUN mkdir -p /data/logs /data/reports /data/cache && \
     chmod -R 777 /data
 
-# Set ownership
+# Set ownership of application files
 RUN chown -R crossbridge:crossbridge /opt/crossbridge
 
-# Switch to non-root user
-USER crossbridge
+# Note: We start as root to fix volume permissions, then drop to crossbridge user
+# The entrypoint script handles this automatically
 
 # ============================================================================
 # VOLUMES
@@ -156,13 +158,12 @@ VOLUME ["/data/logs", "/data/reports", "/data/cache", "/workspace"]
 # ENTRYPOINT & CMD
 # ============================================================================
 
-# Use Python CLI as entrypoint
-# This makes the container behave like a CLI tool
-ENTRYPOINT ["python", "run_cli.py"]
+# Use entrypoint script to handle permissions, then run CLI
+ENTRYPOINT ["/opt/crossbridge/docker-entrypoint.sh"]
 
 # Default command (show help)
 # Override with actual commands: exec run, exec plan, etc.
-CMD ["--help"]
+CMD ["python", "run_cli.py", "--help"]
 
 # ============================================================================
 # USAGE EXAMPLES
