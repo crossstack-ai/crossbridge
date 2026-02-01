@@ -26,6 +26,8 @@ if [ "$(id -u)" = "0" ]; then
     
     echo "  ✅ Permissions fixed"
     echo "  Switching to crossbridge user (UID 1000)..."
+    echo "=== Starting CrossBridge CLI ==="
+    echo ""
     
     # Drop privileges and run as crossbridge user
     exec gosu crossbridge "$@"
@@ -38,10 +40,10 @@ else
             echo "  ⚠️  Warning: $dir is not writable - logs will use /tmp"
         fi
     done
+    
+    echo "=== Starting CrossBridge CLI ==="
+    echo ""
+    
+    # Execute the main command
+    exec "$@"
 fi
-
-echo "=== Starting CrossBridge CLI ==="
-echo ""
-
-# Execute the main command
-exec "$@"
