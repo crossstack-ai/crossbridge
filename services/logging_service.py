@@ -31,7 +31,13 @@ def setup_logging(
     """
     # Determine log directory
     if log_dir is None:
-        log_dir = Path.home() / ".crossbridge" / "logs"
+        # Check environment variable first (for Docker/CI)
+        import os
+        log_dir_env = os.getenv("CROSSBRIDGE_LOG_DIR")
+        if log_dir_env:
+            log_dir = Path(log_dir_env)
+        else:
+            log_dir = Path.home() / ".crossbridge" / "logs"
     
     log_dir.mkdir(parents=True, exist_ok=True)
     

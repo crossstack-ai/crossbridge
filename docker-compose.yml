@@ -43,6 +43,7 @@ services:
       
       # Logging
       - CROSSBRIDGE_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CROSSBRIDGE_LOG_DIR=/data/logs
       
       # Database (optional)
       - CROSSBRIDGE_DB_HOST=${CROSSBRIDGE_DB_HOST:-10.55.12.99}
