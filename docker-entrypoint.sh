@@ -28,7 +28,7 @@ if [ "$(id -u)" = "0" ]; then
     echo "  Switching to crossbridge user (UID 1000)..."
     
     # Drop privileges and run as crossbridge user
-    exec su-exec crossbridge "$@"
+    exec gosu crossbridge "$@"
 else
     echo "Running as user $(id -u):$(id -g)"
     

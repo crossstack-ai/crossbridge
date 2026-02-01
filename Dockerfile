@@ -56,12 +56,12 @@ ENV CROSSBRIDGE_LOG_LEVEL=INFO
 # ============================================================================
 
 # Install minimal system dependencies
-# - su-exec: For dropping privileges from root to non-root user in entrypoint
+# - gosu: For dropping privileges from root to non-root user in entrypoint
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     ca-certificates \
-    su-exec \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================================
