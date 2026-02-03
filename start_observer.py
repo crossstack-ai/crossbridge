@@ -7,15 +7,17 @@ Runs health server and keeps container alive for external test connections.
 
 import os
 import sys
+import json
 import logging
 import signal
 import threading
 from pathlib import Path
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.observability.health_endpoints import start_health_server
 from core.logging import get_logger, LogCategory
 
 logger = get_logger(__name__, category=LogCategory.OBSERVER)
@@ -30,6 +32,72 @@ def signal_handler(sig, frame):
     logger.info(f"Received signal {sig}, shutting down...")
     running = False
     sys.exit(0)
+
+
+class SimpleHealthHandler(BaseHTTPRequestHandler):
+    """Simple HTTP handler for health checks."""
+    
+    def log_message(self, format, *args):
+        """Suppress default HTTP logging."""
+        pass
+    
+    def do_GET(self):
+        """Handle GET requests."""
+        if self.path in ['/health', '/health/v1', '/ready', '/live']:
+            # Return simple health response
+            response = {
+                'status': 'healthy',
+                'service': 'crossbridge-observer',
+                'mode': os.getenv('CROSSBRIDGE_MODE', 'observer'),
+                'framework': os.getenv('CROSSBRIDGE_FRAMEWORK', 'robot'),
+                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'version': '0.2.0'
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('X-Health-Version', '1.0')
+            self.end_headers()
+            self.wfile.write(json.dumps(response, indent=2).encode())
+            
+        elif self.path == '/metrics':
+            # Return basic Prometheus metrics
+            metrics = """# HELP crossbridge_up Service is up
+# TYPE crossbridge_up gauge
+crossbridge_up 1
+
+# HELP crossbridge_mode Current operating mode
+# TYPE crossbridge_mode gauge
+crossbridge_mode{mode="observer"} 1
+"""
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(metrics.encode())
+            
+        else:
+            # Not found
+            response = {
+                'error': 'Not found',
+                'available_endpoints': ['/health', '/health/v1', '/ready', '/live', '/metrics']
+            }
+            self.send_response(404)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response, indent=2).encode())
+
+
+def start_simple_health_server(port: int = 8765, address: str = '0.0.0.0'):
+    """Start simple health check server."""
+    server = HTTPServer((address, port), SimpleHealthHandler)
+    logger.info(f"Health server started on {address}:{port}")
+    
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        logger.info("Health server stopped")
+    finally:
+        server.shutdown()
 
 
 def main():
@@ -55,7 +123,7 @@ def main():
     
     # Start health server in a separate thread
     health_thread = threading.Thread(
-        target=start_health_server,
+        target=start_simple_health_server,
         args=(api_port, api_host),
         daemon=True,
         name="health-server"
@@ -65,16 +133,11 @@ def main():
     logger.info(f"✅ Health server started on {api_host}:{api_port}")
     logger.info(f"   Available endpoints:")
     logger.info(f"   - http://{api_host}:{api_port}/health")
-    logger.info(f"   - http://{api_host}:{api_port}/health/v1")
-    logger.info(f"   - http://{api_host}:{api_port}/health/v2")
     logger.info(f"   - http://{api_host}:{api_port}/ready")
     logger.info(f"   - http://{api_host}:{api_port}/live")
     logger.info(f"   - http://{api_host}:{api_port}/metrics")
     logger.info("")
     logger.info("🔍 Observer ready - waiting for test connections...")
-    logger.info("   Configure your tests with:")
-    logger.info(f"   export CROSSBRIDGE_API_HOST={api_host}")
-    logger.info(f"   export CROSSBRIDGE_API_PORT={api_port}")
     logger.info("")
     
     # Keep main thread alive
