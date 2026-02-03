@@ -74,9 +74,8 @@ services:
       # Expose API port for remote test execution machine
       - "8765:8765"      
     
-    # Keep container running for sidecar observer mode
-    # The observer is initialized via environment variables
-    command: tail -f /dev/null
+    # Start observer with health API server
+    command: python start_observer.py
     
     # Resource limits (optional but recommended)
     deploy:
