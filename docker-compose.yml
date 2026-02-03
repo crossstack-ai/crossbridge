@@ -69,6 +69,14 @@ services:
       - CROSSBRIDGE_PRODUCT_NAME=${CROSSBRIDGE_PRODUCT_NAME:-CloudConsole-RestAPI}
       - CROSSBRIDGE_APPLICATION_VERSION=${CROSSBRIDGE_APPLICATION_VERSION:-v1.0.0}
       - CROSSBRIDGE_ENVIRONMENT=${CROSSBRIDGE_ENVIRONMENT:-local}
+
+      # API Server (expose for remote connection)
+      - CROSSBRIDGE_API_HOST=0.0.0.0
+      - CROSSBRIDGE_API_PORT=8765
+    
+    ports:
+      # Expose API port for remote test execution machine
+      - "8765:8765"      
     
     # Start sidecar in observer mode
     command: >
