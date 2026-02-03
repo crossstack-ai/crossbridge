@@ -96,8 +96,18 @@ crossbridge_mode{mode="observer"} 1
             try:
                 event = json.loads(body.decode('utf-8'))
                 
-                # Log the event
-                logger.info(f"📨 Event received: {event.get('event_type')} - {event.get('data', {}).get('test_name', 'N/A')}")
+                # Log the event with appropriate details
+                event_type = event.get('event_type')
+                data = event.get('data', {})
+                
+                if 'test_name' in data:
+                    detail = f"{data['test_name']} [{data.get('status', 'running')}]"
+                elif 'suite_name' in data:
+                    detail = f"{data['suite_name']}"
+                else:
+                    detail = 'event'
+                
+                logger.info(f"📨 {event_type}: {detail}")
                 
                 # Send success response
                 response = {'status': 'accepted', 'timestamp': datetime.utcnow().isoformat() + 'Z'}
