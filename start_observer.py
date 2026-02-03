@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core.observability.health_endpoints import start_health_server
 from core.logging import get_logger, LogCategory
 
-logger = get_logger(__name__, category=LogCategory.OBSERVABILITY)
+logger = get_logger(__name__, category=LogCategory.OBSERVER)
 
 # Global flag for graceful shutdown
 running = True
