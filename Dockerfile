@@ -105,10 +105,11 @@ COPY .env.example ./.env.example
 
 # Copy entry point scripts
 COPY run_cli.py ./run_cli.py
+COPY start_observer.py ./start_observer.py
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Make scripts executable
-RUN chmod +x run_cli.py docker-entrypoint.sh
+RUN chmod +x run_cli.py start_observer.py docker-entrypoint.sh
 
 # ============================================================================
 # VOLUME DIRECTORIES
