@@ -34,8 +34,6 @@ services:
       - ./crossbridge.yml:/opt/crossbridge/crossbridge.yml:ro
     
     # Environment variables
-
-	  
     environment:
       # Observer mode - passive monitoring
       - CROSSBRIDGE_MODE=observer
@@ -44,15 +42,13 @@ services:
       # Hooks enabled for Robot Framework
       - CROSSBRIDGE_HOOKS_ENABLED=true
       
-	  
       # Environment
       - CROSSBRIDGE_ENV=${CROSSBRIDGE_ENV:-local}
       
       # Logging
       - CROSSBRIDGE_LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CROSSBRIDGE_LOG_DIR=/data/logs
-	  
-	  
+      
       # Framework detection
       - CROSSBRIDGE_FRAMEWORK=robot
       
