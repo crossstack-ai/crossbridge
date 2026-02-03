@@ -35,7 +35,7 @@ def signal_handler(sig, frame):
 
 
 class SimpleHealthHandler(BaseHTTPRequestHandler):
-    """Simple HTTP handler for health checks."""
+    """Simple HTTP handler for health checks and events."""
     
     def log_message(self, format, *args):
         """Suppress default HTTP logging."""
@@ -79,12 +79,47 @@ crossbridge_mode{mode="observer"} 1
             # Not found
             response = {
                 'error': 'Not found',
-                'available_endpoints': ['/health', '/health/v1', '/ready', '/live', '/metrics']
+                'available_endpoints': ['/health', '/health/v1', '/ready', '/live', '/metrics', '/events']
             }
             self.send_response(404)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(response, indent=2).encode())
+    
+    def do_POST(self):
+        """Handle POST requests (events from tests)."""
+        if self.path == '/events':
+            # Read event data
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            
+            try:
+                event = json.loads(body.decode('utf-8'))
+                
+                # Log the event
+                logger.info(f"📨 Event received: {event.get('event_type')} - {event.get('data', {}).get('test_name', 'N/A')}")
+                
+                # Send success response
+                response = {'status': 'accepted', 'timestamp': datetime.utcnow().isoformat() + 'Z'}
+                self.send_response(202)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode())
+                
+            except Exception as e:
+                logger.error(f"Failed to process event: {e}")
+                response = {'status': 'error', 'message': str(e)}
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode())
+        else:
+            # Not found
+            response = {'error': 'Not found'}
+            self.send_response(404)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
 
 
 def start_simple_health_server(port: int = 8765, address: str = '0.0.0.0'):
