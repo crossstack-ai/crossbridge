@@ -34,16 +34,29 @@ services:
       - ./crossbridge.yml:/opt/crossbridge/crossbridge.yml:ro
     
     # Environment variables
+
+	  
     environment:
-      # Execution mode
+      # Observer mode - passive monitoring
       - CROSSBRIDGE_MODE=observer
+      - CROSSBRIDGE_ENABLED=true
       
+      # Hooks enabled for Robot Framework
+      - CROSSBRIDGE_HOOKS_ENABLED=true
+      
+	  
       # Environment
       - CROSSBRIDGE_ENV=${CROSSBRIDGE_ENV:-local}
       
       # Logging
       - CROSSBRIDGE_LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CROSSBRIDGE_LOG_DIR=/data/logs
+	  
+	  
+      # Framework detection
+      - CROSSBRIDGE_FRAMEWORK=robot
+      
+
       
       # Database (optional)
       - CROSSBRIDGE_DB_HOST=${CROSSBRIDGE_DB_HOST:-10.55.12.99}
@@ -53,18 +66,16 @@ services:
       - CROSSBRIDGE_DB_PASSWORD=${CROSSBRIDGE_DB_PASSWORD:-admin}
       
       # Application tracking
-      - CROSSBRIDGE_PRODUCT_NAME=${CROSSBRIDGE_PRODUCT_NAME:-CrossBridgeApp}
+      - CROSSBRIDGE_PRODUCT_NAME=${CROSSBRIDGE_PRODUCT_NAME:-CloudConsole-RestAPI}
       - CROSSBRIDGE_APPLICATION_VERSION=${CROSSBRIDGE_APPLICATION_VERSION:-v1.0.0}
       - CROSSBRIDGE_ENVIRONMENT=${CROSSBRIDGE_ENVIRONMENT:-local}
     
-    # Command to execute
-    # Override this with your actual execution command
+    # Start sidecar in observer mode
     command: >
       python run_cli.py
-      exec run
-      --framework ${FRAMEWORK:-pytest}
-      --strategy ${STRATEGY:-smoke}
-      --env local
+      sidecar start
+      --framework robot
+      --mode observer
     
     # Resource limits (optional but recommended)
     deploy:
@@ -78,9 +89,9 @@ services:
     
     # Network mode
     network_mode: bridge
-    
-    # Restart policy (don't restart for one-shot execution)
-    restart: "no"
+        
+    # Keep running throughout test execution
+    restart: unless-stopped
     
     # Exit code handling
     # Container exits with CrossBridge exit code
