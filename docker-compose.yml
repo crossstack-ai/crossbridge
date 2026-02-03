@@ -74,12 +74,9 @@ services:
       # Expose API port for remote test execution machine
       - "8765:8765"      
     
-    # Start sidecar in observer mode
-    command: >
-      python run_cli.py
-      sidecar start
-      --framework robot
-      --mode observer
+    # Keep container running for sidecar observer mode
+    # The observer is initialized via environment variables
+    command: tail -f /dev/null
     
     # Resource limits (optional but recommended)
     deploy:
