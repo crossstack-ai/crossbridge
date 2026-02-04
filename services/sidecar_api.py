@@ -156,6 +156,29 @@ class SidecarAPIServer:
                 events_dropped=stats.get('events_dropped', 0)
             )
         
+        @self.app.get("/ready")
+        async def readiness():
+            """
+            Readiness check endpoint (Kubernetes-compatible)
+            Returns 200 if service is ready to accept traffic, 503 otherwise
+            """
+            stats = self.observer.get_stats()
+            queue_size = stats.get('queue_size', 0)
+            queue_capacity = stats.get('queue_capacity', 5000)
+            
+            # Not ready if queue is >90% full
+            if queue_size / queue_capacity > 0.9:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Queue nearly full: {queue_size}/{queue_capacity}"
+                )
+            
+            return {
+                "status": "ready",
+                "queue_utilization": f"{queue_size}/{queue_capacity}",
+                "queue_percent": round((queue_size / queue_capacity) * 100, 2)
+            }
+        
         @self.app.post("/events")
         async def receive_event(payload: EventPayload, background_tasks: BackgroundTasks):
             """
