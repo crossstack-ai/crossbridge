@@ -182,12 +182,76 @@ class SidecarAPIServer:
                 if payload.metadata:
                     event.data['metadata'] = payload.metadata
                 
-                # Log event received
-                logger.info(f"Event received: {payload.event_type}", extra={
+                # Log event received with detailed information
+                log_details = {
                     'event_type': payload.event_type,
                     'framework': payload.framework,
                     'test_id': payload.test_id
-                })
+                }
+                
+                # Add event-specific details for better visibility
+                log_message_parts = [f"Event: {payload.event_type}"]
+                
+                if payload.event_type == 'test_start':
+                    test_name = payload.data.get('test_name', 'Unknown')
+                    tags = payload.data.get('tags', [])
+                    log_message_parts.append(f"test='{test_name}'")
+                    if tags:
+                        log_message_parts.append(f"tags={tags}")
+                    log_details['test_name'] = test_name
+                    if tags:
+                        log_details['tags'] = tags
+                
+                elif payload.event_type == 'test_end':
+                    test_name = payload.data.get('test_name', 'Unknown')
+                    status = payload.data.get('status', 'Unknown')
+                    elapsed = payload.data.get('elapsed_time', 0)
+                    message = payload.data.get('message', '')
+                    log_message_parts.append(f"test='{test_name}'")
+                    log_message_parts.append(f"status={status}")
+                    log_message_parts.append(f"elapsed={elapsed:.2f}s")
+                    log_details['test_name'] = test_name
+                    log_details['status'] = status
+                    log_details['elapsed_time'] = elapsed
+                    if message:
+                        log_details['message'] = message[:100]  # Limit message length
+                
+                elif payload.event_type == 'suite_start':
+                    suite_name = payload.data.get('suite_name', 'Unknown')
+                    suite_id = payload.data.get('suite_id', '')
+                    source = payload.data.get('source', '')
+                    log_message_parts.append(f"suite='{suite_name}'")
+                    if suite_id:
+                        log_message_parts.append(f"id={suite_id}")
+                    log_details['suite_name'] = suite_name
+                    log_details['suite_id'] = suite_id
+                    if source:
+                        log_details['source'] = source
+                
+                elif payload.event_type == 'suite_end':
+                    suite_name = payload.data.get('suite_name', 'Unknown')
+                    status = payload.data.get('status', 'Unknown')
+                    elapsed = payload.data.get('elapsed_time', 0)
+                    stats = payload.data.get('statistics', {})
+                    log_message_parts.append(f"suite='{suite_name}'")
+                    log_message_parts.append(f"status={status}")
+                    log_message_parts.append(f"elapsed={elapsed:.2f}s")
+                    if stats:
+                        total = stats.get('total', 0)
+                        passed = stats.get('passed', 0)
+                        failed = stats.get('failed', 0)
+                        log_message_parts.append(f"tests={total} (passed={passed}, failed={failed})")
+                        log_details['statistics'] = stats
+                    log_details['suite_name'] = suite_name
+                    log_details['status'] = status
+                
+                elif payload.event_type == 'execution_complete':
+                    message = payload.data.get('message', '')
+                    log_message_parts.append(f"message='{message}'")
+                    log_details['message'] = message
+                
+                log_message = " | ".join(log_message_parts)
+                logger.info(log_message, extra=log_details)
                 
                 # Observe event (non-blocking)
                 self.observer.observe_event(
