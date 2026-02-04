@@ -112,6 +112,11 @@ class SidecarAPIServer:
         self.port = port
         self.start_time = datetime.utcnow()
         
+        # Start observer to process events
+        if not self.observer._running:
+            self.observer.start()
+            logger.info("Observer started for event processing")
+        
         # Initialize FastAPI app
         self.app = FastAPI(
             title="CrossBridge Sidecar API",
