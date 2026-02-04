@@ -1184,6 +1184,48 @@ runtime:
     # Kill switch for entire sidecar runtime
     enabled: true
     
+    # ── Sidecar API Server ──
+    # REST API for event ingestion and adapter serving (universal wrapper support)
+    api:
+      enabled: true
+      host: ${SIDECAR_API_HOST:-0.0.0.0}   # Bind to all interfaces
+      port: ${SIDECAR_API_PORT:-8765}       # API server port
+      
+      # Adapter serving (for universal wrapper)
+      adapters:
+        enabled: true                        # Enable adapter download endpoints
+        cache_ttl_hours: 24                  # Client-side cache TTL (24h)
+        
+        # Supported frameworks
+        frameworks:
+          - robot
+          - pytest
+          - cypress
+          - playwright
+          - jest
+          - mocha
+          - java
+          - junit
+          - restassured_java
+          - selenium_java
+          - selenium_pytest
+          - selenium_behave
+          - selenium_dotnet
+          - selenium_bdd_java
+          - selenium_specflow_dotnet
+      
+      # API security (optional)
+      security:
+        require_auth: false                  # Enable authentication
+        api_key: ${SIDECAR_API_KEY:-}        # API key for authentication
+      
+      # CORS configuration
+      cors:
+        enabled: true
+        allow_origins: ["*"]                 # Allow all origins (restrict in production)
+        allow_methods: ["GET", "POST"]
+        allow_headers: ["*"]
+    
     # ── Fail-Open Execution ──
     # ALL operations wrapped in @safe_observe decorator
     fail_open:
