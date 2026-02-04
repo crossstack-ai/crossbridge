@@ -697,6 +697,193 @@ class SidecarAPIServer:
                 }
             finally:
                 Path(tmp_path).unlink(missing_ok=True)
+        
+        # ============================================================================
+        # Log Storage & Retrieval Endpoints
+        # ============================================================================
+        
+        # In-memory storage for parsed logs (limited to prevent memory issues)
+        self._log_storage: Dict[str, dict] = {}
+        self._max_stored_logs = 100  # Limit to 100 logs
+        
+        @self.app.post("/logs/{log_id}")
+        async def store_parsed_log(log_id: str, request: Request):
+            """
+            Store parsed log results for later retrieval via API
+            
+            This allows crossbridge-log to upload results and provide API access.
+            Limited to 10MB per log and 100 total logs to prevent memory issues.
+            """
+            try:
+                # Check size limit
+                content = await request.body()
+                if len(content) > 10 * 1024 * 1024:  # 10MB
+                    raise HTTPException(
+                        status_code=413,
+                        detail="Log too large. Maximum size: 10MB"
+                    )
+                
+                # Check storage limit
+                if len(self._log_storage) >= self._max_stored_logs:
+                    # Remove oldest log
+                    oldest_id = next(iter(self._log_storage))
+                    del self._log_storage[oldest_id]
+                    logger.warning(f"Storage limit reached. Removed oldest log: {oldest_id}")
+                
+                # Parse and store
+                data = json.loads(content)
+                self._log_storage[log_id] = {
+                    "id": log_id,
+                    "data": data,
+                    "stored_at": datetime.utcnow().isoformat(),
+                    "framework": data.get("framework", "unknown")
+                }
+                
+                logger.info(f"Stored log {log_id} ({len(content)} bytes)")
+                
+                return {
+                    "id": log_id,
+                    "status": "stored",
+                    "size_bytes": len(content),
+                    "framework": data.get("framework", "unknown")
+                }
+                
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid JSON")
+            except Exception as e:
+                logger.error(f"Failed to store log {log_id}: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/logs/{log_id}")
+        async def get_parsed_log(log_id: str):
+            """
+            Retrieve full parsed log by ID
+            
+            Returns the complete parsed log data.
+            """
+            if log_id not in self._log_storage:
+                raise HTTPException(status_code=404, detail=f"Log {log_id} not found")
+            
+            return self._log_storage[log_id]
+        
+        @self.app.get("/logs/{log_id}/summary")
+        async def get_log_summary(log_id: str):
+            """
+            Get summary of parsed log (statistics only)
+            
+            Returns lightweight summary without full test details.
+            """
+            if log_id not in self._log_storage:
+                raise HTTPException(status_code=404, detail=f"Log {log_id} not found")
+            
+            log_data = self._log_storage[log_id]["data"]
+            framework = log_data.get("framework", "unknown")
+            
+            # Extract summary based on framework
+            if framework == "robot":
+                return {
+                    "id": log_id,
+                    "framework": framework,
+                    "stored_at": self._log_storage[log_id]["stored_at"],
+                    "suite": log_data.get("suite", {}).get("name"),
+                    "statistics": {
+                        "total": log_data.get("suite", {}).get("total_tests", 0),
+                        "passed": log_data.get("suite", {}).get("passed_tests", 0),
+                        "failed": log_data.get("suite", {}).get("failed_tests", 0),
+                        "duration_ms": log_data.get("suite", {}).get("elapsed_ms", 0)
+                    }
+                }
+            elif framework == "cypress":
+                return {
+                    "id": log_id,
+                    "framework": framework,
+                    "stored_at": self._log_storage[log_id]["stored_at"],
+                    "statistics": log_data.get("statistics", {})
+                }
+            elif framework == "java":
+                return {
+                    "id": log_id,
+                    "framework": framework,
+                    "stored_at": self._log_storage[log_id]["stored_at"],
+                    "total_steps": log_data.get("total_steps", 0),
+                    "step_types": log_data.get("step_types", {})
+                }
+            else:
+                return {
+                    "id": log_id,
+                    "framework": framework,
+                    "stored_at": self._log_storage[log_id]["stored_at"],
+                    "data": log_data
+                }
+        
+        @self.app.get("/logs/{log_id}/failures")
+        async def get_log_failures(log_id: str):
+            """
+            Get only failed tests/keywords from log
+            
+            Returns failure information for quick issue identification.
+            """
+            if log_id not in self._log_storage:
+                raise HTTPException(status_code=404, detail=f"Log {log_id} not found")
+            
+            log_data = self._log_storage[log_id]["data"]
+            framework = log_data.get("framework", "unknown")
+            
+            if framework == "robot":
+                return {
+                    "id": log_id,
+                    "framework": framework,
+                    "failed_keywords": log_data.get("failed_keywords", []),
+                    "failed_count": len(log_data.get("failed_keywords", []))
+                }
+            elif framework == "cypress":
+                return {
+                    "id": log_id,
+                    "framework": framework,
+                    "failures": log_data.get("failures", []),
+                    "failed_count": len(log_data.get("failures", []))
+                }
+            else:
+                return {
+                    "id": log_id,
+                    "framework": framework,
+                    "message": "No failure information available for this framework"
+                }
+        
+        @self.app.get("/logs")
+        async def list_stored_logs():
+            """
+            List all stored logs
+            
+            Returns metadata for all stored logs.
+            """
+            return {
+                "total": len(self._log_storage),
+                "max_capacity": self._max_stored_logs,
+                "logs": [
+                    {
+                        "id": log_id,
+                        "framework": log_info.get("framework"),
+                        "stored_at": log_info.get("stored_at")
+                    }
+                    for log_id, log_info in self._log_storage.items()
+                ]
+            }
+        
+        @self.app.delete("/logs/{log_id}")
+        async def delete_log(log_id: str):
+            """
+            Delete stored log by ID
+            
+            Removes log from storage to free memory.
+            """
+            if log_id not in self._log_storage:
+                raise HTTPException(status_code=404, detail=f"Log {log_id} not found")
+            
+            del self._log_storage[log_id]
+            logger.info(f"Deleted log {log_id}")
+            
+            return {"status": "deleted", "id": log_id}
     
     async def start(self):
         """Start the API server"""

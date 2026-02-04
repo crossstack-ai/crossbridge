@@ -1,0 +1,573 @@
+#!/usr/bin/env bash
+#
+# CrossBridge Log Parser CLI
+# Auto-detects log format and sends to sidecar API for parsing
+#
+# Usage:
+#   ./crossbridge-log <log-file>
+#   ./crossbridge-log output.xml
+#   ./crossbridge-log cypress-results.json
+#   ./crossbridge-log playwright-trace.json
+#
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+SIDECAR_HOST="${SIDECAR_HOST:-localhost}"
+SIDECAR_PORT="${SIDECAR_PORT:-8765}"
+SIDECAR_URL="http://${SIDECAR_HOST}:${SIDECAR_PORT}"
+
+# Parse command-line arguments
+OUTPUT_FILE=""
+FILTER_TEST_ID=""
+FILTER_TEST_NAME=""
+FILTER_TIME_FROM=""
+FILTER_TIME_TO=""
+FILTER_STATUS=""
+FILTER_ERROR_CODE=""
+FILTER_PATTERN=""
+SHOW_HELP=false
+LOG_FILE=""
+
+show_usage() {
+    echo "CrossBridge Log Parser - Universal log parsing for all frameworks"
+    echo ""
+    echo "Usage: $0 <log-file> [OPTIONS]"
+    echo ""
+    echo "Examples:"
+    echo "  $0 output.xml                                    # Robot Framework"
+    echo "  $0 cypress/results.json                          # Cypress"
+    echo "  $0 output.xml --output results.json              # Save to file"
+    echo "  $0 output.xml --test-name 'Login*'               # Filter by test name"
+    echo "  $0 output.xml --test-id 's1-s1-t1'               # Filter by test ID"
+    echo "  $0 output.xml --status FAIL                      # Filter failed tests only"
+    echo "  $0 output.xml --time-from '2026-02-05T10:00:00'  # Tests after time"
+    echo "  $0 output.xml --time-to '2026-02-05T12:00:00'    # Tests before time"
+    echo ""
+    echo "Supported Frameworks:"
+    echo "  - Robot Framework (output.xml, robot*.xml)"
+    echo "  - Cypress (cypress-results.json, *cypress*.json)"
+    echo "  - Playwright (playwright-trace.json, trace*.json)"
+    echo "  - Behave (behave-results.json, *behave*.json)"
+    echo "  - Java Cucumber (*Steps.java, *StepDefinitions.java)"
+    echo ""
+    echo "Options:"
+    echo "  -o, --output FILE          Save parsed results to FILE (JSON format)"
+    echo "  -t, --test-name PATTERN    Filter tests by name (supports wildcards)"
+    echo "  -i, --test-id ID           Filter by specific test ID"
+    echo "  -s, --status STATUS        Filter by status (PASS, FAIL, SKIP)"
+    echo "  --time-from DATETIME       Filter tests starting after DATETIME"
+    echo "  --time-to DATETIME         Filter tests ending before DATETIME"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Environment Variables:"
+    echo "  SIDECAR_HOST   - Sidecar API host (default: localhost)"
+    echo "  SIDECAR_PORT   - Sidecar API port (default: 8765)"
+    echo ""
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        -o|--output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        -t|--test-name)
+            FILTER_TEST_NAME="$2"
+            shift 2
+            ;;
+        -i|--test-id)
+            FILTER_TEST_ID="$2"
+            shift 2
+            ;;
+        -s|--status)
+            FILTER_STATUS="$2"
+            shift 2
+            ;;
+        -e|--error-code)
+            FILTER_ERROR_CODE="$2"
+            shift 2
+            ;;
+        -p|--pattern)
+            FILTER_PATTERN="$2"
+            shift 2
+            ;;
+        --time-from)
+            FILTER_TIME_FROM="$2"
+            shift 2
+            ;;
+        --time-to)
+            FILTER_TIME_TO="$2"
+            shift 2
+            ;;
+        -*)
+            echo -e "${RED}Error: Unknown option: $1${NC}"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+        *)
+            if [ -z "$LOG_FILE" ]; then
+                LOG_FILE="$1"
+            else
+                echo -e "${RED}Error: Multiple log files specified${NC}"
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Check if file argument provided
+if [ -z "$LOG_FILE" ]; then
+    echo -e "${RED}Error: No log file specified${NC}"
+    echo ""
+    show_usage
+    exit 1
+fi
+
+# Check if file exists
+if [ ! -f "$LOG_FILE" ]; then
+    echo -e "${RED}Error: File not found: $LOG_FILE${NC}"
+    exit 1
+fi
+
+# Auto-detect framework based on file name and content
+detect_framework() {
+    local file="$1"
+    local basename=$(basename "$file")
+    
+    # Check by filename patterns
+    case "$basename" in
+        output.xml|robot*.xml)
+            echo "robot"
+            return
+            ;;
+        *cypress*.json|cypress-*.json)
+            echo "cypress"
+            return
+            ;;
+        *playwright*.json|trace*.json)
+            echo "playwright"
+            return
+            ;;
+        *behave*.json|*cucumber*.json)
+            # Check content to distinguish
+            if grep -q '"feature"' "$file" 2>/dev/null; then
+                echo "behave"
+            else
+                echo "cypress"
+            fi
+            return
+            ;;
+        *Steps.java|*StepDefinitions.java|*StepDefs.java)
+            echo "java"
+            return
+            ;;
+    esac
+    
+    # Check by content
+    if head -n 5 "$file" | grep -q '<robot' 2>/dev/null; then
+        echo "robot"
+        return
+    elif head -n 5 "$file" | grep -q '"suites"' 2>/dev/null; then
+        echo "cypress"
+        return
+    elif head -n 5 "$file" | grep -q '"entries"' 2>/dev/null; then
+        echo "playwright"
+        return
+    elif head -n 5 "$file" | grep -q '"feature"' 2>/dev/null; then
+        echo "behave"
+        return
+    elif grep -q '@Given\|@When\|@Then' "$file" 2>/dev/null; then
+        echo "java"
+        return
+    fi
+    
+    # Default fallback
+    echo "unknown"
+}
+
+# Check sidecar health
+echo -e "${BLUE}Checking sidecar API...${NC}"
+if ! curl -s -f "${SIDECAR_URL}/health" > /dev/null 2>&1; then
+    echo -e "${RED}Error: Sidecar API not reachable at ${SIDECAR_URL}${NC}"
+    echo "Please ensure:"
+    echo "  1. Sidecar is running"
+    echo "  2. SIDECAR_HOST and SIDECAR_PORT are set correctly"
+    echo ""
+    echo "Current configuration:"
+    echo "  SIDECAR_HOST=${SIDECAR_HOST}"
+    echo "  SIDECAR_PORT=${SIDECAR_PORT}"
+    exit 1
+fi
+
+# Detect framework
+FRAMEWORK=$(detect_framework "$LOG_FILE")
+
+if [ "$FRAMEWORK" = "unknown" ]; then
+    echo -e "${RED}Error: Could not detect log format${NC}"
+    echo "Supported formats:"
+    echo "  - Robot Framework (output.xml)"
+    echo "  - Cypress (cypress-results.json)"
+    echo "  - Playwright (playwright-trace.json)"
+    echo "  - Behave (behave-results.json)"
+    echo "  - Java Cucumber (*Steps.java)"
+    exit 1
+fi
+
+echo -e "${GREEN}✓${NC} Detected framework: ${BLUE}${FRAMEWORK}${NC}"
+echo -e "${BLUE}Parsing log file: ${LOG_FILE}${NC}"
+
+# Show active filters
+if [ -n "$FILTER_TEST_NAME" ] || [ -n "$FILTER_TEST_ID" ] || [ -n "$FILTER_STATUS" ] || [ -n "$FILTER_TIME_FROM" ] || [ -n "$FILTER_TIME_TO" ] || [ -n "$FILTER_ERROR_CODE" ] || [ -n "$FILTER_PATTERN" ]; then
+    echo -e "${YELLOW}Active Filters:${NC}"
+    [ -n "$FILTER_TEST_NAME" ] && echo "  • Test Name: $FILTER_TEST_NAME"
+    [ -n "$FILTER_TEST_ID" ] && echo "  • Test ID: $FILTER_TEST_ID"
+    [ -n "$FILTER_STATUS" ] && echo "  • Status: $FILTER_STATUS"
+    [ -n "$FILTER_ERROR_CODE" ] && echo "  • Error Code: $FILTER_ERROR_CODE"
+    [ -n "$FILTER_PATTERN" ] && echo "  • Pattern: $FILTER_PATTERN"
+    [ -n "$FILTER_TIME_FROM" ] && echo "  • Time From: $FILTER_TIME_FROM"
+    [ -n "$FILTER_TIME_TO" ] && echo "  • Time To: $FILTER_TIME_TO"
+fi
+echo ""
+
+# Parse log file
+RESPONSE=$(curl -s -X POST "${SIDECAR_URL}/parse/${FRAMEWORK}" \
+    -H "Content-Type: application/octet-stream" \
+    --data-binary "@${LOG_FILE}")
+
+# Check if response is valid JSON
+if ! echo "$RESPONSE" | jq empty 2>/dev/null; then
+    echo -e "${RED}Error: Invalid response from sidecar${NC}"
+    echo "$RESPONSE"
+    exit 1
+fi
+
+# Check for errors
+if echo "$RESPONSE" | jq -e '.detail' > /dev/null 2>&1; then
+    ERROR_MSG=$(echo "$RESPONSE" | jq -r '.detail')
+    echo -e "${RED}Error: ${ERROR_MSG}${NC}"
+    exit 1
+fi
+
+# Apply filters to response
+apply_filters() {
+    local data="$1"
+    
+    # Filter by test name (supports wildcards)
+    if [ -n "$FILTER_TEST_NAME" ]; then
+        # Convert wildcard pattern to regex
+        local pattern="${FILTER_TEST_NAME//\*/.*}"
+        data=$(echo "$data" | jq --arg pattern "^${pattern}$" '
+            if .tests then
+                .tests |= map(select(.name | test($pattern)))
+            elif .failed_keywords then
+                .failed_keywords |= map(select(.name | test($pattern)))
+            elif .slowest_tests then
+                .slowest_tests |= map(select(.name | test($pattern)))
+            else . end
+        ')
+    fi
+    
+    # Filter by test ID
+    if [ -n "$FILTER_TEST_ID" ]; then
+        data=$(echo "$data" | jq --arg id "$FILTER_TEST_ID" '
+            if .tests then
+                .tests |= map(select(.id == $id))
+            else . end
+        ')
+    fi
+    
+    # Filter by status
+    if [ -n "$FILTER_STATUS" ]; then
+        data=$(echo "$data" | jq --arg status "$FILTER_STATUS" '
+            if .tests then
+                .tests |= map(select(.status == $status))
+            elif .failed_keywords and $status == "FAIL" then
+                .
+            elif .slowest_tests then
+                .slowest_tests |= map(select(.status == $status))
+            else . end
+        ')
+    fi
+    
+    # Filter by time range
+    if [ -n "$FILTER_TIME_FROM" ] || [ -n "$FILTER_TIME_TO" ]; then
+        local time_filter='true'
+        [ -n "$FILTER_TIME_FROM" ] && time_filter="(.start_time >= \"$FILTER_TIME_FROM\")"
+        [ -n "$FILTER_TIME_TO" ] && time_filter="$time_filter and (.end_time <= \"$FILTER_TIME_TO\")"
+        
+        data=$(echo "$data" | jq "
+            if .tests then
+                .tests |= map(select($time_filter))
+            elif .slowest_tests then
+                .slowest_tests |= map(select($time_filter))
+            else . end
+        ")
+    fi
+    
+    # Filter by error code (matches in error messages, exception types, or status codes)
+    if [ -n "$FILTER_ERROR_CODE" ]; then
+        data=$(echo "$data" | jq --arg code "$FILTER_ERROR_CODE" '
+            if .failed_keywords then
+                .failed_keywords |= map(select(
+                    (.messages[]? | tostring | contains($code)) or
+                    (.name | contains($code))
+                ))
+            elif .failures then
+                .failures |= map(select(
+                    (.error_message | contains($code)) or
+                    (.error_type | contains($code)) or
+                    (.status_code | tostring | contains($code))
+                ))
+            elif .errors then
+                .errors |= map(select(.message | contains($code)))
+            else . end
+        ')
+    fi
+    
+    # Filter by pattern (case-insensitive search in messages, names, errors)
+    if [ -n "$FILTER_PATTERN" ]; then
+        data=$(echo "$data" | jq --arg pattern "$FILTER_PATTERN" '
+            if .failed_keywords then
+                .failed_keywords |= map(select(
+                    (.name | test($pattern; "i")) or
+                    (.messages[]? | tostring | test($pattern; "i"))
+                ))
+            elif .failures then
+                .failures |= map(select(
+                    (.title | test($pattern; "i")) or
+                    (.error_message | test($pattern; "i")) or
+                    (.test_name | test($pattern; "i"))
+                ))
+            elif .tests then
+                .tests |= map(select(
+                    (.name | test($pattern; "i")) or
+                    (.error_message? | test($pattern; "i"))
+                ))
+            elif .actions then
+                .actions |= map(select(
+                    (.action | test($pattern; "i")) or
+                    (.selector? | test($pattern; "i"))
+                ))
+            elif .console_messages then
+                .console_messages |= map(select(.text | test($pattern; "i")))
+            else . end
+        ')
+    fi
+    
+    echo "$data"
+}
+
+# Apply filters
+FILTERED_RESPONSE=$(apply_filters "$RESPONSE")
+
+# Display results based on framework
+display_results() {
+    local response="$1"
+    
+    case "$FRAMEWORK" in
+        robot)
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${GREEN}           Robot Framework Results${NC}"
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            
+            # Suite info
+            SUITE_NAME=$(echo "$response" | jq -r '.suite.name')
+            SUITE_STATUS=$(echo "$response" | jq -r '.suite.status')
+            echo -e "${BLUE}Suite:${NC} $SUITE_NAME"
+            
+            if [ "$SUITE_STATUS" = "PASS" ]; then
+                echo -e "${BLUE}Status:${NC} ${GREEN}$SUITE_STATUS${NC}"
+            else
+                echo -e "${BLUE}Status:${NC} ${RED}$SUITE_STATUS${NC}"
+            fi
+            echo ""
+            
+            # Statistics
+            TOTAL=$(echo "$response" | jq -r '.suite.total_tests')
+            PASSED=$(echo "$response" | jq -r '.suite.passed_tests')
+            FAILED=$(echo "$response" | jq -r '.suite.failed_tests')
+            ELAPSED=$(echo "$response" | jq -r '.suite.elapsed_ms')
+            
+            echo -e "${BLUE}Test Statistics:${NC}"
+            echo "  Total:    $TOTAL"
+            echo "  Passed:   ${GREEN}$PASSED${NC}"
+            echo "  Failed:   ${RED}$FAILED${NC}"
+            echo "  Duration: ${ELAPSED}ms"
+            echo ""
+            
+            # Failed tests
+            FAILED_COUNT=$(echo "$response" | jq '.failed_keywords | length')
+            if [ "$FAILED_COUNT" -gt 0 ]; then
+                echo -e "${RED}Failed Keywords:${NC}"
+                echo "$response" | jq -r '.failed_keywords[] | "  ❌ \(.name) (\(.library))"'
+                echo ""
+            fi
+            
+            # Slowest tests
+            SLOWEST_TESTS=$(echo "$response" | jq '.slowest_tests | length')
+            if [ "$SLOWEST_TESTS" -gt 0 ]; then
+                echo -e "${YELLOW}Slowest Tests (Top 5):${NC}"
+                echo "$response" | jq -r '.slowest_tests[0:5][] | "  ⏱️  \(.name): \(.elapsed_ms)ms"'
+                echo ""
+            fi
+            ;;
+            
+        cypress)
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${GREEN}           Cypress Test Results${NC}"
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            
+            TOTAL=$(echo "$response" | jq -r '.statistics.total_tests')
+            PASSED=$(echo "$response" | jq -r '.statistics.passed_tests')
+            FAILED=$(echo "$response" | jq -r '.statistics.failed_tests')
+            
+            echo -e "${BLUE}Test Statistics:${NC}"
+            echo "  Total:  $TOTAL"
+            echo "  Passed: ${GREEN}$PASSED${NC}"
+            echo "  Failed: ${RED}$FAILED${NC}"
+            echo ""
+            
+            FAILURES=$(echo "$response" | jq '.failures | length')
+            if [ "$FAILURES" -gt 0 ]; then
+                echo -e "${RED}Failed Tests:${NC}"
+                echo "$response" | jq -r '.failures[] | "  ❌ \(.title): \(.error_message)"'
+            fi
+            ;;
+            
+        playwright)
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${GREEN}          Playwright Trace Analysis${NC}"
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            
+            ACTION_COUNT=$(echo "$response" | jq '.actions | length')
+            NETWORK_COUNT=$(echo "$response" | jq '.network_calls | length')
+            
+            echo -e "${BLUE}Trace Summary:${NC}"
+            echo "  Actions:       $ACTION_COUNT"
+            echo "  Network Calls: $NETWORK_COUNT"
+            echo ""
+            
+            if [ "$ACTION_COUNT" -gt 0 ]; then
+                echo -e "${BLUE}Actions (First 10):${NC}"
+                echo "$response" | jq -r '.actions[0:10][] | "  • \(.action): \(.selector // "N/A")"'
+            fi
+            ;;
+            
+        behave)
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${GREEN}            Behave BDD Results${NC}"
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            
+            FEATURE_COUNT=$(echo "$response" | jq '.features | length')
+            SCENARIO_COUNT=$(echo "$response" | jq '.statistics.total_scenarios')
+            PASSED=$(echo "$response" | jq '.statistics.passed_scenarios')
+            FAILED=$(echo "$response" | jq '.statistics.failed_scenarios')
+            
+            echo -e "${BLUE}BDD Statistics:${NC}"
+            echo "  Features:  $FEATURE_COUNT"
+            echo "  Scenarios: $SCENARIO_COUNT"
+            echo "  Passed:    ${GREEN}$PASSED${NC}"
+            echo "  Failed:    ${RED}$FAILED${NC}"
+            ;;
+            
+        java)
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${GREEN}       Java Cucumber Step Definitions${NC}"
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            
+            STEP_COUNT=$(echo "$response" | jq '.step_definitions | length')
+            
+            echo -e "${BLUE}Step Definitions Found:${NC} $STEP_COUNT"
+            echo ""
+            
+            if [ "$STEP_COUNT" -gt 0 ]; then
+                # Group by type
+                GIVEN_COUNT=$(echo "$response" | jq '[.step_definitions[] | select(.step_type == "Given")] | length')
+                WHEN_COUNT=$(echo "$response" | jq '[.step_definitions[] | select(.step_type == "When")] | length')
+                THEN_COUNT=$(echo "$response" | jq '[.step_definitions[] | select(.step_type == "Then")] | length')
+                
+                echo -e "${BLUE}By Type:${NC}"
+                echo "  Given: $GIVEN_COUNT"
+                echo "  When:  $WHEN_COUNT"
+                echo "  Then:  $THEN_COUNT"
+                echo ""
+                
+                echo -e "${BLUE}Step Definitions:${NC}"
+                echo "$response" | jq -r '.step_definitions[] | "  \(.step_type): \(.pattern)"'
+            fi
+            ;;
+    esac
+}
+
+# Display to console
+echo ""
+display_results "$FILTERED_RESPONSE"
+
+echo ""
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}✓ Parsing complete!${NC}"
+
+# Save to file if specified
+if [ -n "$OUTPUT_FILE" ]; then
+    echo "$FILTERED_RESPONSE" | jq . > "$OUTPUT_FILE"
+    echo -e "${BLUE}Filtered results saved to: ${OUTPUT_FILE}${NC}"
+else
+    # Save to default file with timestamp
+    DEFAULT_OUTPUT="${LOG_FILE}.parsed.$(date +%Y%m%d_%H%M%S).json"
+    echo "$FILTERED_RESPONSE" | jq . > "$DEFAULT_OUTPUT"
+    echo -e "${BLUE}Full results saved to: ${DEFAULT_OUTPUT}${NC}"
+fi
+
+# Upload to sidecar for API access (if log size is reasonable)
+LOG_SIZE=$(wc -c < "$LOG_FILE")
+MAX_SIZE=$((10 * 1024 * 1024))  # 10MB limit
+
+if [ "$LOG_SIZE" -lt "$MAX_SIZE" ]; then
+    echo ""
+    echo -e "${BLUE}Uploading parsed results to sidecar for API access...${NC}"
+    
+    # Generate unique log ID based on file path and timestamp
+    LOG_ID=$(echo "${LOG_FILE}_$(date +%s)" | md5sum | cut -d' ' -f1)
+    
+    # Upload via new endpoint (to be implemented in sidecar)
+    UPLOAD_RESPONSE=$(curl -s -X POST "${SIDECAR_URL}/logs/${LOG_ID}" \
+        -H "Content-Type: application/json" \
+        -d "$FILTERED_RESPONSE" 2>/dev/null || echo "{}")
+    
+    if echo "$UPLOAD_RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} Results uploaded successfully"
+        echo -e "${BLUE}Access via API:${NC}"
+        echo "  GET  ${SIDECAR_URL}/logs/${LOG_ID}"
+        echo "  GET  ${SIDECAR_URL}/logs/${LOG_ID}/summary"
+        echo "  GET  ${SIDECAR_URL}/logs/${LOG_ID}/failures"
+    else
+        echo -e "${YELLOW}Note: API upload endpoint not available yet${NC}"
+        echo -e "${YELLOW}Results available locally in: ${DEFAULT_OUTPUT}${NC}"
+    fi
+else
+    echo ""
+    echo -e "${YELLOW}Note: Log file too large ($(($LOG_SIZE / 1024 / 1024))MB) for API upload${NC}"
+    echo -e "${YELLOW}Maximum size: 10MB. Results saved locally only.${NC}"
+fi
+
+echo ""
