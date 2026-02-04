@@ -92,7 +92,7 @@ class CrossBridgeListener:
                     'event_type': event_type,
                     'framework': 'robot',
                     'data': data,
-                    'timestamp': datetime.utcnow().isoformat() + 'Z'
+                    'timestamp': datetime.utcnow().timestamp()
                 }
                 requests.post(self.api_url, json=event, timeout=self.timeout)
         except Exception:
