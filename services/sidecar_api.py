@@ -25,7 +25,6 @@ import uvicorn
 
 from core.logging import get_logger, LogCategory
 from core.sidecar.observer import SidecarObserver, Event
-from core.config.manager import ConfigManager
 
 logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 
@@ -78,8 +77,7 @@ class SidecarAPIServer:
     
     def __init__(
         self,
-        observer: SidecarObserver,
-        config_manager: ConfigManager,
+        observer: Optional[SidecarObserver] = None,
         host: str = "0.0.0.0",
         port: int = 8765
     ):
@@ -87,13 +85,11 @@ class SidecarAPIServer:
         Initialize sidecar API server
         
         Args:
-            observer: SidecarObserver instance
-            config_manager: Configuration manager
+            observer: SidecarObserver instance (optional, will create if not provided)
             host: Host to bind to
             port: Port to listen on
         """
-        self.observer = observer
-        self.config_manager = config_manager
+        self.observer = observer or SidecarObserver()
         self.host = host
         self.port = port
         self.start_time = datetime.utcnow()
