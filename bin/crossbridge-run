@@ -241,7 +241,9 @@ main() {
     case "$framework" in
         robot)
             setup_robot
-            exec "$@" $ROBOT_OPTIONS
+            # Shift to remove 'robot' from args, then add back with options
+            shift
+            exec robot $ROBOT_OPTIONS "$@"
             ;;
         pytest)
             setup_pytest
