@@ -36,6 +36,24 @@ curl http://localhost:8765/adapters/jest -o jest-adapter.tar.gz
 curl http://localhost:8765/config
 ```
 
+**Parse Test Results (Log Parser):**
+```bash
+# Robot Framework
+curl -X POST http://localhost:8765/parse/robot --data-binary @output.xml | jq
+
+# Cypress
+curl -X POST http://localhost:8765/parse/cypress --data-binary @results.json | jq
+
+# Playwright
+curl -X POST http://localhost:8765/parse/playwright --data-binary @trace.json | jq
+
+# Behave
+curl -X POST http://localhost:8765/parse/behave --data-binary @results.json | jq
+
+# Java Step Definitions
+curl -X POST http://localhost:8765/parse/java --data-binary @Steps.java | jq
+```
+
 ### 2. Supported Frameworks
 
 All adapters in the `adapters/` directory are automatically available:
