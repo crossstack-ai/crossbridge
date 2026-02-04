@@ -13,7 +13,7 @@ Supports all frameworks via unified event format.
 
 import json
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 from datetime import datetime
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -21,7 +21,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import uvicorn
 
 from core.logging import get_logger, LogCategory
@@ -39,13 +39,26 @@ class EventPayload(BaseModel):
     """Event data from remote client"""
     event_type: str
     data: Dict[str, Any]
-    timestamp: Optional[float] = Field(default_factory=lambda: datetime.utcnow().timestamp())
+    timestamp: Optional[Union[float, str]] = Field(default_factory=lambda: datetime.utcnow().timestamp())
     execution_id: Optional[str] = None
     test_id: Optional[str] = None
     run_id: Optional[str] = None
     framework: Optional[str] = None
     environment: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    
+    @field_validator('timestamp')
+    @classmethod
+    def parse_timestamp(cls, v):
+        """Convert ISO string timestamp to float if needed"""
+        if isinstance(v, str):
+            # Parse ISO format timestamp to float
+            try:
+                dt = datetime.fromisoformat(v.replace('Z', '+00:00'))
+                return dt.timestamp()
+            except Exception:
+                raise ValueError(f"Invalid timestamp format: {v}")
+        return v
 
 
 class HealthResponse(BaseModel):
