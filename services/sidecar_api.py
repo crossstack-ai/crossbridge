@@ -28,6 +28,13 @@ from core.logging import get_logger, LogCategory
 from core.sidecar.observer import SidecarObserver, Event
 from core.sidecar.sampler import Sampler
 
+# Import all available parsers
+from core.intelligence.robot_log_parser import RobotLogParser
+from core.intelligence.java_step_parser import JavaStepDefinitionParser
+from core.intelligence.cypress_results_parser import CypressResultsParser
+from core.intelligence.playwright_trace_parser import PlaywrightTraceParser
+from core.intelligence.behave_selenium_parsers import BehaveJSONParser, SeleniumLogParser
+
 logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 
 
@@ -357,7 +364,9 @@ class SidecarAPIServer:
                     "adapter_download": True,
                     "universal_wrapper": True,
                     "batch_events": True,
-                    "enhanced_logging": True
+                    "enhanced_logging": True,
+                    "log_parsing": True,
+                    "parseable_frameworks": ["robot", "cypress", "playwright", "behave", "java"]
                 }
             }
         
@@ -464,6 +473,230 @@ class SidecarAPIServer:
             except Exception as e:
                 logger.error(f"Failed to serve adapter {framework}: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.post("/parse/{framework}")
+        async def parse_test_results(framework: str, request: Request):
+            """
+            Generic test results parser for all supported frameworks
+            
+            Supported frameworks:
+            - robot: Robot Framework output.xml
+            - cypress: Cypress JSON results
+            - playwright: Playwright trace files
+            - behave: Behave JSON results
+            - java: Java step definitions
+            
+            Upload test results/logs and get detailed analysis including:
+            - Test statistics (passed/failed/total)
+            - Failed tests with error messages
+            - Performance analysis
+            - Framework-specific insights
+            
+            Examples:
+                # Robot Framework
+                curl -X POST http://localhost:8765/parse/robot \\
+                     -H "Content-Type: application/xml" \\
+                     --data-binary @output.xml
+                
+                # Cypress
+                curl -X POST http://localhost:8765/parse/cypress \\
+                     -H "Content-Type: application/json" \\
+                     --data-binary @cypress-results.json
+                
+                # Playwright
+                curl -X POST http://localhost:8765/parse/playwright \\
+                     -H "Content-Type: application/json" \\
+                     --data-binary @trace.json
+                
+                # Behave
+                curl -X POST http://localhost:8765/parse/behave \\
+                     -H "Content-Type: application/json" \\
+                     --data-binary @behave-results.json
+            """
+            try:
+                # Get content from request body
+                content = await request.body()
+                
+                if not content:
+                    raise HTTPException(status_code=400, detail="No content provided")
+                
+                # Route to appropriate parser based on framework
+                if framework == "robot":
+                    return await self._parse_robot_log(content)
+                elif framework == "cypress":
+                    return await self._parse_cypress_results(content)
+                elif framework == "playwright":
+                    return await self._parse_playwright_trace(content)
+                elif framework == "behave":
+                    return await self._parse_behave_results(content)
+                elif framework == "java":
+                    return await self._parse_java_steps(content)
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Unsupported framework: {framework}. "
+                               f"Supported: robot, cypress, playwright, behave, java"
+                    )
+                    
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Failed to parse {framework} results: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        async def _parse_robot_log(self, content: bytes) -> dict:
+            """Parse Robot Framework output.xml"""
+            parser = RobotLogParser()
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            
+            try:
+                suite = parser.parse(tmp_path)
+                stats = parser.get_statistics()
+                failed_keywords = parser.get_failed_keywords()
+                slowest_tests = parser.get_slowest_tests(count=10)
+                slowest_keywords = parser.get_slowest_keywords(count=10)
+                
+                return {
+                    "framework": "robot",
+                    "suite": {
+                        "name": suite.name,
+                        "source": suite.source,
+                        "status": suite.status.value,
+                        "total_tests": suite.total_tests,
+                        "passed_tests": suite.passed_tests,
+                        "failed_tests": suite.failed_tests,
+                        "elapsed_ms": suite.elapsed_ms
+                    },
+                    "statistics": stats,
+                    "failed_keywords": [
+                        {
+                            "name": kw.name,
+                            "library": kw.library,
+                            "error": kw.error_message,
+                            "messages": kw.messages[:5]
+                        }
+                        for kw in failed_keywords[:20]
+                    ],
+                    "slowest_tests": [
+                        {
+                            "name": test.name,
+                            "suite": test.suite,
+                            "elapsed_ms": test.elapsed_ms,
+                            "status": test.status.value
+                        }
+                        for test in slowest_tests
+                    ],
+                    "slowest_keywords": [
+                        {
+                            "name": kw.name,
+                            "library": kw.library,
+                            "elapsed_ms": kw.elapsed_ms
+                        }
+                        for kw in slowest_keywords
+                    ]
+                }
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
+        
+        async def _parse_cypress_results(self, content: bytes) -> dict:
+            """Parse Cypress JSON results"""
+            import json
+            
+            data = json.loads(content)
+            parser = CypressResultsParser()
+            results = parser.parse(data)
+            
+            return {
+                "framework": "cypress",
+                "statistics": {
+                    "total": results.get("total_tests", 0),
+                    "passed": results.get("passed", 0),
+                    "failed": results.get("failed", 0),
+                    "skipped": results.get("skipped", 0),
+                    "pass_rate": results.get("pass_rate", 0.0)
+                },
+                "failed_tests": results.get("failed_tests", []),
+                "duration_ms": results.get("duration_ms", 0),
+                "insights": results.get("insights", {})
+            }
+        
+        async def _parse_playwright_trace(self, content: bytes) -> dict:
+            """Parse Playwright trace files"""
+            import json
+            
+            data = json.loads(content)
+            parser = PlaywrightTraceParser()
+            results = parser.parse(data)
+            
+            return {
+                "framework": "playwright",
+                "statistics": results.get("statistics", {}),
+                "actions": results.get("actions", []),
+                "network_calls": results.get("network_calls", []),
+                "console_messages": results.get("console_messages", []),
+                "errors": results.get("errors", []),
+                "performance": results.get("performance", {})
+            }
+        
+        async def _parse_behave_results(self, content: bytes) -> dict:
+            """Parse Behave JSON results"""
+            import json
+            
+            data = json.loads(content)
+            parser = BehaveJSONParser()
+            results = parser.parse(data)
+            
+            return {
+                "framework": "behave",
+                "statistics": {
+                    "total_features": results.get("total_features", 0),
+                    "total_scenarios": results.get("total_scenarios", 0),
+                    "passed_scenarios": results.get("passed_scenarios", 0),
+                    "failed_scenarios": results.get("failed_scenarios", 0),
+                    "pass_rate": results.get("pass_rate", 0.0)
+                },
+                "failed_scenarios": results.get("failed_scenarios_list", []),
+                "duration_ms": results.get("duration_ms", 0)
+            }
+        
+        async def _parse_java_steps(self, content: bytes) -> dict:
+            """Parse Java step definitions"""
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.java', delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            
+            try:
+                parser = JavaStepDefinitionParser()
+                steps = parser.parse_file(tmp_path)
+                bindings = parser.get_step_bindings_map()
+                
+                return {
+                    "framework": "java",
+                    "total_steps": len(steps),
+                    "step_types": {
+                        "Given": len(bindings.get("Given", [])),
+                        "When": len(bindings.get("When", [])),
+                        "Then": len(bindings.get("Then", []))
+                    },
+                    "steps": [
+                        {
+                            "type": step.step_type,
+                            "pattern": step.pattern,
+                            "method": step.method_name,
+                            "file": Path(step.file_path).name,
+                            "line": step.line_number
+                        }
+                        for step in steps
+                    ]
+                }
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
     
     async def start(self):
         """Start the API server"""
