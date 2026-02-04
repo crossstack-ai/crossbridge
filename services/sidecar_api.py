@@ -20,6 +20,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field
 import uvicorn
 
@@ -104,6 +105,16 @@ class SidecarAPIServer:
             description="Remote observer API for distributed test monitoring",
             version="1.0.0"
         )
+        
+        # Add validation error handler for debugging
+        @self.app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+            logger.error(f"Validation error: {exc.errors()}")
+            logger.error(f"Request body: {await request.body()}")
+            return JSONResponse(
+                status_code=422,
+                content={"detail": exc.errors(), "body": str(await request.body())}
+            )
         
         # Register routes
         self._setup_routes()
