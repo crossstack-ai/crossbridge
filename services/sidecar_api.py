@@ -177,10 +177,16 @@ class SidecarAPIServer:
                 if payload.metadata:
                     event.data['metadata'] = payload.metadata
                 
-                # Queue event for processing (async)
-                background_tasks.add_task(self.observer.record_event, event)
+                # Observe event (non-blocking)
+                self.observer.observe_event(
+                    event_type=payload.event_type,
+                    data=event.data,
+                    execution_id=payload.execution_id,
+                    test_id=payload.test_id,
+                    run_id=payload.run_id
+                )
                 
-                return {"status": "accepted", "event_id": event.test_id}
+                return {"status": "accepted", "event_id": payload.test_id}
                 
             except Exception as e:
                 logger.error(f"Failed to process event: {e}")
@@ -199,16 +205,14 @@ class SidecarAPIServer:
                 
                 for event_payload in payload.events:
                     try:
-                        event = Event(
+                        # Observe event (non-blocking)
+                        self.observer.observe_event(
                             event_type=event_payload.event_type,
                             data=event_payload.data,
-                            timestamp=event_payload.timestamp or datetime.utcnow().timestamp(),
                             execution_id=event_payload.execution_id,
                             test_id=event_payload.test_id,
                             run_id=event_payload.run_id
                         )
-                        
-                        background_tasks.add_task(self.observer.record_event, event)
                         accepted_count += 1
                         
                     except Exception as e:
