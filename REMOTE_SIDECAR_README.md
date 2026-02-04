@@ -16,38 +16,44 @@ docker-compose -f docker-compose-remote-sidecar.yml up -d
 python -m crossbridge sidecar start --mode observer --host 0.0.0.0 --port 8765
 ```
 
-### 2. Configure Test Runners
+### 2. Install CrossBridge Listeners (Test Machines)
 
-On each test execution machine:
+On each test execution machine, install the lightweight listener package:
+
+```bash
+# Install from GitHub (development)
+pip install git+https://github.com/crossstack-ai/crossbridge.git#subdirectory=listeners
+```
+
+### 3. Configure Test Runners
+
+On each test execution machine, set environment variables (replace `<sidecar-host>` with your server IP/hostname):
 
 ```bash
 export CROSSBRIDGE_ENABLED=true
-export CROSSBRIDGE_SIDECAR_HOST=<sidecar-server-ip>
+export CROSSBRIDGE_SIDECAR_HOST=<sidecar-host>
 export CROSSBRIDGE_SIDECAR_PORT=8765
 ```
 
-### 3. Run Your Tests
+**Windows PowerShell:**
+```powershell
+$env:CROSSBRIDGE_ENABLED="true"
+$env:CROSSBRIDGE_SIDECAR_HOST="<sidecar-host>"
+$env:CROSSBRIDGE_SIDECAR_PORT="8765"
+```
+
+### 4. Run Your Tests
 
 The test framework adapters will automatically send events to the remote sidecar:
 
 ```bash
 # Robot Framework
-robot tests/
+robot --listener crossbridge_listeners.robot.CrossBridgeListener tests/
 
-# Pytest
+# Pytest (coming soon)
 pytest tests/
 
-# TestNG (Java)
-mvn test
-
-# JUnit 5 (Java)
-mvn test
-
-# Playwright
-npx playwright test
-
-# Cypress
-npx cypress run
+# For Java frameworks (TestNG, JUnit), configure in pom.xml or build.gradle
 ```
 
 ## Supported Frameworks
