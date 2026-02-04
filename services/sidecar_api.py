@@ -182,6 +182,13 @@ class SidecarAPIServer:
                 if payload.metadata:
                     event.data['metadata'] = payload.metadata
                 
+                # Log event received
+                logger.info(f"Event received: {payload.event_type}", extra={
+                    'event_type': payload.event_type,
+                    'framework': payload.framework,
+                    'test_id': payload.test_id
+                })
+                
                 # Observe event (non-blocking)
                 self.observer.observe_event(
                     event_type=payload.event_type,
