@@ -25,6 +25,7 @@ import uvicorn
 
 from core.logging import get_logger, LogCategory
 from core.sidecar.observer import SidecarObserver, Event
+from core.sidecar.sampler import Sampler
 
 logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 
@@ -89,7 +90,10 @@ class SidecarAPIServer:
             host: Host to bind to
             port: Port to listen on
         """
-        self.observer = observer or SidecarObserver()
+        if observer is None:
+            sampler = Sampler(default_rate=1.0)  # Sample everything in remote sidecar
+            observer = SidecarObserver(sampler=sampler)
+        self.observer = observer
         self.host = host
         self.port = port
         self.start_time = datetime.utcnow()
