@@ -315,12 +315,27 @@ class SidecarAPIServer:
         @self.app.get("/config")
         async def get_config():
             """Get current configuration"""
+            # Get list of available adapters
+            adapters_dir = Path(__file__).parent.parent / "adapters"
+            available_frameworks = []
+            if adapters_dir.exists():
+                available_frameworks = [
+                    d.name for d in adapters_dir.iterdir() 
+                    if d.is_dir() and not d.name.startswith('_') and not d.name == 'common'
+                ]
+            
             return {
                 "host": self.host,
                 "port": self.port,
                 "max_queue_size": self.observer._max_queue_size,
-                "frameworks_supported": ["robot", "pytest", "testng", "cucumber", "cypress", "playwright"],
-                "uptime": (datetime.utcnow() - self.start_time).total_seconds()
+                "frameworks_supported": sorted(available_frameworks),
+                "uptime": (datetime.utcnow() - self.start_time).total_seconds(),
+                "features": {
+                    "adapter_download": True,
+                    "universal_wrapper": True,
+                    "batch_events": True,
+                    "enhanced_logging": True
+                }
             }
         
         @self.app.post("/shutdown")
@@ -328,6 +343,104 @@ class SidecarAPIServer:
             """Graceful shutdown"""
             logger.info("Shutdown requested via API")
             return {"status": "shutting_down"}
+        
+        @self.app.get("/adapters")
+        async def list_adapters():
+            """
+            List available framework adapters
+            
+            Returns metadata about all supported framework adapters
+            """
+            try:
+                adapters_dir = Path(__file__).parent.parent / "adapters"
+                available_adapters = []
+                
+                if adapters_dir.exists():
+                    for adapter_path in adapters_dir.iterdir():
+                        if adapter_path.is_dir() and not adapter_path.name.startswith('_'):
+                            # Get adapter metadata
+                            readme_path = adapter_path / "README.md"
+                            description = ""
+                            if readme_path.exists():
+                                try:
+                                    with open(readme_path, 'r') as f:
+                                        first_line = f.readline().strip()
+                                        description = first_line.lstrip('#').strip()
+                                except:
+                                    pass
+                            
+                            available_adapters.append({
+                                "name": adapter_path.name,
+                                "path": str(adapter_path),
+                                "description": description or f"{adapter_path.name.title()} adapter",
+                                "download_url": f"/adapters/{adapter_path.name}"
+                            })
+                
+                return {
+                    "adapters": available_adapters,
+                    "total": len(available_adapters)
+                }
+            except Exception as e:
+                logger.error(f"Failed to list adapters: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/adapters/{framework}")
+        async def download_adapter(framework: str):
+            """
+            Download framework adapter as tar.gz
+            
+            The universal wrapper (crossbridge-run) uses this endpoint to download
+            adapters dynamically at runtime, enabling zero-touch integration.
+            
+            Args:
+                framework: Framework name (robot, pytest, jest, mocha, etc.)
+            
+            Returns:
+                Tar.gz archive containing the adapter code
+            """
+            import tarfile
+            import tempfile
+            import shutil
+            from fastapi.responses import FileResponse
+            
+            try:
+                # Validate framework name
+                adapters_dir = Path(__file__).parent.parent / "adapters"
+                adapter_path = adapters_dir / framework
+                
+                if not adapter_path.exists() or not adapter_path.is_dir():
+                    raise HTTPException(
+                        status_code=404, 
+                        detail=f"Adapter '{framework}' not found. Available: {[d.name for d in adapters_dir.iterdir() if d.is_dir() and not d.name.startswith('_')]}"
+                    )
+                
+                # Create temporary tar.gz file
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.tar.gz') as tmp_file:
+                    tar_path = tmp_file.name
+                
+                # Create tar archive
+                with tarfile.open(tar_path, "w:gz") as tar:
+                    # Add all files from adapter directory
+                    for item in adapter_path.rglob("*"):
+                        if item.is_file() and not item.name.endswith('.pyc'):
+                            arcname = item.relative_to(adapter_path.parent)
+                            tar.add(item, arcname=arcname)
+                
+                logger.info(f"Serving adapter: {framework} ({adapter_path})")
+                
+                # Return file response that auto-deletes after sending
+                return FileResponse(
+                    path=tar_path,
+                    media_type="application/gzip",
+                    filename=f"{framework}-adapter.tar.gz",
+                    background=BackgroundTasks().add_task(lambda: Path(tar_path).unlink(missing_ok=True))
+                )
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Failed to serve adapter {framework}: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
     
     async def start(self):
         """Start the API server"""
