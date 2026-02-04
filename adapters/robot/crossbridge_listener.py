@@ -73,7 +73,7 @@ class CrossBridgeListener:
             except Exception:
                 self.enabled = False
     
-    def _send_event(self, event_type: str, data: Dict[str, Any]):
+    def _send_event(self, event_type: str, data: Dict[str, Any], test_id: str = None):
         """Send event to CrossBridge sidecar."""
         if not self.enabled:
             return
@@ -92,7 +92,8 @@ class CrossBridgeListener:
                     'event_type': event_type,
                     'framework': 'robot',
                     'data': data,
-                    'timestamp': datetime.utcnow().timestamp()
+                    'timestamp': datetime.utcnow().timestamp(),
+                    'test_id': test_id
                 }
                 requests.post(self.api_url, json=event, timeout=self.timeout)
         except Exception:
@@ -151,20 +152,18 @@ class CrossBridgeListener:
         """Called when a test starts."""
         self._send_event('test_start', {
             'test_name': test.name,
-            'test_id': test.id,
             'tags': list(test.tags) if hasattr(test, 'tags') else [],
-        })
+        }, test_id=test.id)
     
     def end_test(self, test, result):
         """Called when a test ends."""
         self._send_event('test_end', {
             'test_name': test.name,
-            'test_id': test.id,
             'status': result.status,
             'message': result.message,
             'elapsed_time': result.elapsedtime / 1000.0,
             'tags': list(test.tags) if hasattr(test, 'tags') else [],
-        })
+        }, test_id=test.id)
     
     def close(self):
         """Called when execution finishes."""
