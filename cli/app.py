@@ -61,6 +61,9 @@ app.add_typer(search_app, name="search")
 app.add_typer(analyze_group, name="analyze")
 # Add execution orchestration commands
 app.add_typer(execution_commands, name="exec")
+# Add sidecar commands
+from cli.commands.sidecar_commands import app as sidecar_app
+app.add_typer(sidecar_app, name="sidecar")
 
 # Install custom exception hook to suppress tracebacks in CLI
 def _custom_exception_hook(exc_type, exc_value, exc_traceback):

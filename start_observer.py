@@ -18,6 +18,8 @@ from collections import defaultdict, Counter
 from typing import Dict, List, Any
 from urllib.parse import urlparse, parse_qs
 import re
+import tarfile
+import io
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -322,6 +324,41 @@ crossbridge_avg_test_duration_seconds {stats['avg_test_duration']}
             self.end_headers()
             self.wfile.write(metrics.encode())
             
+        elif path.startswith('/adapters/'):
+            # Serve framework adapters as tar.gz
+            framework = path.split('/adapters/')[-1].split('/')[0]
+            adapter_dir = Path(__file__).parent / 'adapters' / framework
+            
+            if adapter_dir.exists() and adapter_dir.is_dir():
+                # Create tar.gz in memory
+                tar_buffer = io.BytesIO()
+                with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
+                    tar.add(str(adapter_dir), arcname=framework)
+                
+                tar_buffer.seek(0)
+                tar_data = tar_buffer.read()
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/gzip')
+                self.send_header('Content-Disposition', f'attachment; filename="crossbridge-{framework}-adapter.tar.gz"')
+                self.send_header('Content-Length', str(len(tar_data)))
+                self.end_headers()
+                self.wfile.write(tar_data)
+            else:
+                available_frameworks = [
+                    d.name for d in (Path(__file__).parent / 'adapters').iterdir() 
+                    if d.is_dir() and not d.name.startswith('_')
+                ]
+                response = {
+                    'error': f'Framework adapter not found: {framework}',
+                    'available_frameworks': available_frameworks,
+                    'usage': f'GET /adapters/{{framework}} - Downloads adapter as tar.gz'
+                }
+                self.send_response(404)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(response, indent=2).encode())
+        
         else:
             # Not found
             response = {
@@ -329,7 +366,8 @@ crossbridge_avg_test_duration_seconds {stats['avg_test_duration']}
                 'available_endpoints': [
                     '/health', '/health/v1', '/ready', '/live', 
                     '/metrics', '/events', '/stats', 
-                    '/failures/patterns', '/summary'
+                    '/failures/patterns', '/summary',
+                    '/adapters/{framework}'
                 ]
             }
             self.send_response(404)

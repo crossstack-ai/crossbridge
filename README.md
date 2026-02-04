@@ -54,6 +54,64 @@ Work with existing tests as-is — zero code changes required.
 
 ✔ Selenium, pytest, Cypress, Robot, JUnit, TestNG, NUnit, BDD frameworks, and more
 
+---
+
+## 🎯 Quick Start: Universal Wrapper (NEW!)
+
+**The easiest way to integrate CrossBridge: Zero code changes, zero configuration files.**
+
+### Installation (30 seconds)
+
+**Linux/macOS:**
+```bash
+curl -sSL https://crossbridge.io/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr -useb https://crossbridge.io/install.ps1 | iex
+```
+
+### Usage
+
+**Instead of:**
+```bash
+robot tests/
+pytest tests/
+jest tests/
+mvn test
+```
+
+**Just use:**
+```bash
+crossbridge-run robot tests/
+crossbridge-run pytest tests/
+crossbridge-run jest tests/
+crossbridge-run mvn test
+```
+
+**That's it!** No listener files, no configuration changes, no repository modifications.
+
+### How It Works
+
+1. 🔍 **Auto-detects** your test framework (Robot, Pytest, Jest, JUnit, Mocha)
+2. 📥 **Downloads** the appropriate adapter from CrossBridge sidecar
+3. ⚙️ **Configures** monitoring automatically via environment variables
+4. ▶️ **Runs** your tests with CrossBridge observability enabled
+
+All adapters are cached locally (`~/.crossbridge/adapters/`) and auto-refresh every 24 hours.
+
+**Supported Frameworks:**
+- 🤖 Robot Framework
+- 🧪 Pytest
+- 🃏 Jest
+- ☕ JUnit/Maven
+- ☕ Mocha
+
+📖 **Full Documentation:** [Universal Wrapper Guide](docs/UNIVERSAL_WRAPPER.md)
+
+---
+
 ### 🔹 2. **Intelligent Test Migration & Transformation**
 Automate conversion from outdated frameworks to modern ones:
 
