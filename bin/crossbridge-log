@@ -33,6 +33,7 @@ FILTER_TIME_TO=""
 FILTER_STATUS=""
 FILTER_ERROR_CODE=""
 FILTER_PATTERN=""
+ENABLE_ANALYSIS=true  # Enable automatic intelligence analysis
 SHOW_HELP=false
 LOG_FILE=""
 
@@ -63,9 +64,18 @@ show_usage() {
     echo "  -t, --test-name PATTERN    Filter tests by name (supports wildcards)"
     echo "  -i, --test-id ID           Filter by specific test ID"
     echo "  -s, --status STATUS        Filter by status (PASS, FAIL, SKIP)"
+    echo "  -e, --error-code CODE      Filter by error code in messages"
+    echo "  -p, --pattern PATTERN      Filter by text pattern (case-insensitive)"
     echo "  --time-from DATETIME       Filter tests starting after DATETIME"
     echo "  --time-to DATETIME         Filter tests ending before DATETIME"
+    echo "  --no-analyze               Disable automatic intelligence analysis"
     echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Automatic Intelligence Features (enabled by default):"
+    echo "  • Failure Classification - PRODUCT_DEFECT, AUTOMATION_DEFECT, ENVIRONMENT_ISSUE, etc."
+    echo "  • Signal Extraction - Timeout, assertion, locator errors"
+    echo "  • Code Reference Resolution - Pinpoints test code location"
+    echo "  • Root Cause Analysis - Explains why test failed"
     echo ""
     echo "Environment Variables:"
     echo "  SIDECAR_HOST   - Sidecar API host (default: localhost)"
@@ -263,6 +273,33 @@ if echo "$RESPONSE" | jq -e '.detail' > /dev/null 2>&1; then
     exit 1
 fi
 
+# Enrich with execution intelligence (automatic analysis)
+enrich_with_intelligence() {
+    local data="$1"
+    
+    if [ "$ENABLE_ANALYSIS" != "true" ]; then
+        echo "$data"
+        return
+    fi
+    
+    echo -e "${BLUE}Running intelligence analysis...${NC}" >&2
+    
+    # Call sidecar's analyze endpoint to add classification and signals
+    # This leverages ExecutionAnalyzer, signal extraction, and code resolution
+    local enriched=$(curl -s -X POST "${SIDECAR_URL}/analyze" \
+        -H "Content-Type: application/json" \
+        -d "{\"data\": $data, \"framework\": \"$FRAMEWORK\", \"workspace_root\": \"$(pwd)\"}" 2>/dev/null || echo "$data")
+    
+    # If analysis endpoint exists, use enriched data; otherwise use original
+    if echo "$enriched" | jq -e '.analyzed' > /dev/null 2>&1; then
+        echo "$enriched"
+        echo -e "${GREEN}✓ Intelligence analysis complete${NC}" >&2
+    else
+        echo "$data"
+        echo -e "${YELLOW}Note: Intelligence analysis not available (using basic parsing)${NC}" >&2
+    fi
+}
+
 # Apply filters to response
 apply_filters() {
     local data="$1"
@@ -372,8 +409,39 @@ apply_filters() {
     echo "$data"
 }
 
+# Enrich with intelligence analysis (automatic)
+ENRICHED_RESPONSE=$(enrich_with_intelligence "$RESPONSE")
+
 # Apply filters
-FILTERED_RESPONSE=$(apply_filters "$RESPONSE")
+FILTERED_RESPONSE=$(apply_filters "$ENRICHED_RESPONSE")
+
+# Display intelligence summary (if available)
+if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; then
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}Intelligence Analysis Summary${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    
+    # Show classification breakdown
+    if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.classifications' > /dev/null 2>&1; then
+        echo -e "${YELLOW}Failure Classifications:${NC}"
+        echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.classifications | to_entries[] | "  • \(.key): \(.value)"'
+    fi
+    
+    # Show signal summary
+    if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.signals' > /dev/null 2>&1; then
+        echo -e "${YELLOW}Detected Signals:${NC}"
+        echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.signals | to_entries[] | "  • \(.key): \(.value)"'
+    fi
+    
+    # Show recommendations
+    if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.recommendations' > /dev/null 2>&1; then
+        echo -e "${YELLOW}Recommendations:${NC}"
+        echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.recommendations[] | "  ✓ \(.)"'
+    fi
+    
+    echo ""
+fi
 
 # Display results based on framework
 display_results() {

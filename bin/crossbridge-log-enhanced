@@ -1,0 +1,342 @@
+#!/usr/bin/env bash
+#
+# CrossBridge Log Parser CLI - Enhanced Universal Log Analyzer
+# Supports all frameworks with filtering, output options, and API storage
+#
+
+set -e
+
+# Colors
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
+
+# Configuration
+SIDECAR_HOST="${SIDECAR_HOST:-localhost}"
+SIDECAR_PORT="${SIDECAR_PORT:-8765}"
+SIDECAR_URL="http://${SIDECAR_HOST}:${SIDECAR_PORT}"
+
+# Filters and options
+FILTER_TEST_NAME=""; FILTER_TEST_ID=""; FILTER_STATUS=""; FILTER_TAG=""
+FILTER_TIME_FROM=""; FILTER_TIME_TO=""; OUTPUT_FILE=""; SHOW_STATS_ONLY=false
+SHOW_FAILURES_ONLY=false; SHOW_SLOWEST=0; SAVE_TO_API=false
+FORMAT="console"; LOG_FILE=""; VERBOSE=false
+
+# Show usage
+show_usage() {
+    cat << 'EOF'
+CrossBridge Log Parser - Universal test log analyzer
+
+USAGE:
+    crossbridge-log [OPTIONS] <log-file>
+
+FILTER OPTIONS:
+    --test-name <pattern>       Filter by test name (wildcards: *Login*)
+    --test-id <id>              Filter by test ID
+    --status <status>           Filter by status (pass|fail|skip)
+    --tag <tag>                 Filter by tag (Robot)
+    --time-from <ISO-time>      Tests after this time
+    --time-to <ISO-time>        Tests before this time
+    --failures-only             Show only failed tests
+    --slowest <N>               Show N slowest tests
+
+OUTPUT OPTIONS:
+    -o, --output <file>         Save to file
+    --stats-only                Show only statistics
+    --format <fmt>              Format: console|json|html
+    --save-to-api               Store in sidecar API
+
+EXAMPLES:
+    crossbridge-log output.xml
+    crossbridge-log --failures-only output.xml
+    crossbridge-log --test-name "*Login*" -o results.txt output.xml
+    crossbridge-log --slowest 10 output.xml
+    crossbridge-log --format html -o report.html output.xml
+    crossbridge-log --save-to-api output.xml
+
+EOF
+    exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help) show_usage ;;
+        --test-name) FILTER_TEST_NAME="$2"; shift 2 ;;
+        --test-id) FILTER_TEST_ID="$2"; shift 2 ;;
+        --status) FILTER_STATUS="$2"; shift 2 ;;
+        --tag) FILTER_TAG="$2"; shift 2 ;;
+        --time-from) FILTER_TIME_FROM="$2"; shift 2 ;;
+        --time-to) FILTER_TIME_TO="$2"; shift 2 ;;
+        --failures-only) SHOW_FAILURES_ONLY=true; shift ;;
+        --slowest) SHOW_SLOWEST="$2"; shift 2 ;;
+        -o|--output) OUTPUT_FILE="$2"; shift 2 ;;
+        --stats-only) SHOW_STATS_ONLY=true; shift ;;
+        --format) FORMAT="$2"; shift 2 ;;
+        --save-to-api) SAVE_TO_API=true; shift ;;
+        --host) SIDECAR_HOST="$2"; SIDECAR_URL="http://${SIDECAR_HOST}:${SIDECAR_PORT}"; shift 2 ;;
+        --port) SIDECAR_PORT="$2"; SIDECAR_URL="http://${SIDECAR_HOST}:${SIDECAR_PORT}"; shift 2 ;;
+        -v|--verbose) VERBOSE=true; set -x; shift ;;
+        -*) echo -e "${RED}Error: Unknown option: $1${NC}" >&2; exit 1 ;;
+        *) LOG_FILE="$1"; shift ;;
+    esac
+done
+
+[ -z "$LOG_FILE" ] && { echo -e "${RED}Error: No log file specified${NC}" >&2; show_usage; }
+[ ! -f "$LOG_FILE" ] && { echo -e "${RED}Error: File not found: $LOG_FILE${NC}" >&2; exit 1; }
+
+# Detect framework
+detect_framework() {
+    local file="$1"
+    local basename=$(basename "$file")
+    
+    case "$basename" in
+        output.xml|robot*.xml) echo "robot"; return ;;
+        *cypress*.json) echo "cypress"; return ;;
+        *playwright*.json|trace*.json) echo "playwright"; return ;;
+        *behave*.json) echo "behave"; return ;;
+        *Steps.java|*StepDef*.java) echo "java"; return ;;
+    esac
+    
+    if head -n 5 "$file" | grep -q '<robot' 2>/dev/null; then echo "robot"
+    elif head -n 5 "$file" | grep -q '"suites"' 2>/dev/null; then echo "cypress"
+    elif head -n 5 "$file" | grep -q '"entries"\|"trace"' 2>/dev/null; then echo "playwright"
+    elif head -n 5 "$file" | grep -q '"feature"' 2>/dev/null; then echo "behave"
+    elif grep -q '@Given\|@When\|@Then' "$file" 2>/dev/null; then echo "java"
+    else echo "unknown"
+    fi
+}
+
+# Check sidecar
+$VERBOSE && echo -e "${BLUE}Checking sidecar API at ${SIDECAR_URL}${NC}"
+if ! curl -sf "${SIDECAR_URL}/health" > /dev/null 2>&1; then
+    echo -e "${RED}Error: Sidecar API not reachable at ${SIDECAR_URL}${NC}" >&2
+    exit 1
+fi
+
+# Detect framework
+FRAMEWORK=$(detect_framework "$LOG_FILE")
+[ "$FRAMEWORK" = "unknown" ] && {
+    echo -e "${RED}Error: Could not detect log format${NC}" >&2
+    exit 1
+}
+
+echo -e "${GREEN}✓${NC} Detected framework: ${BLUE}${FRAMEWORK}${NC}"
+$VERBOSE && echo -e "${BLUE}Parsing: ${LOG_FILE}${NC}"
+
+# Parse log
+HEADERS=(-H "Content-Type: application/octet-stream")
+$SAVE_TO_API && HEADERS+=(-H "X-Save-Analysis: true")
+
+RESPONSE=$(curl -s -X POST "${SIDECAR_URL}/parse/${FRAMEWORK}" \
+    "${HEADERS[@]}" --data-binary "@${LOG_FILE}")
+
+# Validate response
+echo "$RESPONSE" | jq empty 2>/dev/null || {
+    echo -e "${RED}Error: Invalid response${NC}" >&2
+    echo "$RESPONSE" >&2
+    exit 1
+}
+
+# Check for API errors
+if echo "$RESPONSE" | jq -e '.detail' > /dev/null 2>&1; then
+    echo -e "${RED}Error: $(echo "$RESPONSE" | jq -r '.detail')${NC}" >&2
+    exit 1
+fi
+
+# Apply filters using jq
+FILTERED="$RESPONSE"
+if [ -n "$FILTER_TEST_NAME" ] || [ -n "$FILTER_STATUS" ] || [ "$SHOW_FAILURES_ONLY" = true ]; then
+    JQ_FILTER='.'
+    
+    if [ "$SHOW_FAILURES_ONLY" = true ]; then
+        case "$FRAMEWORK" in
+            robot)
+                FILTERED=$(echo "$RESPONSE" | jq '{
+                    framework,
+                    suite: .suite | {
+                        name, status,
+                        total_tests: .failed_tests,
+                        passed_tests: 0,
+                        failed_tests: .failed_tests,
+                        elapsed_ms
+                    },
+                    failed_keywords,
+                    slowest_tests: []
+                }')
+                ;;
+            cypress|behave)
+                FILTERED=$(echo "$RESPONSE" | jq '{
+                    framework,
+                    statistics: .statistics | {
+                        total_tests: .failed_tests,
+                        passed_tests: 0,
+                        failed_tests
+                    },
+                    failures
+                }')
+                ;;
+        esac
+    fi
+    
+    if [ -n "$FILTER_TEST_NAME" ]; then
+        FILTERED=$(echo "$FILTERED" | jq --arg name "$FILTER_TEST_NAME" '
+            if .failed_keywords then
+                .failed_keywords = [.failed_keywords[] | select(.name | test($name; "i"))]
+            elif .failures then
+                .failures = [.failures[] | select(.title | test($name; "i"))]
+            else . end
+        ')
+    fi
+fi
+
+# Format output
+format_output() {
+    local data="$1"
+    local framework=$(echo "$data" | jq -r '.framework')
+    
+    case "$FORMAT" in
+        json)
+            echo "$data" | jq '.'
+            ;;
+        html)
+            cat << 'HTMLEOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CrossBridge Log Analysis</title>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: #ecf0f1; padding: 15px; border-radius: 5px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #2c3e50; }
+        .pass { color: #27ae60; }
+        .fail { color: #e74c3c; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #3498db; color: white; }
+        .badge { padding: 5px 10px; border-radius: 3px; font-size: 12px; }
+        .badge-fail { background: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>��� CrossBridge Log Analysis</h1>
+        <div id="stats"></div>
+        <div id="failures"></div>
+    </div>
+    <script>
+HTMLEOF
+            echo "const data = $data;"
+            cat << 'HTMLEOF2'
+        const stats = data.suite || data.statistics || {};
+        document.getElementById('stats').innerHTML = `
+            <h2>��� Statistics</h2>
+            <div class="stats">
+                <div class="stat-card"><div class="stat-value">${stats.total_tests || 0}</div><div>Total</div></div>
+                <div class="stat-card"><div class="stat-value pass">${stats.passed_tests || 0}</div><div>Passed</div></div>
+                <div class="stat-card"><div class="stat-value fail">${stats.failed_tests || 0}</div><div>Failed</div></div>
+            </div>
+        `;
+        
+        const failures = data.failed_keywords || data.failures || [];
+        if (failures.length > 0) {
+            document.getElementById('failures').innerHTML = `
+                <h2>❌ Failures</h2>
+                <table>
+                    <thead><tr><th>Name</th><th>Details</th></tr></thead>
+                    <tbody>${failures.map(f => `
+                        <tr>
+                            <td>${f.name || f.title || 'Unknown'}</td>
+                            <td>${f.error_message || f.message || 'No details'}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+            `;
+        }
+    </script>
+</body>
+</html>
+HTMLEOF2
+            ;;
+        console|*)
+            echo ""
+            echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+            echo -e "${GREEN}   ${framework^^} Test Results${NC}"
+            echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+            echo ""
+            
+            case "$framework" in
+                robot)
+                    local total=$(echo "$data" | jq -r '.suite.total_tests')
+                    local passed=$(echo "$data" | jq -r '.suite.passed_tests')
+                    local failed=$(echo "$data" | jq -r '.suite.failed_tests')
+                    local elapsed=$(echo "$data" | jq -r '.suite.elapsed_ms')
+                    
+                    echo -e "${CYAN}Statistics:${NC}"
+                    echo "  Total:    $total"
+                    echo "  Passed:   ${GREEN}$passed${NC}"
+                    echo "  Failed:   ${RED}$failed${NC}"
+                    echo "  Duration: ${elapsed}ms"
+                    echo ""
+                    
+                    if [ "$failed" != "0" ]; then
+                        echo -e "${RED}Failed Keywords:${NC}"
+                        echo "$data" | jq -r '.failed_keywords[]? | "  ❌ \(.name) (\(.library))"'
+                        echo ""
+                    fi
+                    
+                    if [ "$SHOW_SLOWEST" -gt 0 ]; then
+                        echo -e "${YELLOW}Slowest Tests (Top ${SHOW_SLOWEST}):${NC}"
+                        echo "$data" | jq -r --arg n "$SHOW_SLOWEST" '.slowest_tests[0:($n|tonumber)][]? | "  ⏱️  \(.name): \(.elapsed_ms)ms"'
+                    fi
+                    ;;
+                cypress|behave)
+                    local total=$(echo "$data" | jq -r '.statistics.total_tests')
+                    local passed=$(echo "$data" | jq -r '.statistics.passed_tests')
+                    local failed=$(echo "$data" | jq -r '.statistics.failed_tests')
+                    
+                    echo -e "${CYAN}Statistics:${NC}"
+                    echo "  Total:  $total"
+                    echo "  Passed: ${GREEN}$passed${NC}"
+                    echo "  Failed: ${RED}$failed${NC}"
+                    echo ""
+                    
+                    if [ "$failed" != "0" ]; then
+                        echo -e "${RED}Failed Tests:${NC}"
+                        echo "$data" | jq -r '.failures[]? | "  ❌ \(.title // .name): \(.error_message // .message)"'
+                    fi
+                    ;;
+            esac
+            
+            # Show API result ID if saved
+            local result_id=$(echo "$data" | jq -r '.result_id // empty')
+            if [ -n "$result_id" ]; then
+                echo ""
+                echo -e "${CYAN}��� Saved to API: ${result_id}${NC}"
+            fi
+            
+            echo ""
+            echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+            ;;
+    esac
+}
+
+# Generate output
+OUTPUT=$(format_output "$FILTERED")
+
+# Save or display
+if [ -n "$OUTPUT_FILE" ]; then
+    echo "$OUTPUT" > "$OUTPUT_FILE"
+    echo -e "${GREEN}✓ Results saved to: ${OUTPUT_FILE}${NC}"
+else
+    echo "$OUTPUT"
+fi
+
+# Always save JSON for API access
+JSON_FILE="${LOG_FILE}.parsed.json"
+echo "$FILTERED" | jq . > "$JSON_FILE"
+$VERBOSE && echo -e "${BLUE}Full JSON saved to: ${JSON_FILE}${NC}"
+

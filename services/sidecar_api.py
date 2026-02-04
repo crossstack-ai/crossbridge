@@ -35,6 +35,10 @@ from core.intelligence.cypress_results_parser import CypressResultsParser
 from core.intelligence.playwright_trace_parser import PlaywrightTraceParser
 from core.intelligence.behave_selenium_parsers import BehaveJSONParser, SeleniumLogParser
 
+# Import execution intelligence components
+from core.execution.intelligence.analyzer import ExecutionAnalyzer
+from core.execution.intelligence.models import FailureType
+
 logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 
 
@@ -706,6 +710,9 @@ class SidecarAPIServer:
         self._log_storage: Dict[str, dict] = {}
         self._max_stored_logs = 100  # Limit to 100 logs
         
+        # Initialize execution intelligence analyzer (works without AI by default)
+        self._analyzer = ExecutionAnalyzer(enable_ai=False)
+        
         @self.app.post("/logs/{log_id}")
         async def store_parsed_log(log_id: str, request: Request):
             """
@@ -884,6 +891,205 @@ class SidecarAPIServer:
             logger.info(f"Deleted log {log_id}")
             
             return {"status": "deleted", "id": log_id}
+        
+        @self.app.post("/analyze")
+        async def analyze_logs(request: Request):
+            """
+            Analyze parsed logs with execution intelligence
+            
+            Automatically applies:
+            - Failure classification (PRODUCT_DEFECT, AUTOMATION_DEFECT, ENVIRONMENT_ISSUE, etc.)
+            - Signal extraction (timeout, assertion, locator errors)
+            - Code reference resolution (for automation defects)
+            
+            Works deterministically without AI. Returns enriched log data.
+            
+            Request body:
+            {
+                "data": <parsed_log_data>,
+                "framework": "robot|cypress|pytest|etc",
+                "workspace_root": "/path/to/project" (optional)
+            }
+            
+            Response:
+            {
+                "analyzed": true,
+                "data": <original_data>,
+                "intelligence_summary": {
+                    "classifications": {"PRODUCT_DEFECT": 2, "AUTOMATION_DEFECT": 1},
+                    "signals": {"timeout": 1, "assertion_failure": 2},
+                    "recommendations": ["Check API endpoint availability", ...]
+                },
+                "enriched_tests": [<tests_with_classification>]
+            }
+            """
+            try:
+                body = await request.json()
+                data = body.get("data", {})
+                framework = body.get("framework", "unknown")
+                workspace_root = body.get("workspace_root")
+                
+                # Update analyzer workspace if provided
+                if workspace_root:
+                    self._analyzer.workspace_root = workspace_root
+                    self._analyzer.resolver.workspace_root = workspace_root
+                
+                # Extract failed tests for analysis
+                failed_tests = self._extract_failed_tests(data, framework)
+                
+                if not failed_tests:
+                    # No failures to analyze
+                    return {
+                        "analyzed": True,
+                        "data": data,
+                        "intelligence_summary": {
+                            "classifications": {},
+                            "signals": {},
+                            "recommendations": ["All tests passed - no analysis needed"]
+                        }
+                    }
+                
+                # Analyze each failed test
+                classifications = {}
+                signals_summary = {}
+                enriched_tests = []
+                recommendations = set()
+                
+                for test in failed_tests:
+                    test_name = test.get("name", "unknown")
+                    error_msg = test.get("error_message") or test.get("error", "")
+                    
+                    # Build raw log for analyzer
+                    raw_log = self._build_raw_log(test, framework)
+                    
+                    # Analyze (deterministic - no AI)
+                    try:
+                        result = self._analyzer.analyze(
+                            raw_log=raw_log,
+                            test_name=test_name,
+                            framework=framework,
+                            context={"framework": framework}
+                        )
+                        
+                        # Count classifications
+                        failure_type = result.classification.failure_type.value
+                        classifications[failure_type] = classifications.get(failure_type, 0) + 1
+                        
+                        # Count signals
+                        for signal in result.signals:
+                            signal_type = signal.signal_type.value
+                            signals_summary[signal_type] = signals_summary.get(signal_type, 0) + 1
+                        
+                        # Add recommendations
+                        if result.classification.failure_type == FailureType.PRODUCT_DEFECT:
+                            recommendations.add("Review application code for bugs")
+                        elif result.classification.failure_type == FailureType.AUTOMATION_DEFECT:
+                            recommendations.add("Update test automation code/locators")
+                        elif result.classification.failure_type == FailureType.ENVIRONMENT_ISSUE:
+                            recommendations.add("Check infrastructure and network connectivity")
+                        elif result.classification.failure_type == FailureType.CONFIGURATION_ISSUE:
+                            recommendations.add("Verify test configuration and dependencies")
+                        
+                        # Enrich test with classification
+                        enriched_test = {
+                            **test,
+                            "classification": {
+                                "type": failure_type,
+                                "confidence": result.classification.confidence,
+                                "reason": result.classification.reason,
+                                "code_reference": {
+                                    "file": result.classification.code_reference.file,
+                                    "line": result.classification.code_reference.line,
+                                    "snippet": result.classification.code_reference.snippet
+                                } if result.classification.code_reference else None
+                            },
+                            "signals": [
+                                {
+                                    "type": s.signal_type.value,
+                                    "confidence": s.confidence,
+                                    "message": s.message
+                                }
+                                for s in result.signals
+                            ]
+                        }
+                        enriched_tests.append(enriched_test)
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to analyze test {test_name}: {e}")
+                        enriched_tests.append(test)
+                
+                return {
+                    "analyzed": True,
+                    "data": data,
+                    "intelligence_summary": {
+                        "classifications": classifications,
+                        "signals": signals_summary,
+                        "recommendations": list(recommendations)
+                    },
+                    "enriched_tests": enriched_tests
+                }
+                
+            except Exception as e:
+                logger.error(f"Analysis failed: {e}")
+                raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        
+        def _extract_failed_tests(self, data: dict, framework: str) -> List[dict]:
+            """Extract failed tests from parsed log data"""
+            failed = []
+            
+            if framework == "robot":
+                # Robot Framework
+                if "failed_keywords" in data:
+                    failed = data["failed_keywords"]
+                elif "suite" in data and "tests" in data["suite"]:
+                    failed = [t for t in data["suite"]["tests"] if t.get("status") == "FAIL"]
+            
+            elif framework == "cypress":
+                # Cypress
+                if "failures" in data:
+                    failed = data["failures"]
+                elif "tests" in data:
+                    failed = [t for t in data["tests"] if t.get("state") == "failed"]
+            
+            elif framework == "pytest":
+                # Pytest
+                if "failures" in data:
+                    failed = data["failures"]
+            
+            else:
+                # Generic - look for tests with failure status
+                if "tests" in data:
+                    failed = [
+                        t for t in data["tests"]
+                        if t.get("status") in ["FAIL", "failed", "FAILED", "error", "ERROR"]
+                    ]
+            
+            return failed
+        
+        def _build_raw_log(self, test: dict, framework: str) -> str:
+            """Build raw log string from test data for analyzer"""
+            lines = []
+            
+            # Test name
+            name = test.get("name", "unknown_test")
+            lines.append(f"Test: {name}")
+            
+            # Error message
+            error = test.get("error_message") or test.get("error") or test.get("message", "")
+            if error:
+                lines.append(f"Error: {error}")
+            
+            # Stack trace
+            stack_trace = test.get("stack_trace") or test.get("stacktrace", "")
+            if stack_trace:
+                lines.append(f"Stack trace:\n{stack_trace}")
+            
+            # Messages (Robot Framework)
+            if "messages" in test:
+                for msg in test["messages"]:
+                    lines.append(f"Message: {msg}")
+            
+            return "\n".join(lines)
     
     async def start(self):
         """Start the API server"""
