@@ -6,6 +6,19 @@ The universal wrapper (`crossbridge-run`) enables **zero-touch integration** - r
 
 ### 1. New Sidecar API Endpoints
 
+**Health Check:**
+```bash
+curl http://localhost:8765/health
+# Returns: {"status": "healthy", "uptime_seconds": 1234, ...}
+```
+
+**Readiness Probe (Kubernetes-compatible):**
+```bash
+curl http://localhost:8765/ready
+# Returns: {"status": "ready", "queue_utilization": "100/5000", "queue_percent": 2.0}
+# HTTP 200 if ready, 503 if degraded (queue >90% full)
+```
+
 **List Available Adapters:**
 ```bash
 curl http://localhost:8765/adapters
@@ -146,6 +159,7 @@ That's it! No code changes needed.
                           ↓
 ┌──────────────────────────────────────────────────────────────┐
 │ 5. Executes: robot --listener crossbridge_listener tests/   │
+│    (Options placed BEFORE test path for Robot compatibility) │
 └──────────────────────────────────────────────────────────────┘
                           ↓
 ┌──────────────────────────────────────────────────────────────┐
@@ -321,6 +335,24 @@ test:
 1. Check wrapper actually injected listener: Add `CROSSBRIDGE_LOG_LEVEL=DEBUG`
 2. Verify adapter was downloaded: `ls ~/.crossbridge/adapters/robot`
 3. Check test machine can reach sidecar: `curl http://10.60.75.145:8765/health`
+4. Verify sidecar is ready: `curl http://10.60.75.145:8765/ready`
+
+### Robot Framework Parsing Errors
+
+**Problem:** `Parsing 'E:\--listener' failed: File or directory to execute does not exist`
+
+**Solution:** This issue was fixed in the latest version. The wrapper now correctly places `--listener` options BEFORE the test path. Update your wrapper:
+```bash
+# Linux/macOS
+curl -o /usr/local/bin/crossbridge-run \
+  https://raw.githubusercontent.com/crossstack-ai/crossbridge/dev/bin/crossbridge-run
+chmod +x /usr/local/bin/crossbridge-run
+
+# Windows (Git Bash)
+curl -o crossbridge-run \
+  https://raw.githubusercontent.com/crossstack-ai/crossbridge/dev/bin/crossbridge-run
+chmod +x crossbridge-run
+```
 
 ## Next Steps
 
