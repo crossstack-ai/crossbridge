@@ -51,12 +51,7 @@ services:
       - ./intelligence_config.yaml:/opt/crossbridge/intelligence_config.yaml:ro
     
     command: >
-      python -c "
-      from services.sidecar_api import SidecarAPIServer;
-      import asyncio;
-      server = SidecarAPIServer(host='0.0.0.0', port=8765);
-      asyncio.run(server.start())
-      "
+      python -c "from services.sidecar_api import SidecarAPIServer; import asyncio; server = SidecarAPIServer(host='0.0.0.0', port=8765); asyncio.run(server.start())"
     
     # Resource limits (recommended for production)
     deploy:
