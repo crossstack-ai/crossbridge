@@ -207,7 +207,11 @@ setup_junit() {
 
 # Main execution
 main() {
-    if [[ $# -eq 0 ]]; then
+    # Handle help flag
+    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+        echo "CrossBridge Universal Test Wrapper"
+        echo "Automatically injects CrossBridge monitoring into any supported test framework"
+        echo ""
         echo "Usage: crossbridge-run <test-command> [args...]"
         echo ""
         echo "Examples:"
@@ -217,11 +221,25 @@ main() {
         echo "  crossbridge-run mocha tests/"
         echo "  crossbridge-run mvn test"
         echo ""
+        echo "Supported Frameworks:"
+        echo "  - Robot Framework (robot, pybot)"
+        echo "  - Pytest (pytest, py.test)"
+        echo "  - Jest (jest, npm test)"
+        echo "  - Mocha (mocha)"
+        echo "  - JUnit/Maven (mvn test)"
+        echo ""
         echo "Environment Variables:"
         echo "  CROSSBRIDGE_SIDECAR_HOST   - Sidecar API host (default: localhost)"
         echo "  CROSSBRIDGE_SIDECAR_PORT   - Sidecar API port (default: 8765)"
         echo "  CROSSBRIDGE_ENABLED        - Enable/disable CrossBridge (default: true)"
         echo "  CROSSBRIDGE_ADAPTER_DIR    - Adapter cache directory (default: ~/.crossbridge/adapters)"
+        exit 0
+    fi
+    
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: crossbridge-run <test-command> [args...]"
+        echo ""
+        echo "Run 'crossbridge-run --help' for more information"
         exit 1
     fi
     
