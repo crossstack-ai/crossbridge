@@ -393,6 +393,52 @@ class InfraErrorExtractor(FailureSignalExtractor):
         return signals
 
 
+class GenericErrorExtractor(FailureSignalExtractor):
+    """Extract generic error messages that don't match specific patterns"""
+    
+    ERROR_KEYWORDS = [
+        'error', 'failed', 'failure', 'exception', 'fatal',
+        'crash', 'abort', 'terminated', 'killed', 'broken'
+    ]
+    
+    def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
+        signals = []
+        
+        for i, event in enumerate(events):
+            # Skip events that would be caught by other extractors
+            if event.level != LogLevel.ERROR and event.level != LogLevel.WARN:
+                continue
+            
+            message_lower = event.message.lower()
+            
+            # Check for error keywords
+            has_error_keyword = any(keyword in message_lower for keyword in self.ERROR_KEYWORDS)
+            
+            if has_error_keyword:
+                # Determine if it's a product defect or test defect based on context
+                # Generic job/operation failures are usually product defects
+                is_product_defect = any(word in message_lower for word in [
+                    'job', 'operation', 'service', 'api', 'server', 'database',
+                    'backup', 'restore', 'deployment', 'process'
+                ])
+                
+                signal_type = SignalType.FUNCTIONAL if is_product_defect else SignalType.ASSERTION
+                
+                signal = FailureSignal(
+                    signal_type=signal_type,
+                    message=event.message,
+                    confidence=0.7,  # Lower confidence for generic matching
+                    stacktrace=event.stacktrace or self._find_stacktrace(events, i),
+                    file=event.test_file,
+                    keywords=['error', 'failure'],
+                    patterns_matched=['generic_error'],
+                    metadata={'error_type': 'generic'}
+                )
+                signals.append(signal)
+        
+        return signals
+
+
 class CompositeExtractor:
     """Composite extractor that runs all extractors"""
     
@@ -403,6 +449,7 @@ class CompositeExtractor:
             LocatorExtractor(),
             HttpErrorExtractor(),
             InfraErrorExtractor(),
+            GenericErrorExtractor(),  # Fallback for unmatched errors
         ]
     
     def extract_all(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
