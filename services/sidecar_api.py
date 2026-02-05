@@ -988,10 +988,10 @@ class SidecarAPIServer:
                     # Log first test for debugging
                     first_test = failed_tests[0]
                     error_msg = first_test.get('error_message', 'NO ERROR')
-                    logger.debug(f"First test name: {first_test.get('name')}")
-                    logger.debug(f"First test keys: {list(first_test.keys())}")
-                    logger.debug(f"First test error_message: {error_msg[:200] if error_msg else 'EMPTY'}")
-                    logger.debug(f"First test full dict: {str(first_test)[:500]}")
+                    logger.info(f"First test name: {first_test.get('name')}")
+                    logger.info(f"First test keys: {list(first_test.keys())}")
+                    logger.info(f"First test error_message: {error_msg[:200] if error_msg else 'EMPTY'}")
+                    logger.info(f"First test full: {str(first_test)[:500]}")
                 
                 if not failed_tests:
                     # No failures to analyze
