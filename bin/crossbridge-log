@@ -669,20 +669,28 @@ if [ "$LOG_SIZE" -lt "$MAX_SIZE" ]; then
     # Generate unique log ID based on file path and timestamp
     LOG_ID=$(echo "${LOG_FILE}_$(date +%s)" | md5sum | cut -d' ' -f1)
     
-    # Upload via new endpoint (to be implemented in sidecar)
-    UPLOAD_RESPONSE=$(curl -s -X POST "${SIDECAR_URL}/logs/${LOG_ID}" \
+    # Upload via stdin to avoid argument length limits
+    UPLOAD_RESPONSE=$(echo "$FILTERED_RESPONSE" | curl -s -X POST "${SIDECAR_URL}/logs/${LOG_ID}" \
         -H "Content-Type: application/json" \
-        -d "$FILTERED_RESPONSE" 2>/dev/null || echo "{}")
+        --data-binary @- 2>&1)
     
-    if echo "$UPLOAD_RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
+    UPLOAD_STATUS=$?
+    
+    if [ $UPLOAD_STATUS -eq 0 ] && echo "$UPLOAD_RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} Results uploaded successfully"
         echo -e "${BLUE}Access via API:${NC}"
         echo "  GET  ${SIDECAR_URL}/logs/${LOG_ID}"
         echo "  GET  ${SIDECAR_URL}/logs/${LOG_ID}/summary"
         echo "  GET  ${SIDECAR_URL}/logs/${LOG_ID}/failures"
     else
-        echo -e "${YELLOW}Note: API upload endpoint not available yet${NC}"
-        echo -e "${YELLOW}Results available locally in: ${DEFAULT_OUTPUT}${NC}"
+        echo -e "${YELLOW}Note: API upload endpoint not available${NC}"
+        if [ $UPLOAD_STATUS -ne 0 ]; then
+            echo -e "${YELLOW}Curl error: ${UPLOAD_RESPONSE}${NC}"
+        elif [ -n "$UPLOAD_RESPONSE" ]; then
+            echo -e "${YELLOW}Response: ${UPLOAD_RESPONSE}${NC}"
+        fi
+        SAVED_TO="${OUTPUT_FILE:-results.json}"
+        echo -e "${YELLOW}Results available locally in: ${SAVED_TO}${NC}"
     fi
 else
     echo ""
