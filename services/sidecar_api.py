@@ -631,7 +631,11 @@ class SidecarAPIServer:
                 errors.append(f"{kw.name}: {kw.error_message}")
             elif kw.status.value == "FAIL" and kw.messages:
                 errors.append(f"{kw.name}: {'; '.join(kw.messages[:3])}")
-        return " | ".join(errors[:5]) if errors else ""
+        
+        result = " | ".join(errors[:5]) if errors else ""
+        if result:
+            logger.debug(f"Extracted errors for test: {result[:200]}")
+        return result
     
     async def _parse_cypress_results(self, content: bytes) -> dict:
         """Parse Cypress JSON results"""
@@ -966,6 +970,12 @@ class SidecarAPIServer:
                 # Extract failed tests for analysis
                 failed_tests = self._extract_failed_tests(data, framework)
                 
+                logger.info(f"Extracted {len(failed_tests)} failed tests for analysis")
+                if failed_tests:
+                    # Log first test for debugging
+                    first_test = failed_tests[0]
+                    logger.debug(f"First test: {first_test.get('name')}, error: {first_test.get('error_message', 'NO ERROR')[:100]}")
+                
                 if not failed_tests:
                     # No failures to analyze
                     return {
@@ -990,6 +1000,8 @@ class SidecarAPIServer:
                     
                     # Build raw log for analyzer
                     raw_log = self._build_raw_log(test, framework)
+                    
+                    logger.debug(f"Analyzing test {test_name}, raw_log length: {len(raw_log)}, preview: {raw_log[:200]}")
                     
                     # Analyze (deterministic - no AI)
                     try:
