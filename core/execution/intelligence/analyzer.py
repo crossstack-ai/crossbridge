@@ -108,8 +108,8 @@ class ExecutionAnalyzer:
             logger.debug(f"Parsing logs for test: {test_name}")
             events = parse_logs(raw_log)
             logger.info(f"Parsed {len(events)} events for {test_name[:50]}")
-            if events:
-                logger.info(f"First event: level={events[0].level}, message={events[0].message[:100]}")
+            for idx, event in enumerate(events):
+                logger.info(f"Event {idx}: level={event.level}, message={event.message[:100]}")
             
             # Step 2: Extract failure signals
             logger.debug("Extracting failure signals")
