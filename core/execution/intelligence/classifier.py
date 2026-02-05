@@ -413,4 +413,14 @@ class RuleBasedClassifier:
                 priority=80,
                 signal_types=[SignalType.IMPORT_ERROR]
             ),
+            
+            ClassificationRule(
+                name="data_not_found",
+                conditions=["not found", "missing", "unavailable", "does not exist", "cannot find"],
+                failure_type=FailureType.PRODUCT_DEFECT,
+                confidence=0.75,
+                priority=70,
+                signal_types=[SignalType.ASSERTION, SignalType.INFRASTRUCTURE],
+                exclude_patterns=[r'NoSuchElement', r'element.*not.*found', r'locator', r'selector']
+            ),
         ]
