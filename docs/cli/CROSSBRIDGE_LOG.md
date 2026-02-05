@@ -78,7 +78,7 @@ export PATH=$PATH:$(pwd)/bin
 ./bin/crossbridge-log cypress-results.json
 
 # Parse with custom sidecar
-SIDECAR_HOST=remote-server ./bin/crossbridge-log output.xml
+CROSSBRIDGE_SIDECAR_HOST=remote-server ./bin/crossbridge-log output.xml
 ```
 
 **Output includes:**
@@ -216,8 +216,8 @@ Options:
   -h, --help                 Show this help message
 
 Environment Variables:
-  SIDECAR_HOST   - Sidecar API host (default: localhost)
-  SIDECAR_PORT   - Sidecar API port (default: 8765)
+  CROSSBRIDGE_SIDECAR_HOST   - Sidecar API host (default: localhost)
+  CROSSBRIDGE_SIDECAR_PORT   - Sidecar API port (default: 8765)
 ```
 
 ---
@@ -399,7 +399,7 @@ Error: Sidecar API not reachable at http://localhost:8765
 
 **Solution:**
 1. Start sidecar: `python -m services.sidecar_api`
-2. Check `SIDECAR_HOST` and `SIDECAR_PORT`
+2. Check `CROSSBRIDGE_SIDECAR_HOST` and `CROSSBRIDGE_SIDECAR_PORT`
 3. Verify firewall allows connection
 
 ### Issue: Intelligence analysis not available
@@ -491,8 +491,8 @@ done
 
 ```bash
 # Use remote sidecar server
-export SIDECAR_HOST=10.60.75.145
-export SIDECAR_PORT=8765
+export CROSSBRIDGE_SIDECAR_HOST=10.60.75.145
+export CROSSBRIDGE_SIDECAR_PORT=8765
 
 ./bin/crossbridge-log output.xml
 ```
