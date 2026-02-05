@@ -1039,64 +1039,64 @@ class SidecarAPIServer:
             except Exception as e:
                 logger.error(f"Analysis failed: {e}")
                 raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+    
+    def _extract_failed_tests(self, data: dict, framework: str) -> List[dict]:
+        """Extract failed tests from parsed log data"""
+        failed = []
         
-        def _extract_failed_tests(self, data: dict, framework: str) -> List[dict]:
-            """Extract failed tests from parsed log data"""
-            failed = []
-            
-            if framework == "robot":
-                # Robot Framework
-                if "failed_keywords" in data:
-                    failed = data["failed_keywords"]
-                elif "suite" in data and "tests" in data["suite"]:
-                    failed = [t for t in data["suite"]["tests"] if t.get("status") == "FAIL"]
-            
-            elif framework == "cypress":
-                # Cypress
-                if "failures" in data:
-                    failed = data["failures"]
-                elif "tests" in data:
-                    failed = [t for t in data["tests"] if t.get("state") == "failed"]
-            
-            elif framework == "pytest":
-                # Pytest
-                if "failures" in data:
-                    failed = data["failures"]
-            
-            else:
-                # Generic - look for tests with failure status
-                if "tests" in data:
-                    failed = [
-                        t for t in data["tests"]
-                        if t.get("status") in ["FAIL", "failed", "FAILED", "error", "ERROR"]
-                    ]
-            
-            return failed
+        if framework == "robot":
+            # Robot Framework
+            if "failed_keywords" in data:
+                failed = data["failed_keywords"]
+            elif "suite" in data and "tests" in data["suite"]:
+                failed = [t for t in data["suite"]["tests"] if t.get("status") == "FAIL"]
         
-        def _build_raw_log(self, test: dict, framework: str) -> str:
-            """Build raw log string from test data for analyzer"""
-            lines = []
-            
-            # Test name
-            name = test.get("name", "unknown_test")
-            lines.append(f"Test: {name}")
-            
-            # Error message
-            error = test.get("error_message") or test.get("error") or test.get("message", "")
-            if error:
-                lines.append(f"Error: {error}")
-            
-            # Stack trace
-            stack_trace = test.get("stack_trace") or test.get("stacktrace", "")
-            if stack_trace:
-                lines.append(f"Stack trace:\n{stack_trace}")
-            
-            # Messages (Robot Framework)
-            if "messages" in test:
-                for msg in test["messages"]:
-                    lines.append(f"Message: {msg}")
-            
-            return "\n".join(lines)
+        elif framework == "cypress":
+            # Cypress
+            if "failures" in data:
+                failed = data["failures"]
+            elif "tests" in data:
+                failed = [t for t in data["tests"] if t.get("state") == "failed"]
+        
+        elif framework == "pytest":
+            # Pytest
+            if "failures" in data:
+                failed = data["failures"]
+        
+        else:
+            # Generic - look for tests with failure status
+            if "tests" in data:
+                failed = [
+                    t for t in data["tests"]
+                    if t.get("status") in ["FAIL", "failed", "FAILED", "error", "ERROR"]
+                ]
+        
+        return failed
+    
+    def _build_raw_log(self, test: dict, framework: str) -> str:
+        """Build raw log string from test data for analyzer"""
+        lines = []
+        
+        # Test name
+        name = test.get("name", "unknown_test")
+        lines.append(f"Test: {name}")
+        
+        # Error message
+        error = test.get("error_message") or test.get("error") or test.get("message", "")
+        if error:
+            lines.append(f"Error: {error}")
+        
+        # Stack trace
+        stack_trace = test.get("stack_trace") or test.get("stacktrace", "")
+        if stack_trace:
+            lines.append(f"Stack trace:\n{stack_trace}")
+        
+        # Messages (Robot Framework)
+        if "messages" in test:
+            for msg in test["messages"]:
+                lines.append(f"Message: {msg}")
+        
+        return "\n".join(lines)
     
     async def start(self):
         """Start the API server"""
