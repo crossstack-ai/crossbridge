@@ -995,7 +995,8 @@ class SidecarAPIServer:
                     
                     # Check what raw_log is being built
                     raw_log_test = self._build_raw_log(first_test, framework)
-                    logger.info(f"Built raw_log for first test: {raw_log_test[:300]}")
+                    logger.info(f"Built raw_log length: {len(raw_log_test)}")
+                    logger.info(f"Built raw_log content: {repr(raw_log_test[:500])}")
                 
                 if not failed_tests:
                     # No failures to analyze
