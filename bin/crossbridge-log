@@ -516,8 +516,8 @@ display_results() {
             
             echo -e "${BLUE}Test Statistics:${NC}"
             echo "  Total:    $TOTAL"
-            echo "  Passed:   ${GREEN}$PASSED${NC}"
-            echo "  Failed:   ${RED}$FAILED${NC}"
+            echo -e "  Passed:   ${GREEN}$PASSED${NC}"
+            echo -e "  Failed:   ${RED}$FAILED${NC}"
             echo "  Duration: ${ELAPSED}ms"
             echo ""
             
@@ -550,8 +550,8 @@ display_results() {
             
             echo -e "${BLUE}Test Statistics:${NC}"
             echo "  Total:  $TOTAL"
-            echo "  Passed: ${GREEN}$PASSED${NC}"
-            echo "  Failed: ${RED}$FAILED${NC}"
+            echo -e "  Passed: ${GREEN}$PASSED${NC}"
+            echo -e "  Failed: ${RED}$FAILED${NC}"
             echo ""
             
             FAILURES=$(echo "$response" | jq '.failures | length')
