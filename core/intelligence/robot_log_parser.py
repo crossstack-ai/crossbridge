@@ -36,12 +36,19 @@ def _parse_robot_timestamp(timestamp: str) -> Optional[datetime]:
 
 def _calculate_elapsed_ms(start_time: str, end_time: str) -> int:
     """Calculate elapsed time in milliseconds from Robot Framework timestamps."""
+    if not start_time or not end_time:
+        logger.debug(f"Missing timestamps: start='{start_time}', end='{end_time}'")
+        return 0
+    
     start = _parse_robot_timestamp(start_time)
     end = _parse_robot_timestamp(end_time)
     
     if start and end:
         delta = end - start
-        return int(delta.total_seconds() * 1000)
+        elapsed = int(delta.total_seconds() * 1000)
+        return max(0, elapsed)  # Ensure non-negative
+    
+    logger.debug(f"Failed to parse timestamps: start='{start_time}', end='{end_time}'")
     return 0
 
 
