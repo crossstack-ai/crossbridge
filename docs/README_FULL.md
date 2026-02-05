@@ -5,13 +5,14 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Development Status](https://img.shields.io/badge/status-v0.2.0-green.svg)](https://github.com/crossstack-ai/crossbridge)
-[![Production Ready](https://img.shields.io/badge/production-98%25-brightgreen.svg)](docs/releases/V0.2.0_RELEASE_NOTES.md)
+[![Development Status](https://img.shields.io/badge/status-v0.2.1-green.svg)](https://github.com/crossstack-ai/crossbridge)
+[![Production Ready](https://img.shields.io/badge/production-98.7%25-brightgreen.svg)](docs/releases/V0.2.0_RELEASE_NOTES.md)
 [![CrossStack AI](https://img.shields.io/badge/by-CrossStack%20AI-blue)](https://crossstack.ai)
 
 CrossBridge AI is an open-source platform by **CrossStack AI** that helps organizations and teams **modernize, analyze, and optimize test automation** in a framework-agnostic way.
 
-**Latest Release:** v0.2.0 (January 29, 2026) - [Release Notes](docs/releases/V0.2.0_RELEASE_NOTES.md)
+**Latest Release:** v0.2.1 (February 6, 2026) - Intelligence Analysis Enhancements 🚀  
+**Previous Release:** v0.2.0 (January 29, 2026) - [Release Notes](docs/releases/V0.2.0_RELEASE_NOTES.md)
 
 ---
 

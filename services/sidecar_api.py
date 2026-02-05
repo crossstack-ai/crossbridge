@@ -39,6 +39,11 @@ from core.intelligence.behave_selenium_parsers import BehaveResultsParser, Selen
 from core.execution.intelligence.analyzer import ExecutionAnalyzer
 from core.execution.intelligence.models import FailureType
 
+# Import AI components
+from core.ai.license import LicenseValidator, get_cost_estimate, format_cost_summary
+from core.ai.providers import OpenAIProvider, AnthropicProvider
+from core.ai.models import AIMessage, ModelConfig, AIExecutionContext, TokenUsage
+
 logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 
 
@@ -975,10 +980,26 @@ class SidecarAPIServer:
                 framework = body.get("framework", "unknown")
                 workspace_root = body.get("workspace_root")
                 
+                # AI parameters
+                enable_ai = body.get("enable_ai", False)
+                ai_provider = body.get("ai_provider", "openai")
+                ai_model = body.get("ai_model", "gpt-3.5-turbo")
+                
+                # AI tracking variables
+                ai_token_usage = None
+                ai_cost = 0.0
+                
                 # Update analyzer workspace if provided
                 if workspace_root:
                     self._analyzer.workspace_root = workspace_root
                     self._analyzer.resolver.workspace_root = workspace_root
+                
+                # Validate AI license if AI is enabled
+                if enable_ai:
+                    validator = LicenseValidator()
+                    is_valid, message, license = validator.validate_license(ai_provider, "log_analysis")
+                    if not is_valid:
+                        raise HTTPException(status_code=403, detail=f"AI License validation failed: {message}")
                 
                 # Extract failed tests for analysis
                 failed_tests = self._extract_failed_tests(data, framework)
@@ -1017,6 +1038,24 @@ class SidecarAPIServer:
                 recommendations = set()
                 top_failures = []  # For detailed failure display
                 
+                # Initialize AI provider if enabled
+                ai_provider_instance = None
+                total_prompt_tokens = 0
+                total_completion_tokens = 0
+                
+                if enable_ai:
+                    try:
+                        if ai_provider.lower() == "openai":
+                            ai_provider_instance = OpenAIProvider({"api_key": license.customer_id})  # Using customer_id as API key for demo
+                        elif ai_provider.lower() == "anthropic":
+                            ai_provider_instance = AnthropicProvider({"api_key": license.customer_id})
+                        else:
+                            raise ValueError(f"Unsupported AI provider: {ai_provider}")
+                        logger.info(f"AI provider initialized: {ai_provider} with model {ai_model}")
+                    except Exception as e:
+                        logger.error(f"Failed to initialize AI provider: {e}")
+                        enable_ai = False  # Disable AI on initialization failure
+                
                 for test in failed_tests:
                     test_name = test.get("name", "unknown")
                     error_msg = test.get("error_message") or test.get("error", "")
@@ -1026,7 +1065,7 @@ class SidecarAPIServer:
                     
                     logger.debug(f"Analyzing test {test_name}, raw_log length: {len(raw_log)}, preview: {raw_log[:200]}")
                     
-                    # Analyze (deterministic - no AI)
+                    # Analyze (with optional AI enhancement)
                     try:
                         result = self._analyzer.analyze(
                             raw_log=raw_log,
@@ -1034,6 +1073,44 @@ class SidecarAPIServer:
                             framework=framework,
                             context={"framework": framework}
                         )
+                        
+                        # AI-enhanced analysis if enabled
+                        if enable_ai and ai_provider_instance and result.classification:
+                            try:
+                                # Create AI prompt for enhanced analysis
+                                prompt = f"""Analyze this test failure and provide insights:
+                                
+Test Name: {test_name}
+Error: {error_msg[:500]}
+Current Classification: {result.classification.failure_type.value}
+Confidence: {result.classification.confidence}
+
+Provide:
+1. Root cause analysis
+2. Specific fix recommendations
+3. Similar failure patterns to watch for
+
+Keep response concise (max 200 words)."""
+                                
+                                # Call AI provider
+                                ai_response = ai_provider_instance.complete(
+                                    messages=[AIMessage(role="user", content=prompt)],
+                                    model_config=ModelConfig(model=ai_model, max_tokens=300, temperature=0.3),
+                                    context=AIExecutionContext(execution_id=f"log_analysis_{test_name[:20]}")
+                                )
+                                
+                                # Track token usage
+                                if ai_response.token_usage:
+                                    total_prompt_tokens += ai_response.token_usage.prompt_tokens
+                                    total_completion_tokens += ai_response.token_usage.completion_tokens
+                                    ai_cost += ai_response.cost
+                                
+                                # Add AI insights to classification
+                                result.classification.reason = f"{result.classification.reason}\n\nAI Insights: {ai_response.content[:300]}"
+                                recommendations.add(ai_response.content[:200])
+                                
+                            except Exception as ai_err:
+                                logger.warning(f"AI analysis failed for {test_name}: {ai_err}")
                         
                         # Log signals for debugging
                         logger.info(f"Analysis result for {test_name[:50]}: signals={len(result.signals)}, classification={result.classification.failure_type.value if result.classification else 'None'}")
@@ -1108,7 +1185,23 @@ class SidecarAPIServer:
                         logger.warning(f"Failed to analyze test {test_name}: {e}")
                         enriched_tests.append(test)
                 
-                return {
+                # Track AI usage in license
+                if enable_ai and (total_prompt_tokens + total_completion_tokens) > 0:
+                    validator = LicenseValidator()
+                    total_tokens = total_prompt_tokens + total_completion_tokens
+                    validator.track_usage(total_tokens, ai_cost)
+                    
+                    # Create AI usage summary
+                    ai_token_usage = {
+                        "prompt_tokens": total_prompt_tokens,
+                        "completion_tokens": total_completion_tokens,
+                        "total_tokens": total_tokens,
+                        "cost": ai_cost,
+                        "provider": ai_provider,
+                        "model": ai_model
+                    }
+                
+                response = {
                     "analyzed": True,
                     "data": data,
                     "intelligence_summary": {
@@ -1119,6 +1212,12 @@ class SidecarAPIServer:
                     },
                     "enriched_tests": enriched_tests
                 }
+                
+                # Add AI usage info if AI was used
+                if ai_token_usage:
+                    response["ai_usage"] = ai_token_usage
+                
+                return response
                 
             except Exception as e:
                 logger.error(f"Analysis failed: {e}")

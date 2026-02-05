@@ -64,6 +64,7 @@ ENABLE_ANALYSIS=true  # Enable automatic intelligence analysis
 SHOW_HELP=false
 LOG_FILE=""
 APP_LOGS=""  # Application logs for correlation
+ENABLE_AI=false  # Enable AI-enhanced analysis (requires license)
 
 show_usage() {
     echo "CrossBridge Log Parser - Universal log parsing for all frameworks"
@@ -75,6 +76,7 @@ show_usage() {
     echo "  $0 cypress/results.json                          # Cypress"
     echo "  $0 output.xml --output results.json              # Save to file"
     echo "  $0 output.xml --app-logs app.log                 # Correlate with application logs"
+    echo "  $0 output.xml --enable-ai                        # Enable AI-enhanced analysis"
     echo "  $0 output.xml --test-name 'Login*'               # Filter by test name"
     echo "  $0 output.xml --test-id 's1-s1-t1'               # Filter by test ID"
     echo "  $0 output.xml --status FAIL                      # Filter failed tests only"
@@ -91,6 +93,7 @@ show_usage() {
     echo "Options:"
     echo "  -o, --output FILE          Save parsed results to FILE (JSON format)"
     echo "  -a, --app-logs FILE        Application logs for correlation (JSON format)"
+    echo "  --enable-ai                Enable AI-enhanced analysis (requires license, incurs cost)"
     echo "  -t, --test-name PATTERN    Filter tests by name (supports wildcards)"
     echo "  -i, --test-id ID           Filter by specific test ID"
     echo "  -s, --status STATUS        Filter by status (PASS, FAIL, SKIP)"
@@ -131,6 +134,10 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             shift 2
+            ;;
+        --enable-ai)
+            ENABLE_AI=true
+            shift
             ;;
         -t|--test-name)
             FILTER_TEST_NAME="$2"
@@ -322,6 +329,43 @@ enrich_with_intelligence() {
     
     echo -e "${BLUE}Running intelligence analysis...${NC}" >&2
     
+    # Show AI warning and get confirmation if AI is enabled
+    if [ "$ENABLE_AI" = "true" ]; then
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+        echo -e "${YELLOW}⚠️  AI-ENHANCED ANALYSIS ENABLED${NC}" >&2
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+        echo -e "${YELLOW}Using AI for log analysis will incur additional costs:${NC}" >&2
+        echo -e "${YELLOW}  • OpenAI GPT-3.5: ~\$0.002 per 1000 tokens${NC}" >&2
+        echo -e "${YELLOW}  • Typical analysis: \$0.01-\$0.10 per test run${NC}" >&2
+        echo -e "${YELLOW}  • Costs vary by log size and complexity${NC}" >&2
+        echo "" >&2
+        echo -e "${YELLOW}Checking AI license...${NC}" >&2
+        
+        # Validate license by calling sidecar (which validates via license.py)
+        # We'll do a test call to verify license before processing all logs
+        local test_payload='{"data":{"tests":[]},"framework":"test","enable_ai":true}'
+        local license_check=$(echo "$test_payload" | curl -s -X POST "${SIDECAR_URL}/analyze" \
+            -H "Content-Type: application/json" --data-binary @- 2>&1)
+        
+        if echo "$license_check" | grep -q "AI License validation failed\|403"; then
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${RED}❌ AI License Validation Failed${NC}" >&2
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${RED}No valid AI license found or license expired.${NC}" >&2
+            echo "" >&2
+            echo -e "${YELLOW}To use AI features:${NC}" >&2
+            echo -e "${YELLOW}  1. Configure AI settings: crossbridge configure ai${NC}" >&2
+            echo -e "${YELLOW}  2. Obtain a valid license${NC}" >&2
+            echo -e "${YELLOW}  3. Run analysis again with --enable-ai${NC}" >&2
+            echo "" >&2
+            echo -e "${BLUE}Continuing with standard analysis (no AI)...${NC}" >&2
+            ENABLE_AI=false
+        else
+            echo -e "${GREEN}✓ AI license validated successfully${NC}" >&2
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+        fi
+    fi
+    
     # Choose endpoint based on whether app logs are provided
     local endpoint="/analyze"
     local payload
@@ -330,20 +374,22 @@ enrich_with_intelligence() {
         echo -e "${BLUE}Correlating with application logs...${NC}" >&2
         endpoint="/analyze/with-app-logs"
         
-        # Build payload with app logs path
-        payload=$(jq -n \
-            --argjson data "$data" \
+        # Build payload with app logs path and AI flag
+        # Use stdin to avoid "Argument list too long" error with large data
+        payload=$(echo "$data" | jq \
             --arg app_logs "$APP_LOGS" \
             --arg framework "$FRAMEWORK" \
             --arg workspace_root "$(pwd)" \
-            '{data: $data, app_logs: $app_logs, framework: $framework, workspace_root: $workspace_root}')
+            --argjson enable_ai "$ENABLE_AI" \
+            '{data: ., app_logs: $app_logs, framework: $framework, workspace_root: $workspace_root, enable_ai: $enable_ai}')
     else
-        # Build basic payload without app logs
-        payload=$(jq -n \
-            --argjson data "$data" \
+        # Build basic payload without app logs but with AI flag
+        # Use stdin to avoid "Argument list too long" error with large data
+        payload=$(echo "$data" | jq \
             --arg framework "$FRAMEWORK" \
             --arg workspace_root "$(pwd)" \
-            '{data: $data, framework: $framework, workspace_root: $workspace_root}')
+            --argjson enable_ai "$ENABLE_AI" \
+            '{data: ., framework: $framework, workspace_root: $workspace_root, enable_ai: $enable_ai}')
     fi
     
     # Call sidecar's analyze endpoint to add classification and signals
@@ -579,6 +625,62 @@ if echo "$FILTERED_RESPONSE" | jq -e '.correlation_summary.total_correlated' > /
             echo ""
         fi
     fi
+fi
+
+# Display AI usage summary if AI was used
+if echo "$FILTERED_RESPONSE" | jq -e '.ai_usage.total_tokens' > /dev/null 2>&1; then
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}         AI LOG ANALYSIS SUMMARY${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    
+    PROVIDER=$(echo "$FILTERED_RESPONSE" | jq -r '.ai_usage.provider')
+    MODEL=$(echo "$FILTERED_RESPONSE" | jq -r '.ai_usage.model')
+    PROMPT_TOKENS=$(echo "$FILTERED_RESPONSE" | jq -r '.ai_usage.prompt_tokens')
+    COMPLETION_TOKENS=$(echo "$FILTERED_RESPONSE" | jq -r '.ai_usage.completion_tokens')
+    TOTAL_TOKENS=$(echo "$FILTERED_RESPONSE" | jq -r '.ai_usage.total_tokens')
+    COST=$(echo "$FILTERED_RESPONSE" | jq -r '.ai_usage.cost')
+    
+    # Count analyzed tests
+    ANALYZED_TESTS=$(echo "$FILTERED_RESPONSE" | jq '.enriched_tests | length')
+    
+    echo ""
+    echo -e "${YELLOW}AI Configuration:${NC}"
+    echo "  • Provider: ${PROVIDER^}"
+    echo "  • Model: $MODEL"
+    echo ""
+    echo -e "${YELLOW}AI Analysis Statistics:${NC}"
+    echo "  ✓ Total Tests Analyzed: $ANALYZED_TESTS"
+    echo "  ✓ AI-Enhanced Classifications: $ANALYZED_TESTS"
+    echo ""
+    echo -e "${YELLOW}Token Usage & Cost:${NC}"
+    echo "  • Prompt Tokens: $(printf '%,d' $PROMPT_TOKENS)"
+    echo "  • Completion Tokens: $(printf '%,d' $COMPLETION_TOKENS)"
+    echo "  • Total Tokens: $(printf '%,d' $TOTAL_TOKENS)"
+    echo "  • Total Cost: \$$(printf '%.4f' $COST)"
+    
+    if [ "$ANALYZED_TESTS" -gt 0 ]; then
+        AVG_TOKENS=$((TOTAL_TOKENS / ANALYZED_TESTS))
+        AVG_COST=$(echo "scale=4; $COST / $ANALYZED_TESTS" | bc)
+        echo "  • Avg Tokens/Test: $(printf '%,d' $AVG_TOKENS)"
+        echo "  • Avg Cost/Test: \$$AVG_COST"
+    fi
+    
+    # Cost comparison
+    if [ "$PROVIDER" = "openai" ] && [[ "$MODEL" == *"gpt-3.5"* ]]; then
+        GPT4_COST=$(echo "scale=2; $COST * 30" | bc)
+        SAVINGS=$(echo "scale=2; $GPT4_COST - $COST" | bc)
+        SAVINGS_PCT=$(echo "scale=0; ($SAVINGS / $GPT4_COST) * 100" | bc)
+        
+        echo ""
+        echo -e "${GREEN}Cost Savings:${NC}"
+        echo "  • Using $MODEL: \$$COST"
+        echo "  • Same with gpt-4: ~\$$GPT4_COST"
+        echo "  • Savings: ~\$$SAVINGS ($SAVINGS_PCT% reduction)"
+    fi
+    
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 fi
 
 # Display results based on framework
