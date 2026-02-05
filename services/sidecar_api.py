@@ -626,15 +626,28 @@ class SidecarAPIServer:
     def _extract_keyword_errors(self, test) -> str:
         """Extract error messages from failed keywords in a test"""
         errors = []
+        keyword_count = len(test.keywords) if hasattr(test, 'keywords') else 0
+        failed_kw_count = 0
+        
+        logger.debug(f"Extracting errors from test with {keyword_count} keywords")
+        
         for kw in test.keywords:
-            if kw.status.value == "FAIL" and kw.error_message:
-                errors.append(f"{kw.name}: {kw.error_message}")
-            elif kw.status.value == "FAIL" and kw.messages:
-                errors.append(f"{kw.name}: {'; '.join(kw.messages[:3])}")
+            if kw.status.value == "FAIL":
+                failed_kw_count += 1
+                if kw.error_message:
+                    errors.append(f"{kw.name}: {kw.error_message}")
+                    logger.debug(f"Found error in keyword {kw.name}: {kw.error_message[:100]}")
+                elif kw.messages:
+                    errors.append(f"{kw.name}: {'; '.join(kw.messages[:3])}")
+                    logger.debug(f"Found messages in keyword {kw.name}: {kw.messages[:3]}")
+                else:
+                    logger.debug(f"Failed keyword {kw.name} has no error_message or messages")
+        
+        logger.debug(f"Total keywords: {keyword_count}, failed: {failed_kw_count}, errors extracted: {len(errors)}")
         
         result = " | ".join(errors[:5]) if errors else ""
-        if result:
-            logger.debug(f"Extracted errors for test: {result[:200]}")
+        if not result and failed_kw_count > 0:
+            logger.warning(f"Test has {failed_kw_count} failed keywords but no error messages extracted")
         return result
     
     async def _parse_cypress_results(self, content: bytes) -> dict:
