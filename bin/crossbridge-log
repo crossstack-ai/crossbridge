@@ -544,11 +544,15 @@ display_results() {
             echo "  Duration: ${ELAPSED}ms"
             echo ""
             
-            # Failed tests
-            FAILED_COUNT=$(echo "$data" | jq '.failed_keywords | length')
-            if [ "$FAILED_COUNT" -gt 0 ]; then
-                echo -e "${RED}Failed Keywords:${NC}"
-                echo "$data" | jq -r '.failed_keywords[] | "  ❌ \(.name) (\(.library))"'
+            # Failed keywords - show top 5 with error details
+            FAILED_KW_COUNT=$(echo "$data" | jq '.failed_keywords | length')
+            if [ "$FAILED_KW_COUNT" -gt 0 ]; then
+                DISPLAY_KW_COUNT=$((FAILED_KW_COUNT < 5 ? FAILED_KW_COUNT : 5))
+                echo -e "${RED}Top Failed Keywords (showing $DISPLAY_KW_COUNT of $FAILED_KW_COUNT):${NC}"
+                echo "$data" | jq -r '.failed_keywords[0:5][] | 
+                    "  ❌ \(.name)" + 
+                    (if .library != "" then " [\(.library)]" else "" end) + 
+                    (if .error then "\n     Error: \(.error)" else "" end)'
                 echo ""
             fi
             
