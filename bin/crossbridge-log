@@ -595,8 +595,8 @@ display_results() {
             echo -e "${BLUE}BDD Statistics:${NC}"
             echo "  Features:  $FEATURE_COUNT"
             echo "  Scenarios: $SCENARIO_COUNT"
-            echo "  Passed:    ${GREEN}$PASSED${NC}"
-            echo "  Failed:    ${RED}$FAILED${NC}"
+            echo -e "  Passed:    ${GREEN}$PASSED${NC}"
+            echo -e "  Failed:    ${RED}$FAILED${NC}"
             ;;
             
         java)
