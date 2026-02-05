@@ -1015,6 +1015,7 @@ class SidecarAPIServer:
                 signals_summary = {}
                 enriched_tests = []
                 recommendations = set()
+                top_failures = []  # For detailed failure display
                 
                 for test in failed_tests:
                     test_name = test.get("name", "unknown")
@@ -1064,6 +1065,18 @@ class SidecarAPIServer:
                         elif result.classification.failure_type == FailureType.CONFIGURATION_ISSUE:
                             recommendations.add("Verify test configuration and dependencies")
                         
+                        # Add to top failures (limit to 5 most important)
+                        if len(top_failures) < 5:
+                            failure_detail = {
+                                "test_name": test_name[:80],  # Truncate long names
+                                "failure_type": failure_type,
+                                "confidence": result.classification.confidence,
+                                "reason": result.classification.reason[:200],  # Truncate long reasons
+                                "code_reference": f"{result.classification.code_reference.file}:{result.classification.code_reference.line}" if result.classification.code_reference else None,
+                                "stacktrace": result.signals[0].stacktrace if result.signals and result.signals[0].stacktrace else None
+                            }
+                            top_failures.append(failure_detail)
+                        
                         # Enrich test with classification
                         enriched_test = {
                             **test,
@@ -1098,7 +1111,8 @@ class SidecarAPIServer:
                     "intelligence_summary": {
                         "classifications": classifications,
                         "signals": signals_summary,
-                        "recommendations": list(recommendations)
+                        "recommendations": list(recommendations),
+                        "top_failures": top_failures  # Add detailed failure information
                     },
                     "enriched_tests": enriched_tests
                 }

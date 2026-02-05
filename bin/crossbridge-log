@@ -486,6 +486,19 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
         echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.recommendations[] | "  ✓ \(.)"'
     fi
     
+    # Show top failure details with code references
+    if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.top_failures' > /dev/null 2>&1; then
+        TOP_FAILURES_COUNT=$(echo "$FILTERED_RESPONSE" | jq '.intelligence_summary.top_failures | length')
+        if [ "$TOP_FAILURES_COUNT" -gt 0 ]; then
+            echo ""
+            echo -e "${YELLOW}Top Failure Details:${NC}"
+            echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.top_failures[] | 
+                "  • \(.test_name)\n    Type: \(.failure_type) (confidence: \(.confidence))\n    Error: \(.reason)" +
+                (if .code_reference then "\n    Location: \(.code_reference)" else "" end) +
+                (if .stacktrace then "\n    Stack trace: \(.stacktrace | split("\n")[0:3] | join("\n    "))" else "" end)'
+        fi
+    fi
+    
     echo ""
 fi
 
