@@ -288,6 +288,10 @@ class RobotLogParser:
         
         return failed_keywords
     
+    def get_failed_tests(self) -> List[RobotTest]:
+        """Get all failed tests with full details."""
+        return [test for test in self.all_tests if test.status == RobotStatus.FAIL]
+    
     def get_slowest_tests(self, count: int = 10) -> List[RobotTest]:
         """Get the slowest tests."""
         sorted_tests = sorted(self.all_tests, key=lambda t: t.elapsed_ms, reverse=True)

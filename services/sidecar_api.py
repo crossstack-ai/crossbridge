@@ -565,6 +565,7 @@ class SidecarAPIServer:
         try:
             suite = parser.parse(tmp_path)
             stats = parser.get_statistics()
+            failed_tests = parser.get_failed_tests()
             failed_keywords = parser.get_failed_keywords()
             slowest_tests = parser.get_slowest_tests(count=10)
             slowest_keywords = parser.get_slowest_keywords(count=10)
@@ -581,6 +582,17 @@ class SidecarAPIServer:
                     "elapsed_ms": suite.elapsed_ms
                 },
                 "statistics": stats,
+                "failed_tests": [
+                    {
+                        "name": test.name,
+                        "suite": test.suite,
+                        "status": test.status.value,
+                        "elapsed_ms": test.elapsed_ms,
+                        "error_message": test.message or "",
+                        "tags": test.tags
+                    }
+                    for test in failed_tests
+                ],
                 "failed_keywords": [
                     {
                         "name": kw.name,
@@ -1045,14 +1057,13 @@ class SidecarAPIServer:
         failed = []
         
         if framework == "robot":
-            # Robot Framework - prioritize suite.tests over keywords
-            if "suite" in data and "tests" in data["suite"]:
+            # Robot Framework - use failed_tests array
+            if "failed_tests" in data and data["failed_tests"]:
+                failed = data["failed_tests"]
+            elif "suite" in data and "tests" in data["suite"]:
                 failed = [t for t in data["suite"]["tests"] if t.get("status") == "FAIL"]
-            elif "failed_keywords" in data and data["failed_keywords"]:
-                # Fall back to failed keywords if no test info available
-                failed = data["failed_keywords"]
             elif "slowest_tests" in data:
-                # Use slowest_tests list and filter for failures
+                # Fall back to slowest_tests list and filter for failures
                 failed = [t for t in data["slowest_tests"] if t.get("status") == "FAIL"]
         
         elif framework == "cypress":
