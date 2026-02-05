@@ -147,6 +147,7 @@ class SidecarAPIServer:
         
         # Register routes
         self._setup_routes()
+        self._setup_log_storage_routes()
     
     def _setup_routes(self):
         """Setup API routes"""
@@ -478,6 +479,10 @@ class SidecarAPIServer:
                 logger.error(f"Failed to serve adapter {framework}: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
         
+        # ============================================================================
+        # Log Parsing Endpoints
+        # ============================================================================
+        
         @self.app.post("/parse/{framework}")
         async def parse_test_results(framework: str, request: Request):
             """
@@ -702,8 +707,8 @@ class SidecarAPIServer:
         finally:
             Path(tmp_path).unlink(missing_ok=True)
     
-    def _setup_routes(self):
-        """Setup all FastAPI routes (called from __init__)"""
+    def _setup_log_storage_routes(self):
+        """Setup log storage and intelligence analysis routes"""
         # ============================================================================
         # Log Storage & Retrieval Endpoints
         # ============================================================================
