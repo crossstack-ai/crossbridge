@@ -154,6 +154,10 @@ class RobotLogParser:
         status_element = suite_element.find('status')
         status = RobotStatus(status_element.get('status', 'FAIL')) if status_element is not None else RobotStatus.FAIL
         
+        # Initialize timestamps
+        start_time = status_element.get('starttime', '') if status_element is not None else ''
+        end_time = status_element.get('endtime', '') if status_element is not None else ''
+        
         # Try to get elapsed time directly (newer format) or calculate from timestamps (older format)
         elapsed_seconds = status_element.get('elapsed', '') if status_element is not None else ''
         if elapsed_seconds:
@@ -163,8 +167,6 @@ class RobotLogParser:
                 elapsed_ms = 0
         else:
             # Fall back to timestamp calculation
-            start_time = status_element.get('starttime', '') if status_element is not None else ''
-            end_time = status_element.get('endtime', '') if status_element is not None else ''
             elapsed_ms = _calculate_elapsed_ms(start_time, end_time)
         
         # Parse tests
@@ -213,6 +215,10 @@ class RobotLogParser:
         status_element = test_element.find('status')
         status = RobotStatus(status_element.get('status', 'FAIL')) if status_element is not None else RobotStatus.FAIL
         
+        # Initialize timestamps
+        start_time = status_element.get('starttime', '') if status_element is not None else ''
+        end_time = status_element.get('endtime', '') if status_element is not None else ''
+        
         # Try to get elapsed time directly (newer format) or calculate from timestamps (older format)
         elapsed_seconds = status_element.get('elapsed', '') if status_element is not None else ''
         if elapsed_seconds:
@@ -222,8 +228,6 @@ class RobotLogParser:
                 elapsed_ms = 0
         else:
             # Fall back to timestamp calculation
-            start_time = status_element.get('starttime', '') if status_element is not None else ''
-            end_time = status_element.get('endtime', '') if status_element is not None else ''
             elapsed_ms = _calculate_elapsed_ms(start_time, end_time)
         
         error_message = status_element.text if status_element is not None and status == RobotStatus.FAIL else None
