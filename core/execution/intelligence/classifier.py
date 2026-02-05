@@ -275,6 +275,16 @@ class RuleBasedClassifier:
             ),
             
             ClassificationRule(
+                name="job_operation_failure",
+                conditions=["job.*failed", "operation.*failed", "ended with status.*failed", "status: failed"],
+                failure_type=FailureType.PRODUCT_DEFECT,
+                confidence=0.82,
+                priority=80,
+                signal_types=[SignalType.ASSERTION],
+                exclude_patterns=[r'NoSuchElement', r'timeout', r'connection']
+            ),
+            
+            ClassificationRule(
                 name="unexpected_value",
                 conditions=["expected", "but was", "but got", "should be"],
                 failure_type=FailureType.PRODUCT_DEFECT,
