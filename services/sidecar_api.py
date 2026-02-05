@@ -1034,6 +1034,11 @@ class SidecarAPIServer:
                             context={"framework": framework}
                         )
                         
+                        # Log signals for debugging
+                        logger.info(f"Analysis result for {test_name[:50]}: signals={len(result.signals)}, classification={result.classification.failure_type.value if result.classification else 'None'}")
+                        if result.signals:
+                            logger.info(f"Signals extracted: {[s.signal_type.value for s in result.signals]}")
+                        
                         # Check if classification is valid
                         if not result.classification:
                             logger.warning(f"No classification for test {test_name} - raw_log preview: {raw_log[:200]}")
