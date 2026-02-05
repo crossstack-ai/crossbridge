@@ -405,16 +405,16 @@ class GenericErrorExtractor(FailureSignalExtractor):
         signals = []
         
         for i, event in enumerate(events):
-            # Skip events that would be caught by other extractors
-            if event.level != LogLevel.ERROR and event.level != LogLevel.WARN:
-                continue
-            
             message_lower = event.message.lower()
             
-            # Check for error keywords
+            # Check for error keywords - works on any log level
+            # This catches "Error: ..." lines even if parsed as INFO level
             has_error_keyword = any(keyword in message_lower for keyword in self.ERROR_KEYWORDS)
             
-            if has_error_keyword:
+            # Also check if message starts with "Error:" regardless of level
+            starts_with_error = message_lower.strip().startswith('error:')
+            
+            if has_error_keyword or starts_with_error:
                 # Determine if it's a product defect or test defect based on context
                 # Generic job/operation failures are usually product defects
                 is_product_defect = any(word in message_lower for word in [
