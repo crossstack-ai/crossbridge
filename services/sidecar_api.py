@@ -588,7 +588,7 @@ class SidecarAPIServer:
                         "suite": test.suite,
                         "status": test.status.value,
                         "elapsed_ms": test.elapsed_ms,
-                        "error_message": test.error_message or "",
+                        "error_message": test.error_message or self._extract_keyword_errors(test),
                         "tags": test.tags
                     }
                     for test in failed_tests
@@ -622,6 +622,16 @@ class SidecarAPIServer:
             }
         finally:
             Path(tmp_path).unlink(missing_ok=True)
+    
+    def _extract_keyword_errors(self, test) -> str:
+        """Extract error messages from failed keywords in a test"""
+        errors = []
+        for kw in test.keywords:
+            if kw.status.value == "FAIL" and kw.error_message:
+                errors.append(f"{kw.name}: {kw.error_message}")
+            elif kw.status.value == "FAIL" and kw.messages:
+                errors.append(f"{kw.name}: {'; '.join(kw.messages[:3])}")
+        return " | ".join(errors[:5]) if errors else ""
     
     async def _parse_cypress_results(self, content: bytes) -> dict:
         """Parse Cypress JSON results"""
