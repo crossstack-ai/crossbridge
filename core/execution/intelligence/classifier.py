@@ -50,10 +50,14 @@ class ClassificationRule:
         # Check conditions (keywords must be present)
         all_text = ' '.join([s.message.lower() for s in signals])
         
-        # At least one condition must match
-        matches_condition = any(
-            cond.lower() in all_text for cond in self.conditions
-        )
+        # Special case: catch-all pattern ".*" matches everything
+        if self.conditions == [".*"] or not self.conditions:
+            matches_condition = True
+        else:
+            # At least one condition must match
+            matches_condition = any(
+                cond.lower() in all_text for cond in self.conditions
+            )
         
         if not matches_condition:
             return False
