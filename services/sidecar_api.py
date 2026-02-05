@@ -588,7 +588,7 @@ class SidecarAPIServer:
                         "suite": test.suite,
                         "status": test.status.value,
                         "elapsed_ms": test.elapsed_ms,
-                        "error_message": test.message or "",
+                        "error_message": test.error_message or "",
                         "tags": test.tags
                     }
                     for test in failed_tests
