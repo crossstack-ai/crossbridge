@@ -974,7 +974,9 @@ class SidecarAPIServer:
                 if failed_tests:
                     # Log first test for debugging
                     first_test = failed_tests[0]
-                    logger.debug(f"First test: {first_test.get('name')}, error: {first_test.get('error_message', 'NO ERROR')[:100]}")
+                    error_msg = first_test.get('error_message', 'NO ERROR')
+                    logger.debug(f"First test: {first_test.get('name')}")
+                    logger.debug(f"First test error: {error_msg[:200] if error_msg else 'EMPTY'}")
                 
                 if not failed_tests:
                     # No failures to analyze
@@ -1011,6 +1013,12 @@ class SidecarAPIServer:
                             framework=framework,
                             context={"framework": framework}
                         )
+                        
+                        # Check if classification is valid
+                        if not result.classification:
+                            logger.warning(f"No classification for test {test_name} - raw_log preview: {raw_log[:200]}")
+                            enriched_tests.append(test)
+                            continue
                         
                         # Count classifications
                         failure_type = result.classification.failure_type.value
