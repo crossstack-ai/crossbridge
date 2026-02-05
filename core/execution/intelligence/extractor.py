@@ -422,29 +422,35 @@ class GenericErrorExtractor(FailureSignalExtractor):
             logger.info(f"Event {i}: has_error_keyword={has_error_keyword}, starts_with_error={starts_with_error}, message={event.message[:80]}")
             
             if has_error_keyword or starts_with_error:
-                # Determine if it's a product defect or test defect based on context
-                # Generic job/operation failures are usually product defects
-                is_product_defect = any(word in message_lower for word in [
-                    'job', 'operation', 'service', 'api', 'server', 'database',
-                    'backup', 'restore', 'deployment', 'process'
+                # Determine signal type based on error context
+                # Infrastructure errors: server, database, connection issues
+                # Otherwise treat as assertion (test logic failure)
+                is_infrastructure = any(word in message_lower for word in [
+                    'server', 'database', 'connection', 'network', 'dns',
+                    'timeout', 'infrastructure'
                 ])
                 
-                signal_type = SignalType.FUNCTIONAL if is_product_defect else SignalType.ASSERTION
+                # Job/operation/service failures are typically product defects
+                # Use ASSERTION as a general failure signal type
+                signal_type = SignalType.INFRASTRUCTURE if is_infrastructure else SignalType.ASSERTION
                 
-                logger.info(f"Creating signal: is_product_defect={is_product_defect}, signal_type={signal_type}")
+                logger.info(f"Creating signal: is_infrastructure={is_infrastructure}, signal_type={signal_type}")
                 
-                signal = FailureSignal(
-                    signal_type=signal_type,
-                    message=event.message,
-                    confidence=0.7,  # Lower confidence for generic matching
-                    stacktrace=event.stacktrace or self._find_stacktrace(events, i),
-                    file=event.test_file,
-                    keywords=['error', 'failure'],
-                    patterns_matched=['generic_error'],
-                    metadata={'error_type': 'generic'}
-                )
-                signals.append(signal)
-                logger.info(f"Signal created and appended, total signals: {len(signals)}")
+                try:
+                    signal = FailureSignal(
+                        signal_type=signal_type,
+                        message=event.message,
+                        confidence=0.7,  # Lower confidence for generic matching
+                        stacktrace=event.stacktrace or self._find_stacktrace(events, i),
+                        file=event.test_file,
+                        keywords=['error', 'failure'],
+                        patterns_matched=['generic_error'],
+                        metadata={'error_type': 'generic'}
+                    )
+                    signals.append(signal)
+                    logger.info(f"Signal created and appended, total signals: {len(signals)}")
+                except Exception as e:
+                    logger.error(f"Failed to create signal: {e}")
         
         logger.info(f"GenericErrorExtractor returning {len(signals)} signals")
         return signals
