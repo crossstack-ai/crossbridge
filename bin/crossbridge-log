@@ -537,11 +537,17 @@ display_results() {
             FAILED=$(echo "$data" | jq -r '.suite.failed_tests')
             ELAPSED=$(echo "$data" | jq -r '.suite.elapsed_ms')
             
+            # Convert milliseconds to minutes and seconds
+            ELAPSED_SECONDS=$((ELAPSED / 1000))
+            MINUTES=$((ELAPSED_SECONDS / 60))
+            SECONDS=$((ELAPSED_SECONDS % 60))
+            DURATION_STR="${MINUTES}m ${SECONDS}s"
+            
             echo -e "${BLUE}Test Statistics:${NC}"
             echo "  Total:    $TOTAL"
             echo -e "  Passed:   ${GREEN}$PASSED${NC}"
             echo -e "  Failed:   ${RED}$FAILED${NC}"
-            echo "  Duration: ${ELAPSED}ms"
+            echo "  Duration: ${DURATION_STR}"
             echo ""
             
             # Failed keywords - show top 5 with error details
