@@ -489,6 +489,12 @@ fi
 display_results() {
     local response="$1"
     
+    # If response has intelligence wrapper, extract the data
+    local data="$response"
+    if echo "$response" | jq -e '.analyzed' > /dev/null 2>&1; then
+        data=$(echo "$response" | jq '.data')
+    fi
+    
     case "$FRAMEWORK" in
         robot)
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -497,8 +503,8 @@ display_results() {
             echo ""
             
             # Suite info
-            SUITE_NAME=$(echo "$response" | jq -r '.suite.name')
-            SUITE_STATUS=$(echo "$response" | jq -r '.suite.status')
+            SUITE_NAME=$(echo "$data" | jq -r '.suite.name')
+            SUITE_STATUS=$(echo "$data" | jq -r '.suite.status')
             echo -e "${BLUE}Suite:${NC} $SUITE_NAME"
             
             if [ "$SUITE_STATUS" = "PASS" ]; then
@@ -509,10 +515,10 @@ display_results() {
             echo ""
             
             # Statistics
-            TOTAL=$(echo "$response" | jq -r '.suite.total_tests')
-            PASSED=$(echo "$response" | jq -r '.suite.passed_tests')
-            FAILED=$(echo "$response" | jq -r '.suite.failed_tests')
-            ELAPSED=$(echo "$response" | jq -r '.suite.elapsed_ms')
+            TOTAL=$(echo "$data" | jq -r '.suite.total_tests')
+            PASSED=$(echo "$data" | jq -r '.suite.passed_tests')
+            FAILED=$(echo "$data" | jq -r '.suite.failed_tests')
+            ELAPSED=$(echo "$data" | jq -r '.suite.elapsed_ms')
             
             echo -e "${BLUE}Test Statistics:${NC}"
             echo "  Total:    $TOTAL"

@@ -1045,11 +1045,15 @@ class SidecarAPIServer:
         failed = []
         
         if framework == "robot":
-            # Robot Framework
-            if "failed_keywords" in data:
-                failed = data["failed_keywords"]
-            elif "suite" in data and "tests" in data["suite"]:
+            # Robot Framework - prioritize suite.tests over keywords
+            if "suite" in data and "tests" in data["suite"]:
                 failed = [t for t in data["suite"]["tests"] if t.get("status") == "FAIL"]
+            elif "failed_keywords" in data and data["failed_keywords"]:
+                # Fall back to failed keywords if no test info available
+                failed = data["failed_keywords"]
+            elif "slowest_tests" in data:
+                # Use slowest_tests list and filter for failures
+                failed = [t for t in data["slowest_tests"] if t.get("status") == "FAIL"]
         
         elif framework == "cypress":
             # Cypress
