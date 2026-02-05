@@ -315,9 +315,24 @@ enrich_with_intelligence() {
     # This leverages ExecutionAnalyzer, signal extraction, and code resolution
     local enriched=$(curl -s -X POST "${SIDECAR_URL}/analyze" \
         -H "Content-Type: application/json" \
-        -d "{\"data\": $data, \"framework\": \"$FRAMEWORK\", \"workspace_root\": \"$(pwd)\"}" 2>/dev/null || echo "$data")
+        -d "{\"data\": $data, \"framework\": \"$FRAMEWORK\", \"workspace_root\": \"$(pwd)\"}" 2>&1)
     
-    # If analysis endpoint exists, use enriched data; otherwise use original
+    # Check if we got a valid response
+    if ! echo "$enriched" | jq empty 2>/dev/null; then
+        echo "$data"
+        echo -e "${YELLOW}Note: Intelligence analysis not available (invalid response from /analyze)${NC}" >&2
+        return
+    fi
+    
+    # Check for API errors
+    if echo "$enriched" | jq -e '.detail' > /dev/null 2>&1; then
+        local error_detail=$(echo "$enriched" | jq -r '.detail')
+        echo "$data"
+        echo -e "${YELLOW}Note: Intelligence analysis failed: ${error_detail}${NC}" >&2
+        return
+    fi
+    
+    # If analysis endpoint exists and succeeded, use enriched data
     if echo "$enriched" | jq -e '.analyzed' > /dev/null 2>&1; then
         echo "$enriched"
         echo -e "${GREEN}✓ Intelligence analysis complete${NC}" >&2
