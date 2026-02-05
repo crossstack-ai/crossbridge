@@ -423,4 +423,60 @@ class RuleBasedClassifier:
                 signal_types=[SignalType.ASSERTION, SignalType.INFRASTRUCTURE],
                 exclude_patterns=[r'NoSuchElement', r'element.*not.*found', r'locator', r'selector']
             ),
+            
+            ClassificationRule(
+                name="retry_error",
+                conditions=["retryerror", "retry error", "max retries", "retries exceeded"],
+                failure_type=FailureType.AUTOMATION_DEFECT,
+                confidence=0.78,
+                priority=75,
+                signal_types=[SignalType.ASSERTION, SignalType.INFRASTRUCTURE, SignalType.TIMEOUT]
+            ),
+            
+            ClassificationRule(
+                name="log_verification_error",
+                conditions=["error while verifying", "verification failed", "no files found", "log file.*not found"],
+                failure_type=FailureType.AUTOMATION_DEFECT,
+                confidence=0.80,
+                priority=75,
+                signal_types=[SignalType.ASSERTION]
+            ),
+            
+            ClassificationRule(
+                name="index_out_of_range",
+                conditions=["indexerror", "list index out of range", "index out of bounds", "array index"],
+                failure_type=FailureType.AUTOMATION_DEFECT,
+                confidence=0.85,
+                priority=78,
+                signal_types=[SignalType.ASSERTION]
+            ),
+            
+            ClassificationRule(
+                name="missing_parameter",
+                conditions=["has to be passed", "not provided", "missing argument", "missing parameter", "no.*provided"],
+                failure_type=FailureType.AUTOMATION_DEFECT,
+                confidence=0.82,
+                priority=76,
+                signal_types=[SignalType.ASSERTION]
+            ),
+            
+            ClassificationRule(
+                name="data_mismatch",
+                conditions=["mismatch", "does not match", "did not match"],
+                failure_type=FailureType.PRODUCT_DEFECT,
+                confidence=0.80,
+                priority=74,
+                signal_types=[SignalType.ASSERTION]
+            ),
+            
+            # Catch-all rule for any test with assertion/infrastructure signals
+            ClassificationRule(
+                name="generic_test_failure",
+                conditions=[".*"],  # Match anything
+                failure_type=FailureType.AUTOMATION_DEFECT,
+                confidence=0.65,
+                priority=50,  # Lowest priority - only matches if nothing else does
+                signal_types=[SignalType.ASSERTION, SignalType.INFRASTRUCTURE],
+                exclude_patterns=[]
+            ),
         ]
