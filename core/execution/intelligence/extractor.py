@@ -404,6 +404,11 @@ class GenericErrorExtractor(FailureSignalExtractor):
     def extract(self, events: List[ExecutionEvent]) -> List[FailureSignal]:
         signals = []
         
+        # Debug logging
+        from core.logging import get_logger
+        logger = get_logger(__name__)
+        logger.info(f"GenericErrorExtractor checking {len(events)} events")
+        
         for i, event in enumerate(events):
             message_lower = event.message.lower()
             
@@ -413,6 +418,8 @@ class GenericErrorExtractor(FailureSignalExtractor):
             
             # Also check if message starts with "Error:" regardless of level
             starts_with_error = message_lower.strip().startswith('error:')
+            
+            logger.info(f"Event {i}: has_error_keyword={has_error_keyword}, starts_with_error={starts_with_error}, message={event.message[:80]}")
             
             if has_error_keyword or starts_with_error:
                 # Determine if it's a product defect or test defect based on context
