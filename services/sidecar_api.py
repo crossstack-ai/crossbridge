@@ -547,161 +547,163 @@ class SidecarAPIServer:
             except Exception as e:
                 logger.error(f"Failed to parse {framework} results: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
+    
+    async def _parse_robot_log(self, content: bytes) -> dict:
+        """Parse Robot Framework output.xml"""
+        parser = RobotLogParser()
+        import tempfile
         
-        async def _parse_robot_log(self, content: bytes) -> dict:
-            """Parse Robot Framework output.xml"""
-            parser = RobotLogParser()
-            import tempfile
-            
-            with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as tmp:
-                tmp.write(content)
-                tmp_path = tmp.name
-            
-            try:
-                suite = parser.parse(tmp_path)
-                stats = parser.get_statistics()
-                failed_keywords = parser.get_failed_keywords()
-                slowest_tests = parser.get_slowest_tests(count=10)
-                slowest_keywords = parser.get_slowest_keywords(count=10)
-                
-                return {
-                    "framework": "robot",
-                    "suite": {
-                        "name": suite.name,
-                        "source": suite.source,
-                        "status": suite.status.value,
-                        "total_tests": suite.total_tests,
-                        "passed_tests": suite.passed_tests,
-                        "failed_tests": suite.failed_tests,
-                        "elapsed_ms": suite.elapsed_ms
-                    },
-                    "statistics": stats,
-                    "failed_keywords": [
-                        {
-                            "name": kw.name,
-                            "library": kw.library,
-                            "error": kw.error_message,
-                            "messages": kw.messages[:5]
-                        }
-                        for kw in failed_keywords[:20]
-                    ],
-                    "slowest_tests": [
-                        {
-                            "name": test.name,
-                            "suite": test.suite,
-                            "elapsed_ms": test.elapsed_ms,
-                            "status": test.status.value
-                        }
-                        for test in slowest_tests
-                    ],
-                    "slowest_keywords": [
-                        {
-                            "name": kw.name,
-                            "library": kw.library,
-                            "elapsed_ms": kw.elapsed_ms
-                        }
-                        for kw in slowest_keywords
-                    ]
-                }
-            finally:
-                Path(tmp_path).unlink(missing_ok=True)
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
         
-        async def _parse_cypress_results(self, content: bytes) -> dict:
-            """Parse Cypress JSON results"""
-            import json
-            
-            data = json.loads(content)
-            parser = CypressResultsParser()
-            results = parser.parse(data)
+        try:
+            suite = parser.parse(tmp_path)
+            stats = parser.get_statistics()
+            failed_keywords = parser.get_failed_keywords()
+            slowest_tests = parser.get_slowest_tests(count=10)
+            slowest_keywords = parser.get_slowest_keywords(count=10)
             
             return {
-                "framework": "cypress",
-                "statistics": {
-                    "total": results.get("total_tests", 0),
-                    "passed": results.get("passed", 0),
-                    "failed": results.get("failed", 0),
-                    "skipped": results.get("skipped", 0),
-                    "pass_rate": results.get("pass_rate", 0.0)
+                "framework": "robot",
+                "suite": {
+                    "name": suite.name,
+                    "source": suite.source,
+                    "status": suite.status.value,
+                    "total_tests": suite.total_tests,
+                    "passed_tests": suite.passed_tests,
+                    "failed_tests": suite.failed_tests,
+                    "elapsed_ms": suite.elapsed_ms
                 },
-                "failed_tests": results.get("failed_tests", []),
-                "duration_ms": results.get("duration_ms", 0),
-                "insights": results.get("insights", {})
+                "statistics": stats,
+                "failed_keywords": [
+                    {
+                        "name": kw.name,
+                        "library": kw.library,
+                        "error": kw.error_message,
+                        "messages": kw.messages[:5]
+                    }
+                    for kw in failed_keywords[:20]
+                ],
+                "slowest_tests": [
+                    {
+                        "name": test.name,
+                        "suite": test.suite,
+                        "elapsed_ms": test.elapsed_ms,
+                        "status": test.status.value
+                    }
+                    for test in slowest_tests
+                ],
+                "slowest_keywords": [
+                    {
+                        "name": kw.name,
+                        "library": kw.library,
+                        "elapsed_ms": kw.elapsed_ms
+                    }
+                    for kw in slowest_keywords
+                ]
             }
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+    
+    async def _parse_cypress_results(self, content: bytes) -> dict:
+        """Parse Cypress JSON results"""
+        import json
         
-        async def _parse_playwright_trace(self, content: bytes) -> dict:
-            """Parse Playwright trace files"""
-            import json
-            
-            data = json.loads(content)
-            parser = PlaywrightTraceParser()
-            results = parser.parse(data)
+        data = json.loads(content)
+        parser = CypressResultsParser()
+        results = parser.parse(data)
+        
+        return {
+            "framework": "cypress",
+            "statistics": {
+                "total": results.get("total_tests", 0),
+                "passed": results.get("passed", 0),
+                "failed": results.get("failed", 0),
+                "skipped": results.get("skipped", 0),
+                "pass_rate": results.get("pass_rate", 0.0)
+            },
+            "failed_tests": results.get("failed_tests", []),
+            "duration_ms": results.get("duration_ms", 0),
+            "insights": results.get("insights", {})
+        }
+    
+    async def _parse_playwright_trace(self, content: bytes) -> dict:
+        """Parse Playwright trace files"""
+        import json
+        
+        data = json.loads(content)
+        parser = PlaywrightTraceParser()
+        results = parser.parse(data)
+        
+        return {
+            "framework": "playwright",
+            "statistics": results.get("statistics", {}),
+            "actions": results.get("actions", []),
+            "network_calls": results.get("network_calls", []),
+            "console_messages": results.get("console_messages", []),
+            "errors": results.get("errors", []),
+            "performance": results.get("performance", {})
+        }
+    
+    async def _parse_behave_results(self, content: bytes) -> dict:
+        """Parse Behave JSON results"""
+        import json
+        
+        data = json.loads(content)
+        parser = BehaveResultsParser()
+        results = parser.parse(data)
+        
+        return {
+            "framework": "behave",
+            "statistics": {
+                "total_features": results.get("total_features", 0),
+                "total_scenarios": results.get("total_scenarios", 0),
+                "passed_scenarios": results.get("passed_scenarios", 0),
+                "failed_scenarios": results.get("failed_scenarios", 0),
+                "pass_rate": results.get("pass_rate", 0.0)
+            },
+            "failed_scenarios": results.get("failed_scenarios_list", []),
+            "duration_ms": results.get("duration_ms", 0)
+        }
+    
+    async def _parse_java_steps(self, content: bytes) -> dict:
+        """Parse Java step definitions"""
+        import tempfile
+        
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.java', delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            parser = JavaStepDefinitionParser()
+            steps = parser.parse_file(tmp_path)
+            bindings = parser.get_step_bindings_map()
             
             return {
-                "framework": "playwright",
-                "statistics": results.get("statistics", {}),
-                "actions": results.get("actions", []),
-                "network_calls": results.get("network_calls", []),
-                "console_messages": results.get("console_messages", []),
-                "errors": results.get("errors", []),
-                "performance": results.get("performance", {})
-            }
-        
-        async def _parse_behave_results(self, content: bytes) -> dict:
-            """Parse Behave JSON results"""
-            import json
-            
-            data = json.loads(content)
-            parser = BehaveResultsParser()
-            results = parser.parse(data)
-            
-            return {
-                "framework": "behave",
-                "statistics": {
-                    "total_features": results.get("total_features", 0),
-                    "total_scenarios": results.get("total_scenarios", 0),
-                    "passed_scenarios": results.get("passed_scenarios", 0),
-                    "failed_scenarios": results.get("failed_scenarios", 0),
-                    "pass_rate": results.get("pass_rate", 0.0)
+                "framework": "java",
+                "total_steps": len(steps),
+                "step_types": {
+                    "Given": len(bindings.get("Given", [])),
+                    "When": len(bindings.get("When", [])),
+                    "Then": len(bindings.get("Then", []))
                 },
-                "failed_scenarios": results.get("failed_scenarios_list", []),
-                "duration_ms": results.get("duration_ms", 0)
+                "steps": [
+                    {
+                        "type": step.step_type,
+                        "pattern": step.pattern,
+                        "method": step.method_name,
+                        "file": Path(step.file_path).name,
+                        "line": step.line_number
+                    }
+                    for step in steps
+                ]
             }
-        
-        async def _parse_java_steps(self, content: bytes) -> dict:
-            """Parse Java step definitions"""
-            import tempfile
-            
-            with tempfile.NamedTemporaryFile(mode='wb', suffix='.java', delete=False) as tmp:
-                tmp.write(content)
-                tmp_path = tmp.name
-            
-            try:
-                parser = JavaStepDefinitionParser()
-                steps = parser.parse_file(tmp_path)
-                bindings = parser.get_step_bindings_map()
-                
-                return {
-                    "framework": "java",
-                    "total_steps": len(steps),
-                    "step_types": {
-                        "Given": len(bindings.get("Given", [])),
-                        "When": len(bindings.get("When", [])),
-                        "Then": len(bindings.get("Then", []))
-                    },
-                    "steps": [
-                        {
-                            "type": step.step_type,
-                            "pattern": step.pattern,
-                            "method": step.method_name,
-                            "file": Path(step.file_path).name,
-                            "line": step.line_number
-                        }
-                        for step in steps
-                    ]
-                }
-            finally:
-                Path(tmp_path).unlink(missing_ok=True)
-        
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+    
+    def _setup_routes(self):
+        """Setup all FastAPI routes (called from __init__)"""
         # ============================================================================
         # Log Storage & Retrieval Endpoints
         # ============================================================================
