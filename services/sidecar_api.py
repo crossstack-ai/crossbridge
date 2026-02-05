@@ -992,6 +992,10 @@ class SidecarAPIServer:
                     logger.info(f"First test keys: {list(first_test.keys())}")
                     logger.info(f"First test error_message: {error_msg[:200] if error_msg else 'EMPTY'}")
                     logger.info(f"First test full: {str(first_test)[:500]}")
+                    
+                    # Check what raw_log is being built
+                    raw_log_test = self._build_raw_log(first_test, framework)
+                    logger.info(f"Built raw_log for first test: {raw_log_test[:300]}")
                 
                 if not failed_tests:
                     # No failures to analyze
