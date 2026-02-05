@@ -13,7 +13,7 @@ Supports all frameworks via unified event format.
 
 import json
 import asyncio
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 from datetime import datetime
 from dataclasses import dataclass, asdict
 from pathlib import Path
