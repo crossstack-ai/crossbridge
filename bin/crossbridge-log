@@ -555,7 +555,8 @@ display_results() {
             # Slowest tests
             SLOWEST_TESTS=$(echo "$data" | jq '.slowest_tests | length')
             if [ "$SLOWEST_TESTS" -gt 0 ]; then
-                echo -e "${YELLOW}Slowest Tests (Top 5):${NC}"
+                DISPLAY_COUNT=$((SLOWEST_TESTS < 5 ? SLOWEST_TESTS : 5))
+                echo -e "${YELLOW}Slowest Tests (Top $DISPLAY_COUNT):${NC}"
                 echo "$data" | jq -r '.slowest_tests[0:5][] | "  ⏱️  \(.name): \(.elapsed_ms)ms"'
                 echo ""
             fi

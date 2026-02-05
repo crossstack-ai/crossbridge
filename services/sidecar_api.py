@@ -1067,11 +1067,14 @@ class SidecarAPIServer:
                         
                         # Add to top failures (limit to 5 most important)
                         if len(top_failures) < 5:
+                            # Get actual error message from test or signals
+                            actual_error = error_msg if error_msg else (result.signals[0].message if result.signals else "Unknown error")
+                            
                             failure_detail = {
                                 "test_name": test_name[:80],  # Truncate long names
                                 "failure_type": failure_type,
                                 "confidence": result.classification.confidence,
-                                "reason": result.classification.reason[:200],  # Truncate long reasons
+                                "reason": actual_error[:200],  # Show actual error message
                                 "code_reference": f"{result.classification.code_reference.file}:{result.classification.code_reference.line}" if result.classification.code_reference else None,
                                 "stacktrace": result.signals[0].stacktrace if result.signals and result.signals[0].stacktrace else None
                             }
