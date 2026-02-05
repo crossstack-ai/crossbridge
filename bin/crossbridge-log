@@ -567,7 +567,11 @@ display_results() {
             if [ "$SLOWEST_TESTS" -gt 0 ]; then
                 DISPLAY_COUNT=$((SLOWEST_TESTS < 5 ? SLOWEST_TESTS : 5))
                 echo -e "${YELLOW}Slowest Tests (Top $DISPLAY_COUNT):${NC}"
-                echo "$data" | jq -r '.slowest_tests[0:5][] | "  ⏱️  \(.name): \((.elapsed_ms / 1000.0 * 10 | round) / 10)s"'
+                echo "$data" | jq -r '.slowest_tests[0:5][] | 
+                    (.elapsed_ms / 1000 | floor) as $total_seconds |
+                    ($total_seconds / 60 | floor) as $minutes |
+                    ($total_seconds % 60) as $seconds |
+                    "  ⏱️  \(.name): \($minutes)m \($seconds)s"'
                 echo ""
             fi
             ;;
