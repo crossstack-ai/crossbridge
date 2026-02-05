@@ -431,6 +431,8 @@ class GenericErrorExtractor(FailureSignalExtractor):
                 
                 signal_type = SignalType.FUNCTIONAL if is_product_defect else SignalType.ASSERTION
                 
+                logger.info(f"Creating signal: is_product_defect={is_product_defect}, signal_type={signal_type}")
+                
                 signal = FailureSignal(
                     signal_type=signal_type,
                     message=event.message,
@@ -442,7 +444,9 @@ class GenericErrorExtractor(FailureSignalExtractor):
                     metadata={'error_type': 'generic'}
                 )
                 signals.append(signal)
+                logger.info(f"Signal created and appended, total signals: {len(signals)}")
         
+        logger.info(f"GenericErrorExtractor returning {len(signals)} signals")
         return signals
 
 
