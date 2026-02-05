@@ -320,7 +320,9 @@ enrich_with_intelligence() {
     # Check if we got a valid response
     if ! echo "$enriched" | jq empty 2>/dev/null; then
         echo "$data"
-        echo -e "${YELLOW}Note: Intelligence analysis not available (invalid response from /analyze)${NC}" >&2
+        # Show first 200 chars of error for debugging
+        local error_preview=$(echo "$enriched" | head -c 200)
+        echo -e "${YELLOW}Note: Intelligence analysis failed - ${error_preview}${NC}" >&2
         return
     fi
     
