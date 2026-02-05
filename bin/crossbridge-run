@@ -12,11 +12,19 @@
 
 set -e
 
-# Configuration from environment
-CROSSBRIDGE_API_HOST="${CROSSBRIDGE_API_HOST:-localhost}"
-CROSSBRIDGE_API_PORT="${CROSSBRIDGE_API_PORT:-8765}"
+# Configuration from environment (use standard CROSSBRIDGE_SIDECAR_* variables)
+CROSSBRIDGE_SIDECAR_HOST="${CROSSBRIDGE_SIDECAR_HOST:-localhost}"
+CROSSBRIDGE_SIDECAR_PORT="${CROSSBRIDGE_SIDECAR_PORT:-8765}"
 CROSSBRIDGE_ENABLED="${CROSSBRIDGE_ENABLED:-true}"
 CROSSBRIDGE_ADAPTER_DIR="${CROSSBRIDGE_ADAPTER_DIR:-$HOME/.crossbridge/adapters}"
+
+# Backward compatibility: support old CROSSBRIDGE_API_* variable names
+if [ -n "$CROSSBRIDGE_API_HOST" ]; then
+    CROSSBRIDGE_SIDECAR_HOST="$CROSSBRIDGE_API_HOST"
+fi
+if [ -n "$CROSSBRIDGE_API_PORT" ]; then
+    CROSSBRIDGE_SIDECAR_PORT="$CROSSBRIDGE_API_PORT"
+fi
 
 # Color output
 GREEN='\033[0;32m'
@@ -38,11 +46,11 @@ log_error() {
 
 # Check if sidecar is reachable
 check_sidecar() {
-    if curl -s --connect-timeout 2 "http://${CROSSBRIDGE_API_HOST}:${CROSSBRIDGE_API_PORT}/health" > /dev/null 2>&1; then
-        log_info "✅ Connected to CrossBridge sidecar at ${CROSSBRIDGE_API_HOST}:${CROSSBRIDGE_API_PORT}"
+    if curl -s --connect-timeout 2 "http://${CROSSBRIDGE_SIDECAR_HOST}:${CROSSBRIDGE_SIDECAR_PORT}/health" > /dev/null 2>&1; then
+        log_info "✅ Connected to CrossBridge sidecar at ${CROSSBRIDGE_SIDECAR_HOST}:${CROSSBRIDGE_SIDECAR_PORT}"
         return 0
     else
-        log_warn "⚠️  Cannot reach CrossBridge sidecar at ${CROSSBRIDGE_API_HOST}:${CROSSBRIDGE_API_PORT}"
+        log_warn "⚠️  Cannot reach CrossBridge sidecar at ${CROSSBRIDGE_SIDECAR_HOST}:${CROSSBRIDGE_SIDECAR_PORT}"
         log_warn "Tests will run without CrossBridge monitoring"
         export CROSSBRIDGE_ENABLED=false
         return 1
@@ -68,7 +76,7 @@ download_adapter() {
     mkdir -p "$CROSSBRIDGE_ADAPTER_DIR"
     local tar_file="${CROSSBRIDGE_ADAPTER_DIR}/${framework}.tar.gz"
     
-    if curl -s -f -o "$tar_file" "http://${CROSSBRIDGE_API_HOST}:${CROSSBRIDGE_API_PORT}/adapters/${framework}"; then
+    if curl -s -f -o "$tar_file" "http://${CROSSBRIDGE_SIDECAR_HOST}:${CROSSBRIDGE_SIDECAR_PORT}/adapters/${framework}"; then
         tar -xzf "$tar_file" -C "$CROSSBRIDGE_ADAPTER_DIR"
         rm -f "$tar_file"
         log_info "✅ ${framework} adapter downloaded"
@@ -208,13 +216,19 @@ main() {
         echo "  crossbridge-run jest tests/"
         echo "  crossbridge-run mocha tests/"
         echo "  crossbridge-run mvn test"
+        echo ""
+        echo "Environment Variables:"
+        echo "  CROSSBRIDGE_SIDECAR_HOST   - Sidecar API host (default: localhost)"
+        echo "  CROSSBRIDGE_SIDECAR_PORT   - Sidecar API port (default: 8765)"
+        echo "  CROSSBRIDGE_ENABLED        - Enable/disable CrossBridge (default: true)"
+        echo "  CROSSBRIDGE_ADAPTER_DIR    - Adapter cache directory (default: ~/.crossbridge/adapters)"
         exit 1
     fi
     
     # Export configuration
     export CROSSBRIDGE_ENABLED
-    export CROSSBRIDGE_API_HOST
-    export CROSSBRIDGE_API_PORT
+    export CROSSBRIDGE_SIDECAR_HOST
+    export CROSSBRIDGE_SIDECAR_PORT
     
     # Check sidecar connection
     check_sidecar
