@@ -532,18 +532,18 @@ display_results() {
             echo ""
             
             # Failed tests
-            FAILED_COUNT=$(echo "$response" | jq '.failed_keywords | length')
+            FAILED_COUNT=$(echo "$data" | jq '.failed_keywords | length')
             if [ "$FAILED_COUNT" -gt 0 ]; then
                 echo -e "${RED}Failed Keywords:${NC}"
-                echo "$response" | jq -r '.failed_keywords[] | "  ❌ \(.name) (\(.library))"'
+                echo "$data" | jq -r '.failed_keywords[] | "  ❌ \(.name) (\(.library))"'
                 echo ""
             fi
             
             # Slowest tests
-            SLOWEST_TESTS=$(echo "$response" | jq '.slowest_tests | length')
+            SLOWEST_TESTS=$(echo "$data" | jq '.slowest_tests | length')
             if [ "$SLOWEST_TESTS" -gt 0 ]; then
                 echo -e "${YELLOW}Slowest Tests (Top 5):${NC}"
-                echo "$response" | jq -r '.slowest_tests[0:5][] | "  ⏱️  \(.name): \(.elapsed_ms)ms"'
+                echo "$data" | jq -r '.slowest_tests[0:5][] | "  ⏱️  \(.name): \(.elapsed_ms)ms"'
                 echo ""
             fi
             ;;
@@ -554,9 +554,9 @@ display_results() {
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo ""
             
-            TOTAL=$(echo "$response" | jq -r '.statistics.total_tests')
-            PASSED=$(echo "$response" | jq -r '.statistics.passed_tests')
-            FAILED=$(echo "$response" | jq -r '.statistics.failed_tests')
+            TOTAL=$(echo "$data" | jq -r '.statistics.total_tests')
+            PASSED=$(echo "$data" | jq -r '.statistics.passed_tests')
+            FAILED=$(echo "$data" | jq -r '.statistics.failed_tests')
             
             echo -e "${BLUE}Test Statistics:${NC}"
             echo "  Total:  $TOTAL"
@@ -564,10 +564,10 @@ display_results() {
             echo -e "  Failed: ${RED}$FAILED${NC}"
             echo ""
             
-            FAILURES=$(echo "$response" | jq '.failures | length')
+            FAILURES=$(echo "$data" | jq '.failures | length')
             if [ "$FAILURES" -gt 0 ]; then
                 echo -e "${RED}Failed Tests:${NC}"
-                echo "$response" | jq -r '.failures[] | "  ❌ \(.title): \(.error_message)"'
+                echo "$data" | jq -r '.failures[] | "  ❌ \(.title): \(.error_message)"'
             fi
             ;;
             
@@ -577,8 +577,8 @@ display_results() {
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo ""
             
-            ACTION_COUNT=$(echo "$response" | jq '.actions | length')
-            NETWORK_COUNT=$(echo "$response" | jq '.network_calls | length')
+            ACTION_COUNT=$(echo "$data" | jq '.actions | length')
+            NETWORK_COUNT=$(echo "$data" | jq '.network_calls | length')
             
             echo -e "${BLUE}Trace Summary:${NC}"
             echo "  Actions:       $ACTION_COUNT"
@@ -587,7 +587,7 @@ display_results() {
             
             if [ "$ACTION_COUNT" -gt 0 ]; then
                 echo -e "${BLUE}Actions (First 10):${NC}"
-                echo "$response" | jq -r '.actions[0:10][] | "  • \(.action): \(.selector // "N/A")"'
+                echo "$data" | jq -r '.actions[0:10][] | "  • \(.action): \(.selector // "N/A")"'
             fi
             ;;
             
@@ -597,10 +597,10 @@ display_results() {
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo ""
             
-            FEATURE_COUNT=$(echo "$response" | jq '.features | length')
-            SCENARIO_COUNT=$(echo "$response" | jq '.statistics.total_scenarios')
-            PASSED=$(echo "$response" | jq '.statistics.passed_scenarios')
-            FAILED=$(echo "$response" | jq '.statistics.failed_scenarios')
+            FEATURE_COUNT=$(echo "$data" | jq '.features | length')
+            SCENARIO_COUNT=$(echo "$data" | jq '.statistics.total_scenarios')
+            PASSED=$(echo "$data" | jq '.statistics.passed_scenarios')
+            FAILED=$(echo "$data" | jq '.statistics.failed_scenarios')
             
             echo -e "${BLUE}BDD Statistics:${NC}"
             echo "  Features:  $FEATURE_COUNT"
@@ -615,16 +615,16 @@ display_results() {
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo ""
             
-            STEP_COUNT=$(echo "$response" | jq '.step_definitions | length')
+            STEP_COUNT=$(echo "$data" | jq '.step_definitions | length')
             
             echo -e "${BLUE}Step Definitions Found:${NC} $STEP_COUNT"
             echo ""
             
             if [ "$STEP_COUNT" -gt 0 ]; then
                 # Group by type
-                GIVEN_COUNT=$(echo "$response" | jq '[.step_definitions[] | select(.step_type == "Given")] | length')
-                WHEN_COUNT=$(echo "$response" | jq '[.step_definitions[] | select(.step_type == "When")] | length')
-                THEN_COUNT=$(echo "$response" | jq '[.step_definitions[] | select(.step_type == "Then")] | length')
+                GIVEN_COUNT=$(echo "$data" | jq '[.step_definitions[] | select(.step_type == "Given")] | length')
+                WHEN_COUNT=$(echo "$data" | jq '[.step_definitions[] | select(.step_type == "When")] | length')
+                THEN_COUNT=$(echo "$data" | jq '[.step_definitions[] | select(.step_type == "Then")] | length')
                 
                 echo -e "${BLUE}By Type:${NC}"
                 echo "  Given: $GIVEN_COUNT"
@@ -633,7 +633,7 @@ display_results() {
                 echo ""
                 
                 echo -e "${BLUE}Step Definitions:${NC}"
-                echo "$response" | jq -r '.step_definitions[] | "  \(.step_type): \(.pattern)"'
+                echo "$data" | jq -r '.step_definitions[] | "  \(.step_type): \(.pattern)"'
             fi
             ;;
     esac

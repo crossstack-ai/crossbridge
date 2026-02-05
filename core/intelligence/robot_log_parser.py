@@ -7,6 +7,7 @@ including test results, keywords, variables, and failure signals.
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -21,6 +22,27 @@ class RobotStatus(Enum):
     FAIL = "FAIL"
     SKIP = "SKIP"
     NOT_RUN = "NOT RUN"
+
+
+def _parse_robot_timestamp(timestamp: str) -> Optional[datetime]:
+    """Parse Robot Framework timestamp format: YYYYMMDD HH:MM:SS.mmm"""
+    if not timestamp:
+        return None
+    try:
+        return datetime.strptime(timestamp, "%Y%m%d %H:%M:%S.%f")
+    except ValueError:
+        return None
+
+
+def _calculate_elapsed_ms(start_time: str, end_time: str) -> int:
+    """Calculate elapsed time in milliseconds from Robot Framework timestamps."""
+    start = _parse_robot_timestamp(start_time)
+    end = _parse_robot_timestamp(end_time)
+    
+    if start and end:
+        delta = end - start
+        return int(delta.total_seconds() * 1000)
+    return 0
 
 
 @dataclass
@@ -126,7 +148,8 @@ class RobotLogParser:
         status = RobotStatus(status_element.get('status', 'FAIL')) if status_element is not None else RobotStatus.FAIL
         start_time = status_element.get('starttime', '') if status_element is not None else ''
         end_time = status_element.get('endtime', '') if status_element is not None else ''
-        elapsed_ms = int(status_element.get('elapsedtime', '0')) if status_element is not None else 0
+        # Calculate elapsed time from timestamps
+        elapsed_ms = _calculate_elapsed_ms(start_time, end_time)
         
         # Parse tests
         tests = []
@@ -175,7 +198,8 @@ class RobotLogParser:
         status = RobotStatus(status_element.get('status', 'FAIL')) if status_element is not None else RobotStatus.FAIL
         start_time = status_element.get('starttime', '') if status_element is not None else ''
         end_time = status_element.get('endtime', '') if status_element is not None else ''
-        elapsed_ms = int(status_element.get('elapsedtime', '0')) if status_element is not None else 0
+        # Calculate elapsed time from timestamps (Robot Framework doesn't store elapsedtime attribute)
+        elapsed_ms = _calculate_elapsed_ms(start_time, end_time)
         error_message = status_element.text if status_element is not None and status == RobotStatus.FAIL else None
         
         # Parse tags (check both direct children and nested in tags element)
@@ -232,7 +256,8 @@ class RobotLogParser:
         status = RobotStatus(status_element.get('status', 'FAIL')) if status_element is not None else RobotStatus.FAIL
         start_time = status_element.get('starttime', '') if status_element is not None else ''
         end_time = status_element.get('endtime', '') if status_element is not None else ''
-        elapsed_ms = int(status_element.get('elapsedtime', '0')) if status_element is not None else 0
+        # Calculate elapsed time from timestamps
+        elapsed_ms = _calculate_elapsed_ms(start_time, end_time)
         error_message = status_element.text if status_element is not None and status == RobotStatus.FAIL else None
         
         # Parse arguments (direct children, not nested)
