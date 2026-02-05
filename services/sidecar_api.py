@@ -33,7 +33,7 @@ from core.intelligence.robot_log_parser import RobotLogParser
 from core.intelligence.java_step_parser import JavaStepDefinitionParser
 from core.intelligence.cypress_results_parser import CypressResultsParser
 from core.intelligence.playwright_trace_parser import PlaywrightTraceParser
-from core.intelligence.behave_selenium_parsers import BehaveJSONParser, SeleniumLogParser
+from core.intelligence.behave_selenium_parsers import BehaveResultsParser, SeleniumLogParser
 
 # Import execution intelligence components
 from core.execution.intelligence.analyzer import ExecutionAnalyzer
@@ -651,7 +651,7 @@ class SidecarAPIServer:
             import json
             
             data = json.loads(content)
-            parser = BehaveJSONParser()
+            parser = BehaveResultsParser()
             results = parser.parse(data)
             
             return {
