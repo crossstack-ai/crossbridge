@@ -63,6 +63,7 @@ FILTER_PATTERN=""
 ENABLE_ANALYSIS=true  # Enable automatic intelligence analysis
 SHOW_HELP=false
 LOG_FILE=""
+APP_LOGS=""  # Application logs for correlation
 
 show_usage() {
     echo "CrossBridge Log Parser - Universal log parsing for all frameworks"
@@ -73,6 +74,7 @@ show_usage() {
     echo "  $0 output.xml                                    # Robot Framework"
     echo "  $0 cypress/results.json                          # Cypress"
     echo "  $0 output.xml --output results.json              # Save to file"
+    echo "  $0 output.xml --app-logs app.log                 # Correlate with application logs"
     echo "  $0 output.xml --test-name 'Login*'               # Filter by test name"
     echo "  $0 output.xml --test-id 's1-s1-t1'               # Filter by test ID"
     echo "  $0 output.xml --status FAIL                      # Filter failed tests only"
@@ -88,6 +90,7 @@ show_usage() {
     echo ""
     echo "Options:"
     echo "  -o, --output FILE          Save parsed results to FILE (JSON format)"
+    echo "  -a, --app-logs FILE        Application logs for correlation (JSON format)"
     echo "  -t, --test-name PATTERN    Filter tests by name (supports wildcards)"
     echo "  -i, --test-id ID           Filter by specific test ID"
     echo "  -s, --status STATUS        Filter by status (PASS, FAIL, SKIP)"
@@ -119,6 +122,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         -o|--output)
             OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        -a|--app-logs)
+            APP_LOGS="$2"
+            if [ ! -f "$APP_LOGS" ]; then
+                echo -e "${RED}Error: Application log file not found: $APP_LOGS${NC}"
+                exit 1
+            fi
             shift 2
             ;;
         -t|--test-name)
@@ -311,11 +322,34 @@ enrich_with_intelligence() {
     
     echo -e "${BLUE}Running intelligence analysis...${NC}" >&2
     
+    # Choose endpoint based on whether app logs are provided
+    local endpoint="/analyze"
+    local payload
+    
+    if [ -n "$APP_LOGS" ]; then
+        echo -e "${BLUE}Correlating with application logs...${NC}" >&2
+        endpoint="/analyze/with-app-logs"
+        
+        # Build payload with app logs path
+        payload=$(jq -n \
+            --argjson data "$data" \
+            --arg app_logs "$APP_LOGS" \
+            --arg framework "$FRAMEWORK" \
+            --arg workspace_root "$(pwd)" \
+            '{data: $data, app_logs: $app_logs, framework: $framework, workspace_root: $workspace_root}')
+    else
+        # Build basic payload without app logs
+        payload=$(jq -n \
+            --argjson data "$data" \
+            --arg framework "$FRAMEWORK" \
+            --arg workspace_root "$(pwd)" \
+            '{data: $data, framework: $framework, workspace_root: $workspace_root}')
+    fi
+    
     # Call sidecar's analyze endpoint to add classification and signals
     # This leverages ExecutionAnalyzer, signal extraction, and code resolution
-    # Use stdin to avoid "Argument list too long" error with large payloads
-    local enriched=$(echo "{\"data\": $data, \"framework\": \"$FRAMEWORK\", \"workspace_root\": \"$(pwd)\"}" | \
-        curl -s -X POST "${SIDECAR_URL}/analyze" \
+    local enriched=$(echo "$payload" | \
+        curl -s -X POST "${SIDECAR_URL}${endpoint}" \
         -H "Content-Type: application/json" \
         --data-binary @- 2>&1)
     
@@ -500,6 +534,51 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
     fi
     
     echo ""
+fi
+
+# Display application log correlation summary (if available)
+if echo "$FILTERED_RESPONSE" | jq -e '.correlation_summary.total_correlated' > /dev/null 2>&1; then
+    TOTAL_CORR=$(echo "$FILTERED_RESPONSE" | jq -r '.correlation_summary.total_correlated')
+    if [ "$TOTAL_CORR" -gt 0 ]; then
+        echo ""
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BLUE}   Application Log Correlation Results${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        
+        AVG_CONF=$(echo "$FILTERED_RESPONSE" | jq -r '.correlation_summary.avg_confidence')
+        TOTAL_APP_LOGS=$(echo "$FILTERED_RESPONSE" | jq -r '.correlation_summary.total_app_logs_analyzed')
+        SAMPLED_LOGS=$(echo "$FILTERED_RESPONSE" | jq -r '.correlation_summary.sampled_logs_count')
+        
+        echo "  Tests Correlated: $TOTAL_CORR"
+        echo "  Average Confidence: $(printf '%.2f' $AVG_CONF)"
+        echo "  App Logs Analyzed: $TOTAL_APP_LOGS"
+        echo "  After Sampling: $SAMPLED_LOGS"
+        echo ""
+        
+        # Show correlation methods used
+        echo -e "${YELLOW}Correlation Methods Used:${NC}"
+        echo "$FILTERED_RESPONSE" | jq -r '.correlation_summary.correlation_methods | to_entries[] | 
+            "  • \(.key): \(.value) tests"'
+        echo ""
+        
+        # Show top correlated app errors
+        CORR_ERRORS=$(echo "$FILTERED_RESPONSE" | jq '.correlated_app_errors | length')
+        if [ "$CORR_ERRORS" -gt 0 ]; then
+            DISPLAY_COUNT=$((CORR_ERRORS < 5 ? CORR_ERRORS : 5))
+            echo -e "${RED}Top Correlated Application Errors (showing $DISPLAY_COUNT of $CORR_ERRORS):${NC}"
+            echo "$FILTERED_RESPONSE" | jq -r '.correlated_app_errors[0:5][] | 
+                "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "  Test: \(.test_name)\n" +
+                "    Method: \(.correlation_method) (confidence: \(.confidence))\n" +
+                "    App Errors Found: \(.app_logs | length)\n" +
+                "    Correlation Details: \(.correlation_details)\n" +
+                (.app_logs[0:3][] | "      [\(.level)] \(.timestamp) - \(.message[:100])\n" +
+                (if .service then "              Service: \(.service)\n" else "" end) +
+                (if .trace_id then "              Trace ID: \(.trace_id)\n" else "" end)) +
+                (if (.app_logs | length) > 3 then "      ... and \((.app_logs | length) - 3) more errors\n" else "" end)'
+            echo ""
+        fi
+    fi
 fi
 
 # Display results based on framework

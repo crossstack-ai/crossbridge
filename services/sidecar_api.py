@@ -1185,6 +1185,289 @@ class SidecarAPIServer:
         
         return "\n".join(lines)
     
+        @self.app.post("/analyze/with-app-logs")
+        async def analyze_with_correlation(request: Request):
+            """
+            Analyze test failures with application log correlation
+            
+            Provides enhanced insights by correlating test failures with application logs.
+            Uses multiple correlation strategies: trace_id, timestamp, service, execution_id.
+            
+            Request body:
+            {
+                "data": <parsed_test_log_data>,
+                "app_logs": <application_logs_file_path or log_entries>,
+                "framework": "robot|cypress|pytest|etc",
+                "workspace_root": "/path/to/project" (optional),
+                "correlation_config": {
+                    "timestamp_window": 5,  # seconds
+                    "strategies": ["trace_id", "execution_id", "timestamp", "service"]
+                }
+            }
+            
+            Response:
+            {
+                "analyzed": true,
+                "data": <original_data>,
+                "intelligence_summary": { ... },
+                "enriched_tests": [ ... ],
+                "correlation_summary": {
+                    "total_correlated": 10,
+                    "correlation_methods": {"timestamp": 8, "trace_id": 2},
+                    "avg_confidence": 0.75
+                },
+                "correlated_app_errors": [
+                    {
+                        "test_name": "...",
+                        "app_logs": [<related app errors>],
+                        "correlation_method": "timestamp",
+                        "confidence": 0.7
+                    }
+                ]
+            }
+            """
+            try:
+                from core.execution.intelligence.log_adapters import get_registry
+                from core.execution.intelligence.log_adapters.correlation import LogCorrelator
+                from core.execution.intelligence.log_adapters.sampling import LogSampler, SamplingConfig
+                
+                body = await request.json()
+                data = body.get("data", {})
+                app_logs_input = body.get("app_logs")
+                framework = body.get("framework", "unknown")
+                workspace_root = body.get("workspace_root")
+                correlation_config = body.get("correlation_config", {})
+                
+                # Update analyzer workspace if provided
+                if workspace_root:
+                    self._analyzer.workspace_root = workspace_root
+                    self._analyzer.resolver.workspace_root = workspace_root
+                
+                # Extract failed tests
+                failed_tests = self._extract_failed_tests(data, framework)
+                
+                if not failed_tests:
+                    return {
+                        "analyzed": True,
+                        "data": data,
+                        "intelligence_summary": {
+                            "classifications": {},
+                            "signals": {},
+                            "recommendations": ["All tests passed - no analysis needed"]
+                        },
+                        "correlation_summary": {
+                            "total_correlated": 0,
+                            "message": "No failed tests to correlate"
+                        }
+                    }
+                
+                # Parse application logs
+                app_logs = []
+                if app_logs_input:
+                    if isinstance(app_logs_input, str):
+                        # File path provided - parse it
+                        registry = get_registry()
+                        adapter = registry.get_adapter(app_logs_input)
+                        
+                        if adapter:
+                            logger.info(f"Parsing application logs from {app_logs_input}")
+                            with open(app_logs_input, 'r') as f:
+                                for line in f:
+                                    parsed = adapter.parse(line.strip())
+                                    if parsed:
+                                        app_logs.append(parsed)
+                            
+                            # Apply sampling to reduce volume (keep all errors/warnings)
+                            sampler_config = SamplingConfig(
+                                debug_rate=0.01,
+                                info_rate=0.01,
+                                warn_rate=0.1,
+                                error_rate=1.0,
+                                fatal_rate=1.0
+                            )
+                            sampler = LogSampler(sampler_config)
+                            sampled_logs = []
+                            for log in app_logs:
+                                if sampler.should_sample(log.get('level', 'INFO'), log):
+                                    sampled_logs.append(log)
+                            app_logs = sampled_logs
+                            
+                            logger.info(f"Parsed {len(app_logs)} application logs (after sampling)")
+                        else:
+                            logger.warning(f"No adapter found for {app_logs_input}")
+                    elif isinstance(app_logs_input, list):
+                        # Direct log entries provided
+                        app_logs = app_logs_input
+                
+                # Initialize correlator with config
+                timestamp_window = correlation_config.get('timestamp_window', 5)
+                correlator = LogCorrelator(timestamp_window_seconds=timestamp_window)
+                
+                # Perform standard analysis first
+                classifications = {}
+                signals_summary = {}
+                enriched_tests = []
+                recommendations = set()
+                top_failures = []
+                
+                # Correlation tracking
+                correlation_summary = {
+                    "total_correlated": 0,
+                    "correlation_methods": {},
+                    "avg_confidence": 0.0
+                }
+                correlated_app_errors = []
+                total_confidence = 0.0
+                
+                for test in failed_tests:
+                    test_name = test.get("name", "unknown")
+                    error_msg = test.get("error_message") or test.get("error", "")
+                    
+                    # Build raw log for analyzer
+                    raw_log = self._build_raw_log(test, framework)
+                    
+                    # Analyze (deterministic)
+                    result = self._analyzer.analyze(
+                        raw_log=raw_log,
+                        test_name=test_name,
+                        framework=framework,
+                        context={"framework": framework}
+                    )
+                    
+                    if not result.classification:
+                        enriched_tests.append(test)
+                        continue
+                    
+                    # Count classifications and signals
+                    failure_type = result.classification.failure_type.value
+                    classifications[failure_type] = classifications.get(failure_type, 0) + 1
+                    
+                    for signal in result.signals:
+                        signal_type = signal.signal_type.value
+                        signals_summary[signal_type] = signals_summary.get(signal_type, 0) + 1
+                    
+                    # Add recommendations
+                    if result.classification.failure_type == FailureType.PRODUCT_DEFECT:
+                        recommendations.add("Review application code for bugs")
+                    elif result.classification.failure_type == FailureType.AUTOMATION_DEFECT:
+                        recommendations.add("Update test automation code/locators")
+                    elif result.classification.failure_type == FailureType.ENVIRONMENT_ISSUE:
+                        recommendations.add("Check infrastructure and network connectivity")
+                    
+                    # Correlate with application logs if available
+                    correlated_logs_for_test = []
+                    correlation_method = "none"
+                    correlation_confidence = 0.0
+                    
+                    if app_logs:
+                        # Create execution event from test
+                        from core.execution.intelligence.models import ExecutionEvent
+                        test_event = ExecutionEvent(
+                            level="ERROR",
+                            message=error_msg or test_name,
+                            timestamp=test.get("start_time") or test.get("timestamp"),
+                            metadata={
+                                "test_name": test_name,
+                                "trace_id": test.get("trace_id"),
+                                "execution_id": test.get("execution_id"),
+                                "service": test.get("service") or test.get("suite")
+                            }
+                        )
+                        
+                        # Correlate
+                        correlation_result = correlator.correlate(test_event, app_logs)
+                        
+                        if correlation_result.correlated_logs:
+                            correlation_summary["total_correlated"] += 1
+                            method = correlation_result.correlation_method
+                            correlation_summary["correlation_methods"][method] = \
+                                correlation_summary["correlation_methods"].get(method, 0) + 1
+                            
+                            total_confidence += correlation_result.correlation_confidence
+                            correlated_logs_for_test = correlation_result.correlated_logs
+                            correlation_method = method
+                            correlation_confidence = correlation_result.correlation_confidence
+                            
+                            # Add to correlated app errors (limit to errors/warnings)
+                            error_logs = [
+                                log for log in correlation_result.correlated_logs
+                                if log.get('level') in ['ERROR', 'FATAL', 'WARN', 'WARNING']
+                            ]
+                            
+                            if error_logs:
+                                correlated_app_errors.append({
+                                    "test_name": test_name[:80],
+                                    "app_logs": error_logs[:5],  # Top 5 errors
+                                    "correlation_method": method,
+                                    "confidence": correlation_confidence
+                                })
+                                
+                                # Enhance recommendations based on app logs
+                                for log in error_logs:
+                                    if 'timeout' in log.get('message', '').lower():
+                                        recommendations.add("Increase timeout configurations in application")
+                                    elif 'database' in log.get('message', '').lower():
+                                        recommendations.add("Check database connectivity and query performance")
+                                    elif 'memory' in log.get('message', '').lower():
+                                        recommendations.add("Monitor application memory usage")
+                    
+                    # Build top failures with correlation info
+                    if len(top_failures) < 5:
+                        actual_error = error_msg if error_msg else (result.signals[0].message if result.signals else "Unknown error")
+                        
+                        failure_detail = {
+                            "test_name": test_name[:80],
+                            "failure_type": failure_type,
+                            "confidence": result.classification.confidence,
+                            "reason": actual_error[:200],
+                            "correlated_app_errors": len(correlated_logs_for_test),
+                            "correlation_method": correlation_method if correlation_method != "none" else None,
+                            "correlation_confidence": correlation_confidence if correlation_confidence > 0 else None
+                        }
+                        top_failures.append(failure_detail)
+                    
+                    # Enrich test with classification and correlation
+                    enriched_test = {
+                        **test,
+                        "classification": {
+                            "type": failure_type,
+                            "confidence": result.classification.confidence,
+                            "reason": result.classification.reason
+                        },
+                        "signals": [
+                            {
+                                "type": s.signal_type.value,
+                                "confidence": s.confidence,
+                                "message": s.message[:200]
+                            } for s in result.signals
+                        ],
+                        "correlated_app_logs": len(correlated_logs_for_test),
+                        "correlation_method": correlation_method if correlation_method != "none" else None
+                    }
+                    enriched_tests.append(enriched_test)
+                
+                # Calculate average confidence
+                if correlation_summary["total_correlated"] > 0:
+                    correlation_summary["avg_confidence"] = total_confidence / correlation_summary["total_correlated"]
+                
+                return {
+                    "analyzed": True,
+                    "data": data,
+                    "intelligence_summary": {
+                        "classifications": classifications,
+                        "signals": signals_summary,
+                        "recommendations": list(recommendations)
+                    },
+                    "top_failures": top_failures,
+                    "enriched_tests": enriched_tests,
+                    "correlation_summary": correlation_summary,
+                    "correlated_app_errors": correlated_app_errors[:10]  # Top 10
+                }
+                
+            except Exception as e:
+                logger.error(f"Correlation analysis failed: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail=f"Correlation analysis failed: {str(e)}")
+    
     async def start(self):
         """Start the API server"""
         logger.info(f"Starting Sidecar API server on {self.host}:{self.port}")
