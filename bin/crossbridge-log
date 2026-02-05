@@ -313,9 +313,11 @@ enrich_with_intelligence() {
     
     # Call sidecar's analyze endpoint to add classification and signals
     # This leverages ExecutionAnalyzer, signal extraction, and code resolution
-    local enriched=$(curl -s -X POST "${SIDECAR_URL}/analyze" \
+    # Use stdin to avoid "Argument list too long" error with large payloads
+    local enriched=$(echo "{\"data\": $data, \"framework\": \"$FRAMEWORK\", \"workspace_root\": \"$(pwd)\"}" | \
+        curl -s -X POST "${SIDECAR_URL}/analyze" \
         -H "Content-Type: application/json" \
-        -d "{\"data\": $data, \"framework\": \"$FRAMEWORK\", \"workspace_root\": \"$(pwd)\"}" 2>&1)
+        --data-binary @- 2>&1)
     
     # Check if we got a valid response
     if ! echo "$enriched" | jq empty 2>/dev/null; then
