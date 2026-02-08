@@ -41,7 +41,7 @@ from core.execution.intelligence.models import FailureType
 
 # Import AI components
 from core.ai.license import LicenseValidator, get_cost_estimate, format_cost_summary
-from core.ai.providers import OpenAIProvider, AnthropicProvider
+from core.ai.providers import OpenAIProvider, AnthropicProvider, OllamaProvider
 from core.ai.models import AIMessage, ModelConfig, AIExecutionContext, TokenUsage
 
 logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
@@ -1058,12 +1058,20 @@ class SidecarAPIServer:
                             # Get self-hosted AI config from cached credentials
                             config = self._get_selfhosted_ai_config()
                             if config:
-                                # For self-hosted, we need a custom provider (placeholder for now)
-                                logger.info(f"Self-hosted AI configured: {config['endpoint_url']} with model {config['model_name']}")
-                                # TODO: Implement self-hosted AI provider class
-                                # For now, just log and continue without AI
-                                logger.warning("Self-hosted AI provider not yet implemented - skipping AI analysis")
-                                enable_ai = False
+                                endpoint_url = config['endpoint_url']
+                                model_name = config['model_name'] or ai_model
+                                
+                                logger.info(f"Self-hosted AI configured: {endpoint_url} with model {model_name}")
+                                
+                                # Initialize Ollama provider (works with Ollama, LM Studio, etc.)
+                                ai_provider_instance = OllamaProvider({
+                                    "base_url": endpoint_url,
+                                    "model": model_name
+                                })
+                                
+                                # Override ai_model with configured model
+                                ai_model = model_name
+                                logger.info(f"Self-hosted AI provider initialized: {endpoint_url} with model {model_name}")
                             else:
                                 logger.error("Self-hosted AI provider selected but no configuration found")
                                 enable_ai = False
