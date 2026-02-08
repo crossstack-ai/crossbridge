@@ -11,7 +11,6 @@ from rich.table import Table
 
 from core.sidecar.observer import SidecarObserver
 from core.sidecar.sampler import Sampler
-from core.config.manager import ConfigManager
 from services.sidecar_api import SidecarAPIServer
 from services.sidecar_client import create_remote_client_from_env
 from cli.branding import show_branding
@@ -57,7 +56,6 @@ def start_sidecar(
         
         try:
             # Initialize components
-            config_manager = ConfigManager.from_file(config_file) if config_file else ConfigManager()
             sampler = Sampler(sample_rate=1.0)  # Sample all events
             observer = SidecarObserver(sampler=sampler)
             
@@ -67,7 +65,6 @@ def start_sidecar(
             # Start API server
             api_server = SidecarAPIServer(
                 observer=observer,
-                config_manager=config_manager,
                 host=host,
                 port=port
             )
