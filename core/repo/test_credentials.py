@@ -540,18 +540,27 @@ def list_cached_test_creds():
         print("=" * 50)
         for cred in ai_creds:
             print(f"  {cred.provider.upper()}:")
-            print(f"    API Key: {mask_token(cred.token)}")
+            if cred.token:
+                print(f"    API Key: {mask_token(cred.token)}")
+            if cred.url:
+                print(f"    🌐 Endpoint: {cred.url}")
+            if cred.source_branch:
+                print(f"    🤖 Model: {cred.source_branch}")
 
 
 def cache_ai_credentials(provider: Optional[str] = None,
                         api_key: Optional[str] = None,
+                        endpoint_url: Optional[str] = None,
+                        model_name: Optional[str] = None,
                         force_prompt: bool = False) -> Tuple[str, str]:
     """
-    Cache AI provider credentials (OpenAI/Anthropic) for reuse.
+    Cache AI provider credentials (OpenAI/Anthropic/Self-Hosted) for reuse.
     
     Args:
-        provider: AI provider ('openai' or 'anthropic')
-        api_key: API key for the provider
+        provider: AI provider ('openai', 'anthropic', or 'selfhosted')
+        api_key: API key for the provider (optional for self-hosted)
+        endpoint_url: Endpoint URL for self-hosted AI (e.g., http://localhost:11434)
+        model_name: Model name for self-hosted AI (e.g., deepseek-coder:6.7b)
         force_prompt: If True, always prompt even if credentials cached
         
     Returns:
@@ -559,6 +568,7 @@ def cache_ai_credentials(provider: Optional[str] = None,
         
     Example:
         cache_ai_credentials(provider="openai", api_key="sk-...")
+        cache_ai_credentials(provider="selfhosted", endpoint_url="http://localhost:11434", model_name="llama2")
         cache_ai_credentials(force_prompt=True)  # Interactive
     """
     manager = _get_test_creds_manager()
@@ -566,22 +576,33 @@ def cache_ai_credentials(provider: Optional[str] = None,
     # If no credential manager, use environment variables only
     if not manager:
         if provider is None:
-            provider = input("AI Provider (openai/anthropic): ").strip().lower()
+            provider = input("AI Provider (openai/anthropic/selfhosted): ").strip().lower()
         
-        if api_key is None:
-            import getpass
-            api_key = getpass.getpass(f"{provider.title()} API key: ").strip()
+        if provider == "selfhosted":
+            if endpoint_url is None:
+                endpoint_url = input("AI endpoint URL: ").strip()
+            if api_key is None:
+                import getpass
+                api_key = getpass.getpass("API Key (optional, press Enter to skip): ").strip() or ""
+            if model_name is None:
+                model_name = input("Model name (e.g., gpt-3.5-turbo, custom-model) (gpt-3.5-turbo): ").strip() or "gpt-3.5-turbo"
+            print(f"✅ Using self-hosted AI at {endpoint_url}")
+        else:
+            if api_key is None:
+                import getpass
+                api_key = getpass.getpass(f"{provider.title()} API key: ").strip()
+            
+            # Set environment variable
+            env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
+            os.environ[env_var] = api_key
+            
+            print(f"✅ Using {provider} credentials")
         
-        # Set environment variable
-        env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
-        os.environ[env_var] = api_key
-        
-        print(f"✅ Using {provider} credentials")
         print("💡 Install 'cryptography' for secure credential caching: pip install cryptography")
-        return provider, api_key
+        return provider, api_key or ""
     
     # Check if credentials already cached (unless forcing prompt)
-    if not force_prompt:
+    if not force_prompt and provider:
         manager._load_credentials()
         for key, cred in manager._credentials.items():
             if cred.provider == provider and cred.repo == "_ai_cache_":
@@ -589,16 +610,69 @@ def cache_ai_credentials(provider: Optional[str] = None,
                     # New API key provided - update it
                     break
                 print(f"✅ Using cached {provider} credentials")
+                if cred.url:
+                    print(f"   Endpoint: {cred.url}")
+                if cred.source_branch:
+                    print(f"   Model: {cred.source_branch}")
                 return provider, cred.token
     
     # Prompt for credentials if needed
     if provider is None:
         print("\n🤖 Select AI Provider:")
-        print("  1. OpenAI (GPT-4, GPT-3.5)")
-        print("  2. Anthropic (Claude)")
-        choice = input("Choice (1/2): ").strip()
-        provider = "openai" if choice == "1" else "anthropic"
+        print("  [1] OpenAI (GPT-4, GPT-3.5)")
+        print("  [2] Anthropic (Claude)")
+        print("  [3] On-Premises / Self-Hosted")
+        print("  [4] Disabled")
+        choice = input("\nEnter choice [1–4] (default: 1) [1/2/3/4] (1): ").strip() or "1"
+        
+        if choice == "1":
+            provider = "openai"
+        elif choice == "2":
+            provider = "anthropic"
+        elif choice == "3":
+            provider = "selfhosted"
+        elif choice == "4":
+            print("✅ AI features disabled")
+            return "disabled", ""
+        else:
+            provider = "openai"  # default
     
+    # Handle self-hosted setup
+    if provider == "selfhosted":
+        if endpoint_url is None:
+            endpoint_url = input("AI endpoint URL: ").strip()
+        
+        if api_key is None:
+            import getpass
+            api_key = getpass.getpass("API Key (optional, press Enter to skip): ").strip() or ""
+        
+        if model_name is None:
+            default_model = "gpt-3.5-turbo"
+            model_input = input(f"Model name (e.g., gpt-3.5-turbo, custom-model) ({default_model}): ").strip()
+            model_name = model_input or default_model
+        
+        # Store self-hosted credentials
+        cred = RepoCredential(
+            provider=provider,
+            owner="_ai_",
+            repo="_ai_cache_",
+            token=api_key,
+            url=endpoint_url,
+            source_branch=model_name  # Store model name in source_branch field
+        )
+        
+        manager.store(cred)
+        
+        print(f"✅ Self-hosted AI credentials cached successfully!")
+        print(f"   Endpoint: {endpoint_url}")
+        print(f"   Model: {model_name}")
+        if api_key:
+            print(f"   API Key: {'*' * len(api_key)}")
+        print(f"   Stored securely in: {manager.credentials_file}")
+        
+        return provider, api_key
+    
+    # Handle cloud providers (OpenAI/Anthropic)
     if api_key is None:
         import getpass
         print(f"\n🔑 Enter {provider.title()} API Key:")
@@ -633,22 +707,25 @@ def get_ai_credentials(provider: str, auto_cache: bool = True) -> Optional[str]:
     Get AI provider credentials from cache or environment.
     
     Args:
-        provider: AI provider ('openai' or 'anthropic')
+        provider: AI provider ('openai', 'anthropic', or 'selfhosted')
         auto_cache: If True and not cached, prompt to cache
         
     Returns:
         API key or None if not found
+        For self-hosted providers, returns empty string if no API key was set
         
     Example:
         api_key = get_ai_credentials('openai')
+        api_key = get_ai_credentials('selfhosted')
     """
     manager = _get_test_creds_manager()
     
-    # Try environment variable first
-    env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
-    env_key = os.getenv(env_var)
-    if env_key:
-        return env_key
+    # Try environment variable first (for cloud providers only)
+    if provider in ["openai", "anthropic"]:
+        env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
+        env_key = os.getenv(env_var)
+        if env_key:
+            return env_key
     
     if not manager:
         return None
@@ -657,8 +734,11 @@ def get_ai_credentials(provider: str, auto_cache: bool = True) -> Optional[str]:
     manager._load_credentials()
     for key, cred in manager._credentials.items():
         if cred.provider == provider and cred.repo == "_ai_cache_":
-            # Set environment variable for compatibility
-            os.environ[env_var] = cred.token
+            # Set environment variable for compatibility (cloud providers only)
+            if provider == "openai":
+                os.environ["OPENAI_API_KEY"] = cred.token
+            elif provider == "anthropic":
+                os.environ["ANTHROPIC_API_KEY"] = cred.token
             return cred.token
     
     # Not found - prompt to cache if auto_cache enabled
@@ -672,12 +752,47 @@ def get_ai_credentials(provider: str, auto_cache: bool = True) -> Optional[str]:
     return None
 
 
+def get_selfhosted_ai_config(provider: str = "selfhosted") -> Optional[dict]:
+    """
+    Get self-hosted AI configuration including endpoint URL and model name.
+    
+    Args:
+        provider: Provider name (default: 'selfhosted')
+        
+    Returns:
+        Dict with 'endpoint_url', 'model_name', and 'api_key' or None if not found
+        
+    Example:
+        config = get_selfhosted_ai_config()
+        if config:
+            print(f"Endpoint: {config['endpoint_url']}")
+            print(f"Model: {config['model_name']}")
+            print(f"API Key: {config['api_key']}")
+    """
+    manager = _get_test_creds_manager()
+    
+    if not manager:
+        return None
+    
+    # Try cached credentials
+    manager._load_credentials()
+    for key, cred in manager._credentials.items():
+        if cred.provider == provider and cred.repo == "_ai_cache_":
+            return {
+                'endpoint_url': cred.url or '',
+                'model_name': cred.source_branch or 'gpt-3.5-turbo',
+                'api_key': cred.token or ''
+            }
+    
+    return None
+
+
 def clear_ai_credentials(provider: Optional[str] = None) -> bool:
     """
     Clear cached AI credentials.
     
     Args:
-        provider: Specific provider to clear ('openai'/'anthropic'), or None for all
+        provider: Specific provider to clear ('openai'/'anthropic'/'selfhosted'), or None for all
         
     Returns:
         True if credentials were cleared, False if none found

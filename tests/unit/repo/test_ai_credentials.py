@@ -18,6 +18,7 @@ from pathlib import Path
 from core.repo.test_credentials import (
     cache_ai_credentials,
     get_ai_credentials,
+    get_selfhosted_ai_config,
     clear_ai_credentials,
     list_cached_test_creds,
     _get_test_creds_manager,
@@ -506,6 +507,161 @@ class TestIntegrationScenarios:
         
         assert openai_after is None
         assert anthropic_after == "sk-anthropic-key"
+
+
+class TestSelfHostedAI:
+    """Tests for self-hosted AI credential functionality."""
+    
+    def test_cache_selfhosted_with_all_params(self, mock_credential_manager):
+        """Test caching self-hosted AI with all parameters."""
+        provider, api_key = cache_ai_credentials(
+            provider="selfhosted",
+            api_key="custom-api-key",
+            endpoint_url="http://10.60.75.145:11434",
+            model_name="deepseek-coder:6.7b",
+            force_prompt=False
+        )
+        
+        assert provider == "selfhosted"
+        assert api_key == "custom-api-key"
+        
+        # Verify it was stored with correct fields
+        mock_credential_manager._load_credentials()
+        found = False
+        for cred in mock_credential_manager._credentials.values():
+            if cred.provider == "selfhosted" and cred.repo == "_ai_cache_":
+                found = True
+                assert cred.token == "custom-api-key"
+                assert cred.url == "http://10.60.75.145:11434"
+                assert cred.source_branch == "deepseek-coder:6.7b"
+                break
+        assert found, "Self-hosted credentials not found in manager"
+    
+    def test_cache_selfhosted_without_api_key(self, mock_credential_manager):
+        """Test caching self-hosted AI without API key (optional)."""
+        provider, api_key = cache_ai_credentials(
+            provider="selfhosted",
+            api_key="",
+            endpoint_url="http://localhost:11434",
+            model_name="llama2",
+            force_prompt=False
+        )
+        
+        assert provider == "selfhosted"
+        assert api_key == ""
+        
+        # Verify it was stored
+        mock_credential_manager._load_credentials()
+        found = False
+        for cred in mock_credential_manager._credentials.values():
+            if cred.provider == "selfhosted":
+                found = True
+                assert cred.token == ""
+                assert cred.url == "http://localhost:11434"
+                assert cred.source_branch == "llama2"
+                break
+        assert found
+    
+    def test_get_selfhosted_ai_config(self, mock_credential_manager):
+        """Test retrieving self-hosted AI configuration."""
+        from core.repo.test_credentials import get_selfhosted_ai_config
+        
+        # Cache self-hosted credentials
+        cache_ai_credentials(
+            provider="selfhosted",
+            api_key="test-key",
+            endpoint_url="http://192.168.1.100:8000",
+            model_name="custom-model-v1",
+            force_prompt=False
+        )
+        
+        # Retrieve config
+        config = get_selfhosted_ai_config()
+        
+        assert config is not None
+        assert config['endpoint_url'] == "http://192.168.1.100:8000"
+        assert config['model_name'] == "custom-model-v1"
+        assert config['api_key'] == "test-key"
+    
+    def test_get_selfhosted_ai_config_not_found(self, mock_credential_manager):
+        """Test get_selfhosted_ai_config when no credentials cached."""
+        from core.repo.test_credentials import get_selfhosted_ai_config
+        
+        config = get_selfhosted_ai_config()
+        assert config is None
+    
+    def test_clear_selfhosted_credentials(self, mock_credential_manager):
+        """Test clearing self-hosted AI credentials."""
+        # Cache self-hosted credentials
+        cache_ai_credentials(
+            provider="selfhosted",
+            api_key="key-to-clear",
+            endpoint_url="http://example.com:1234",
+            model_name="test-model",
+            force_prompt=False
+        )
+        
+        # Clear them
+        result = clear_ai_credentials("selfhosted")
+        assert result is True
+        
+        # Verify they're gone
+        from core.repo.test_credentials import get_selfhosted_ai_config
+        config = get_selfhosted_ai_config()
+        assert config is None
+    
+    def test_list_shows_selfhosted_details(self, mock_credential_manager, capsys):
+        """Test that list_cached_test_creds shows self-hosted AI details."""
+        # Cache self-hosted credentials
+        cache_ai_credentials(
+            provider="selfhosted",
+            api_key="display-key",
+            endpoint_url="http://ai.local:5000",
+            model_name="gpt-local",
+            force_prompt=False
+        )
+        
+        # List credentials
+        list_cached_test_creds()
+        
+        captured = capsys.readouterr()
+        output = captured.out
+        
+        # Verify self-hosted details are shown
+        assert "SELFHOSTED" in output
+        assert "http://ai.local:5000" in output
+        assert "gpt-local" in output
+    
+    def test_get_ai_credentials_with_selfhosted(self, mock_credential_manager):
+        """Test get_ai_credentials works with selfhosted provider."""
+        # Cache self-hosted credentials
+        cache_ai_credentials(
+            provider="selfhosted",
+            api_key="selfhosted-key",
+            endpoint_url="http://localhost:8080",
+            model_name="model-x",
+            force_prompt=False
+        )
+        
+        # Retrieve using get_ai_credentials
+        api_key = get_ai_credentials("selfhosted", auto_cache=False)
+        
+        assert api_key == "selfhosted-key"
+    
+    def test_selfhosted_with_empty_api_key_retrieval(self, mock_credential_manager):
+        """Test retrieving self-hosted credentials with empty API key."""
+        # Cache with no API key
+        cache_ai_credentials(
+            provider="selfhosted",
+            api_key="",
+            endpoint_url="http://ollama:11434",
+            model_name="mistral",
+            force_prompt=False
+        )
+        
+        # Should return empty string, not None
+        api_key = get_ai_credentials("selfhosted", auto_cache=False)
+        assert api_key == ""
 
 
 if __name__ == "__main__":

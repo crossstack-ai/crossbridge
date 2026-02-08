@@ -794,36 +794,74 @@ def test_credentials(
         console.print("\n[1] OpenAI (GPT-4, GPT-3.5-turbo)")
         console.print("    • Get your key at: https://platform.openai.com/api-keys")
         console.print("[2] Anthropic (Claude)")
-        console.print("    • Get your key at: https://console.anthropic.com/\n")
+        console.print("    • Get your key at: https://console.anthropic.com/")
+        console.print("[3] On-Premises / Self-Hosted")
+        console.print("    • Local or custom AI endpoint (e.g., Ollama, LM Studio)")
+        console.print("[4] Disabled\n")
         
         choice = Prompt.ask(
-            "Enter choice [1-2] (default: 1)",
-            choices=["1", "2"],
+            "Enter choice [1–4] (default: 1) [1/2/3/4]",
+            choices=["1", "2", "3", "4"],
             default="1",
             show_choices=False
         )
         
-        provider = "openai" if choice == "1" else "anthropic"
+        if choice == "4":
+            console.print("\n[bold yellow]✓ AI features disabled[/bold yellow]")
+            return
         
-        # Ask for API key
-        api_key = Prompt.ask(f"[bold]{provider.title()} API Key[/bold]", password=True)
+        provider = "openai" if choice == "1" else "anthropic" if choice == "2" else "selfhosted"
         
-        try:
-            cached_provider, cached_key = cache_ai_credentials(
-                provider=provider,
-                api_key=api_key,
-                force_prompt=False
+        # Handle self-hosted setup
+        if provider == "selfhosted":
+            endpoint_url = Prompt.ask("[bold]AI endpoint URL[/bold]")
+            api_key = Prompt.ask("[bold]API Key[/bold] (optional, press Enter to skip)", password=True, default="")
+            model_name = Prompt.ask(
+                "[bold]Model name[/bold] (e.g., gpt-3.5-turbo, custom-model)",
+                default="gpt-3.5-turbo"
             )
             
-            console.print("\n[bold green]✓ AI credentials cached successfully![/bold green]\n")
-            console.print("[bold]Cached values:[/bold]")
-            console.print(f"  Provider: {cached_provider.upper()}")
-            console.print(f"  API Key:  {mask_token(cached_key)}")
-            console.print("\n[dim]These credentials will be available for AI-powered workflows[/dim]")
+            try:
+                cached_provider, cached_key = cache_ai_credentials(
+                    provider=provider,
+                    api_key=api_key or "",
+                    endpoint_url=endpoint_url,
+                    model_name=model_name,
+                    force_prompt=False
+                )
+                
+                console.print("\n[bold green]✓ Self-hosted AI credentials cached successfully![/bold green]\n")
+                console.print("[bold]Cached values:[/bold]")
+                console.print(f"  Provider: {cached_provider.upper()}")
+                console.print(f"  Endpoint: {endpoint_url}")
+                console.print(f"  Model:    {model_name}")
+                if cached_key:
+                    console.print(f"  API Key:  {mask_token(cached_key)}")
+                console.print("\n[dim]These credentials will be available for AI-powered workflows[/dim]")
+                
+            except Exception as e:
+                console.print(f"\n[bold red]✗ Error caching self-hosted AI credentials:[/bold red] {e}")
+                raise typer.Exit(1)
+        else:
+            # Handle cloud providers (OpenAI/Anthropic)
+            api_key = Prompt.ask(f"[bold]{provider.title()} API Key[/bold]", password=True)
             
-        except Exception as e:
-            console.print(f"\n[bold red]✗ Error caching AI credentials:[/bold red] {e}")
-            raise typer.Exit(1)
+            try:
+                cached_provider, cached_key = cache_ai_credentials(
+                    provider=provider,
+                    api_key=api_key,
+                    force_prompt=False
+                )
+                
+                console.print("\n[bold green]✓ AI credentials cached successfully![/bold green]\n")
+                console.print("[bold]Cached values:[/bold]")
+                console.print(f"  Provider: {cached_provider.upper()}")
+                console.print(f"  API Key:  {mask_token(cached_key)}")
+                console.print("\n[dim]These credentials will be available for AI-powered workflows[/dim]")
+                
+            except Exception as e:
+                console.print(f"\n[bold red]✗ Error caching AI credentials:[/bold red] {e}")
+                raise typer.Exit(1)
     
     elif action == "list":
         console.print("\n[bold cyan]═══ Cached Credentials ═══[/bold cyan]\n")
@@ -838,7 +876,7 @@ def test_credentials(
             console.print("\n[bold cyan]═══ Select Platform ═══[/bold cyan]")
             platform = Prompt.ask(
                 "[bold]Platform to clear[/bold]",
-                choices=["bitbucket", "github", "openai", "anthropic", "all-ai", "all"],
+                choices=["bitbucket", "github", "openai", "anthropic", "selfhosted", "all-ai", "all"],
                 default="bitbucket"
             )
         
@@ -866,6 +904,11 @@ def test_credentials(
                     console.print("\n[bold green]✓ Anthropic credentials cleared[/bold green]")
                 else:
                     console.print("\n[yellow]No Anthropic credentials found[/yellow]")
+            elif platform == "selfhosted":
+                if clear_ai_credentials("selfhosted"):
+                    console.print("\n[bold green]✓ Self-hosted AI credentials cleared[/bold green]")
+                else:
+                    console.print("\n[yellow]No self-hosted AI credentials found[/yellow]")
             elif platform == "bitbucket":
                 if clear_test_bitbucket_creds():
                     console.print("\n[bold green]✓ BitBucket credentials cleared[/bold green]")
@@ -882,20 +925,34 @@ def test_credentials(
     
     elif action == "test":
         # Ask for platform if not provided
-        from core.repo.test_credentials import get_ai_credentials
+        from core.repo.test_credentials import get_ai_credentials, get_selfhosted_ai_config
         
         if not platform:
             console.print("\n[bold cyan]═══ Select Platform ═══[/bold cyan]")
             platform = Prompt.ask(
                 "[bold]Platform to test[/bold]",
-                choices=["bitbucket", "github", "openai", "anthropic"],
+                choices=["bitbucket", "github", "openai", "anthropic", "selfhosted"],
                 default="bitbucket"
             )
         
         console.print(f"\n[bold cyan]═══ Testing {platform.title()} Credentials ═══[/bold cyan]\n")
         
         try:
-            if platform in ["openai", "anthropic"]:
+            if platform == "selfhosted":
+                # Test self-hosted AI credentials
+                config = get_selfhosted_ai_config()
+                if config:
+                    console.print("[bold green]✓ Cached self-hosted AI configuration found:[/bold green]")
+                    console.print(f"  Provider: SELFHOSTED")
+                    console.print(f"  Endpoint: {config['endpoint_url']}")
+                    console.print(f"  Model:    {config['model_name']}")
+                    if config['api_key']:
+                        console.print(f"  API Key:  {mask_token(config['api_key'])}")
+                    console.print("\n[dim]Note: Connection test not implemented (credentials retrieved successfully)[/dim]")
+                else:
+                    console.print(f"[yellow]No cached self-hosted AI credentials found[/yellow]")
+                    console.print("[dim]Use menu option 2 to cache AI credentials[/dim]")
+            elif platform in ["openai", "anthropic"]:
                 # Test AI credentials
                 api_key = get_ai_credentials(platform, auto_cache=False)
                 if api_key:
