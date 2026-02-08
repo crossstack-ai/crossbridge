@@ -124,12 +124,16 @@ class LicenseValidator:
         Validate AI license for a specific provider and feature.
         
         Args:
-            provider: AI provider (openai, anthropic, azure)
+            provider: AI provider (openai, anthropic, azure, selfhosted)
             feature: Feature name (log_analysis, transformation, etc.)
         
         Returns:
             Tuple of (is_valid, message, license)
         """
+        # Self-hosted AI doesn't require a license
+        if provider.lower() == "selfhosted":
+            return True, "Self-hosted AI - no license required", None
+        
         license = self.load_license()
         
         # No license found

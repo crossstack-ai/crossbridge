@@ -982,8 +982,17 @@ class SidecarAPIServer:
                 
                 # AI parameters
                 enable_ai = body.get("enable_ai", False)
-                ai_provider = body.get("ai_provider", "openai")
-                ai_model = body.get("ai_model", "gpt-3.5-turbo")
+                ai_provider = body.get("ai_provider")
+                ai_model = body.get("ai_model")
+                
+                # Auto-detect AI provider from cached credentials if not specified
+                if enable_ai and not ai_provider:
+                    ai_provider = self._detect_configured_ai_provider()
+                    if not ai_provider:
+                        ai_provider = "openai"  # fallback
+                
+                if not ai_model:
+                    ai_model = "gpt-3.5-turbo"  # default model
                 
                 # AI tracking variables
                 ai_token_usage = None
@@ -994,8 +1003,8 @@ class SidecarAPIServer:
                     self._analyzer.workspace_root = workspace_root
                     self._analyzer.resolver.workspace_root = workspace_root
                 
-                # Validate AI license if AI is enabled
-                if enable_ai:
+                # Validate AI license if AI is enabled (skip for self-hosted)
+                if enable_ai and ai_provider.lower() != "selfhosted":
                     validator = LicenseValidator()
                     is_valid, message, license = validator.validate_license(ai_provider, "log_analysis")
                     if not is_valid:
@@ -1045,13 +1054,28 @@ class SidecarAPIServer:
                 
                 if enable_ai:
                     try:
-                        if ai_provider.lower() == "openai":
+                        if ai_provider.lower() == "selfhosted":
+                            # Get self-hosted AI config from cached credentials
+                            config = self._get_selfhosted_ai_config()
+                            if config:
+                                # For self-hosted, we need a custom provider (placeholder for now)
+                                logger.info(f"Self-hosted AI configured: {config['endpoint_url']} with model {config['model_name']}")
+                                # TODO: Implement self-hosted AI provider class
+                                # For now, just log and continue without AI
+                                logger.warning("Self-hosted AI provider not yet implemented - skipping AI analysis")
+                                enable_ai = False
+                            else:
+                                logger.error("Self-hosted AI provider selected but no configuration found")
+                                enable_ai = False
+                        elif ai_provider.lower() == "openai":
                             ai_provider_instance = OpenAIProvider({"api_key": license.customer_id})  # Using customer_id as API key for demo
                         elif ai_provider.lower() == "anthropic":
                             ai_provider_instance = AnthropicProvider({"api_key": license.customer_id})
                         else:
                             raise ValueError(f"Unsupported AI provider: {ai_provider}")
-                        logger.info(f"AI provider initialized: {ai_provider} with model {ai_model}")
+                        
+                        if ai_provider_instance:
+                            logger.info(f"AI provider initialized: {ai_provider} with model {ai_model}")
                     except Exception as e:
                         logger.error(f"Failed to initialize AI provider: {e}")
                         enable_ai = False  # Disable AI on initialization failure
@@ -1222,6 +1246,49 @@ Keep response concise (max 200 words)."""
             except Exception as e:
                 logger.error(f"Analysis failed: {e}")
                 raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+    
+    def _detect_configured_ai_provider(self) -> Optional[str]:
+        """
+        Detect which AI provider is configured in cached credentials.
+        
+        Returns:
+            Provider name (selfhosted, openai, anthropic) or None
+        """
+        try:
+            from core.repo.test_credentials import _get_test_creds_manager
+            
+            manager = _get_test_creds_manager()
+            if not manager:
+                return None
+            
+            # Check for cached AI credentials
+            manager._load_credentials()
+            for key, cred in manager._credentials.items():
+                if cred.repo == "_ai_cache_":
+                    # Return the configured provider
+                    logger.info(f"Detected cached AI provider: {cred.provider}")
+                    return cred.provider
+            
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to detect AI provider from cache: {e}")
+            return None
+    
+    def _get_selfhosted_ai_config(self) -> Optional[dict]:
+        """
+        Get self-hosted AI configuration from cached credentials.
+        
+        Returns:
+            Dict with endpoint_url, model_name, api_key or None
+        """
+        try:
+            from core.repo.test_credentials import get_selfhosted_ai_config
+            
+            config = get_selfhosted_ai_config()
+            return config
+        except Exception as e:
+            logger.warning(f"Failed to get self-hosted AI config: {e}")
+            return None
     
     def _extract_failed_tests(self, data: dict, framework: str) -> List[dict]:
         """Extract failed tests from parsed log data"""
