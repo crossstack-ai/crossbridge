@@ -114,8 +114,9 @@ def main_menu(ctx: typer.Context):
     console.print("    • Migrate AND transform in one operation")
     console.print("    • End-to-end conversion with enhancements\n")
     
-    console.print("[4] [yellow]Test Credentials[/yellow] - Manage cached credentials")
+    console.print("[4] [yellow]Add & Verify Credentials[/yellow] - Manage credentials")
     console.print("    • Cache repository credentials")
+    console.print("    • Add AI provider credentials (OpenAI/Anthropic)")
     console.print("    • View/Clear cached data\n")
     
     console.print("[5] [red]Exit[/red]\n")
@@ -508,25 +509,30 @@ def version():
 
 @app.command("test-creds")
 def test_credentials(
-    action: Optional[str] = typer.Option(None, "--action", help="Action: cache, list, clear, or test"),
-    platform: Optional[str] = typer.Option(None, "--platform", help="Platform: bitbucket or github"),
+    action: Optional[str] = typer.Option(None, "--action", help="Action: cache, cache-ai, list, clear, or test"),
+    platform: Optional[str] = typer.Option(None, "--platform", help="Platform: bitbucket, github, openai, or anthropic"),
     username: Optional[str] = typer.Option(None, "--username", help="Username/email"),
     token: Optional[str] = typer.Option(None, "--token", help="Access token/password"),
     repo_url: Optional[str] = typer.Option(None, "--repo-url", help="Repository URL")
 ):
     """
-    Manage test mode credentials caching (BitBucket/GitHub).
+    Add & Verify Credentials - Manage repository and AI credentials caching.
     
     Cache credentials to avoid repeated entry during local testing.
     Credentials are encrypted using AES-128 (Fernet) and stored securely.
     
     ⚠️  FOR TEST/DEVELOPMENT USE ONLY - NOT FOR PRODUCTION
     
+    Supports:
+    - Repository credentials (BitBucket/GitHub)
+    - AI provider credentials (OpenAI/Anthropic)
+    
     Examples:
         crossbridge test-creds --action cache --platform bitbucket
+        crossbridge test-creds --action cache-ai --platform openai
         crossbridge test-creds --action list
-        crossbridge test-creds --action clear --platform bitbucket
-        crossbridge test-creds --action test --platform bitbucket
+        crossbridge test-creds --action clear --platform openai
+        crossbridge test-creds --action test --platform anthropic
     """
     from rich.console import Console
     from rich.prompt import Prompt, Confirm
@@ -562,28 +568,33 @@ def test_credentials(
     
     # Interactive menu if no action specified
     if not action:
-        console.print("\n[cyan]═══ Test Credentials Management ═══[/cyan]")
+        console.print("\n[cyan]═══ Add & Verify Credentials ═══[/cyan]")
         console.print("[yellow]⚠️  FOR TEST/DEVELOPMENT USE ONLY[/yellow]")
         console.print("[dim]Securely cache credentials to avoid repeated entry during local testing[/dim]\n")
         
         console.print("[cyan]Available Actions:[/cyan]")
-        console.print("\n[1] [green]Cache[/green] - Store repository credentials")
+        console.print("\n[1] [green]Cache Repository Credentials[/green]")
+        console.print("    • Store repository credentials (BitBucket/GitHub)")
         console.print("    • Securely encrypt and save credentials")
         console.print("    • Auto-fill in future test runs\n")
-        console.print("[2] [cyan]List[/cyan] - View cached credentials")
+        console.print("[2] [magenta]Cache AI Credentials[/magenta]")
+        console.print("    • Store AI provider credentials (OpenAI/Anthropic)")
+        console.print("    • Available for AI-powered workflows")
+        console.print("    • Securely encrypted storage\n")
+        console.print("[3] [cyan]List[/cyan] - View cached credentials")
         console.print("    • Display masked credentials")
         console.print("    • Show which repositories are cached\n")
-        console.print("[3] [yellow]Clear[/yellow] - Remove cached credentials")
+        console.print("[4] [yellow]Clear[/yellow] - Remove cached credentials")
         console.print("    • Delete stored credentials")
         console.print("    • Select by platform\n")
-        console.print("[4] [blue]Test[/blue] - Test cached credential connection")
+        console.print("[5] [blue]Test[/blue] - Test cached credential connection")
         console.print("    • Verify credentials still work")
         console.print("    • Test repository access\n")
-        console.print("[5] [red]Exit[/red]\n")
+        console.print("[6] [red]Exit[/red]\n")
         
         choice = Prompt.ask(
-            "Enter choice [1–5] (default: 1)",
-            choices=["1", "2", "3", "4", "5"],
+            "Enter choice [1–6] (default: 1)",
+            choices=["1", "2", "3", "4", "5", "6"],
             default="1",
             show_choices=False
         )
@@ -591,10 +602,12 @@ def test_credentials(
         if choice == "1":
             action = "cache"
         elif choice == "2":
-            action = "list"
+            action = "cache-ai"
         elif choice == "3":
-            action = "clear"
+            action = "list"
         elif choice == "4":
+            action = "clear"
+        elif choice == "5":
             action = "test"
         else:
             console.print("[yellow]Exiting...[/yellow]")
@@ -767,18 +780,65 @@ def test_credentials(
             console.print(f"\n[bold red]✗ Error caching credentials:[/bold red] {e}")
             raise typer.Exit(1)
     
+    elif action == "cache-ai":
+        # Handle AI credential caching
+        from core.repo.test_credentials import cache_ai_credentials
+        
+        console.print("\n[cyan]═══ Cache AI Provider Credentials ═══[/cyan]")
+        console.print("[yellow]⚠️  Credentials will be encrypted using AES-128 (Fernet)[/yellow]")
+        console.print("[dim]Storage: ~/.crossbridge/credentials.enc[/dim]")
+        console.print()
+        
+        # Ask for AI provider
+        console.print("[cyan]Select AI Provider:[/cyan]")
+        console.print("\n[1] OpenAI (GPT-4, GPT-3.5-turbo)")
+        console.print("    • Get your key at: https://platform.openai.com/api-keys")
+        console.print("[2] Anthropic (Claude)")
+        console.print("    • Get your key at: https://console.anthropic.com/\n")
+        
+        choice = Prompt.ask(
+            "Enter choice [1-2] (default: 1)",
+            choices=["1", "2"],
+            default="1",
+            show_choices=False
+        )
+        
+        provider = "openai" if choice == "1" else "anthropic"
+        
+        # Ask for API key
+        api_key = Prompt.ask(f"[bold]{provider.title()} API Key[/bold]", password=True)
+        
+        try:
+            cached_provider, cached_key = cache_ai_credentials(
+                provider=provider,
+                api_key=api_key,
+                force_prompt=False
+            )
+            
+            console.print("\n[bold green]✓ AI credentials cached successfully![/bold green]\n")
+            console.print("[bold]Cached values:[/bold]")
+            console.print(f"  Provider: {cached_provider.upper()}")
+            console.print(f"  API Key:  {mask_token(cached_key)}")
+            console.print("\n[dim]These credentials will be available for AI-powered workflows[/dim]")
+            
+        except Exception as e:
+            console.print(f"\n[bold red]✗ Error caching AI credentials:[/bold red] {e}")
+            raise typer.Exit(1)
+    
     elif action == "list":
-        console.print("\n[bold cyan]═══ Cached Test Credentials ═══[/bold cyan]\n")
+        console.print("\n[bold cyan]═══ Cached Credentials ═══[/bold cyan]\n")
         list_cached_test_creds()
         console.print()
     
     elif action == "clear":
         # Ask for platform if not provided
+        from core.repo.test_credentials import clear_ai_credentials
+        
         if not platform:
             console.print("\n[bold cyan]═══ Select Platform ═══[/bold cyan]")
             platform = Prompt.ask(
                 "[bold]Platform to clear[/bold]",
-                choices=["bitbucket", "github", "all"],
+                choices=["bitbucket", "github", "openai", "anthropic", "all-ai", "all"],
                 default="bitbucket"
             )
         
@@ -791,7 +851,21 @@ def test_credentials(
             if platform == "all":
                 clear_test_bitbucket_creds()
                 clear_test_github_creds()
+                clear_ai_credentials()
                 console.print("\n[bold green]✓ All cached credentials cleared[/bold green]")
+            elif platform == "all-ai":
+                clear_ai_credentials()
+                console.print("\n[bold green]✓ All AI credentials cleared[/bold green]")
+            elif platform == "openai":
+                if clear_ai_credentials("openai"):
+                    console.print("\n[bold green]✓ OpenAI credentials cleared[/bold green]")
+                else:
+                    console.print("\n[yellow]No OpenAI credentials found[/yellow]")
+            elif platform == "anthropic":
+                if clear_ai_credentials("anthropic"):
+                    console.print("\n[bold green]✓ Anthropic credentials cleared[/bold green]")
+                else:
+                    console.print("\n[yellow]No Anthropic credentials found[/yellow]")
             elif platform == "bitbucket":
                 if clear_test_bitbucket_creds():
                     console.print("\n[bold green]✓ BitBucket credentials cleared[/bold green]")
@@ -808,47 +882,68 @@ def test_credentials(
     
     elif action == "test":
         # Ask for platform if not provided
+        from core.repo.test_credentials import get_ai_credentials
+        
         if not platform:
             console.print("\n[bold cyan]═══ Select Platform ═══[/bold cyan]")
             platform = Prompt.ask(
                 "[bold]Platform to test[/bold]",
-                choices=["bitbucket", "github"],
+                choices=["bitbucket", "github", "openai", "anthropic"],
                 default="bitbucket"
             )
         
         console.print(f"\n[bold cyan]═══ Testing {platform.title()} Credentials ═══[/bold cyan]\n")
         
         try:
-            if platform == "bitbucket":
+            if platform in ["openai", "anthropic"]:
+                # Test AI credentials
+                api_key = get_ai_credentials(platform, auto_cache=False)
+                if api_key:
+                    console.print("[bold green]✓ Cached AI credentials found:[/bold green]")
+                    console.print(f"  Provider: {platform.upper()}")
+                    console.print(f"  API Key:  {mask_token(api_key)}")
+                    console.print("\n[dim]Note: Connection test not implemented (credentials retrieved successfully)[/dim]")
+                else:
+                    console.print(f"[yellow]No cached {platform} credentials found[/yellow]")
+                    console.print("[dim]Use menu option 2 to cache AI credentials[/dim]")
+            elif platform == "bitbucket":
                 username, token, repo_url, source_branch, target_branch = get_test_bitbucket_creds(auto_cache=False)
+                if username and token:
+                    console.print("[bold green]✓ Cached credentials found:[/bold green]")
+                    console.print(f"  Username: {mask_username(username)}")
+                    console.print(f"  Token:    {mask_token(token)}")
+                    if repo_url:
+                        console.print(f"  📁 Repository: {repo_url}")
+                    if source_branch:
+                        console.print(f"  🌱 Source Branch: {source_branch}")
+                    if target_branch:
+                        console.print(f"  🌿 Target Branch: {target_branch}")
+                    console.print("\n[dim]Note: Connection test not implemented (credentials retrieved successfully)[/dim]")
+                else:
+                    console.print(f"[yellow]No cached {platform} credentials found[/yellow]")
+                    console.print(f"[dim]Use 'crossbridge test-creds --action cache --platform {platform}' to cache credentials[/dim]")
             else:
                 # GitHub returns (username, token) - no repo_url
                 username, token = get_test_github_creds(auto_cache=False)
                 repo_url = None
                 source_branch = None
                 target_branch = None
-            
-            if username and token:
-                console.print("[bold green]✓ Cached credentials found:[/bold green]")
-                console.print(f"  Username: {mask_username(username)}")
-                console.print(f"  Token:    {mask_token(token)}")
-                if repo_url:
-                    console.print(f"  📁 Repository: {repo_url}")
-                if source_branch:
-                    console.print(f"  🌱 Source Branch: {source_branch}")
-                if target_branch:
-                    console.print(f"  🌿 Target Branch: {target_branch}")
-                console.print("\n[dim]Note: Connection test not implemented (credentials retrieved successfully)[/dim]")
-            else:
-                console.print(f"[yellow]No cached {platform} credentials found[/yellow]")
-                console.print(f"[dim]Use 'crossbridge test-creds --action cache --platform {platform}' to cache credentials[/dim]")
+                
+                if username and token:
+                    console.print("[bold green]✓ Cached credentials found:[/bold green]")
+                    console.print(f"  Username: {mask_username(username)}")
+                    console.print(f"  Token:    {mask_token(token)}")
+                    console.print("\n[dim]Note: Connection test not implemented (credentials retrieved successfully)[/dim]")
+                else:
+                    console.print(f"[yellow]No cached {platform} credentials found[/yellow]")
+                    console.print(f"[dim]Use 'crossbridge test-creds --action cache --platform {platform}' to cache credentials[/dim]")
         except Exception as e:
             console.print(f"\n[bold red]✗ Error testing credentials:[/bold red] {e}")
             raise typer.Exit(1)
     
     else:
         console.print(f"[bold red]✗ Invalid action:[/bold red] {action}")
-        console.print("[dim]Valid actions: cache, list, clear, test[/dim]")
+        console.print("[dim]Valid actions: cache, cache-ai, list, clear, test[/dim]")
         raise typer.Exit(1)
 
 

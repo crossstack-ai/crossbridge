@@ -484,8 +484,13 @@ def list_cached_test_creds():
         if cred.repo == TEST_CREDS_REPO
     ]
     
-    if not test_creds:
-        print("No cached test credentials")
+    ai_creds = [
+        cred for cred in manager._credentials.values()
+        if cred.repo == "_ai_cache_"
+    ]
+    
+    if not test_creds and not ai_creds:
+        print("No cached credentials")
         return
     
     def mask_username(username: str) -> str:
@@ -516,18 +521,190 @@ def list_cached_test_creds():
         else:
             return f"{token[:4]}...{token[-4:]}"
     
-    print("\n🔐 Cached Test Credentials:")
-    print("=" * 50)
-    for cred in test_creds:
-        print(f"  {cred.provider}:")
-        print(f"    Username: {mask_username(cred.owner)}")
-        print(f"    Token:    {mask_token(cred.token)}")
-        if cred.url:
-            print(f"    📁 Repository: {cred.url}")
-        if cred.source_branch:
-            print(f"    🌱 Source Branch: {cred.source_branch}")
-        if cred.target_branch:
-            print(f"    🌿 Target Branch: {cred.target_branch}")
+    if test_creds:
+        print("\n🔐 Cached Repository Credentials:")
+        print("=" * 50)
+        for cred in test_creds:
+            print(f"  {cred.provider}:")
+            print(f"    Username: {mask_username(cred.owner)}")
+            print(f"    Token:    {mask_token(cred.token)}")
+            if cred.url:
+                print(f"    📁 Repository: {cred.url}")
+            if cred.source_branch:
+                print(f"    🌱 Source Branch: {cred.source_branch}")
+            if cred.target_branch:
+                print(f"    🌿 Target Branch: {cred.target_branch}")
+    
+    if ai_creds:
+        print("\n🤖 Cached AI Provider Credentials:")
+        print("=" * 50)
+        for cred in ai_creds:
+            print(f"  {cred.provider.upper()}:")
+            print(f"    API Key: {mask_token(cred.token)}")
+
+
+def cache_ai_credentials(provider: Optional[str] = None,
+                        api_key: Optional[str] = None,
+                        force_prompt: bool = False) -> Tuple[str, str]:
+    """
+    Cache AI provider credentials (OpenAI/Anthropic) for reuse.
+    
+    Args:
+        provider: AI provider ('openai' or 'anthropic')
+        api_key: API key for the provider
+        force_prompt: If True, always prompt even if credentials cached
+        
+    Returns:
+        Tuple of (provider, api_key)
+        
+    Example:
+        cache_ai_credentials(provider="openai", api_key="sk-...")
+        cache_ai_credentials(force_prompt=True)  # Interactive
+    """
+    manager = _get_test_creds_manager()
+    
+    # If no credential manager, use environment variables only
+    if not manager:
+        if provider is None:
+            provider = input("AI Provider (openai/anthropic): ").strip().lower()
+        
+        if api_key is None:
+            import getpass
+            api_key = getpass.getpass(f"{provider.title()} API key: ").strip()
+        
+        # Set environment variable
+        env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
+        os.environ[env_var] = api_key
+        
+        print(f"✅ Using {provider} credentials")
+        print("💡 Install 'cryptography' for secure credential caching: pip install cryptography")
+        return provider, api_key
+    
+    # Check if credentials already cached (unless forcing prompt)
+    if not force_prompt:
+        manager._load_credentials()
+        for key, cred in manager._credentials.items():
+            if cred.provider == provider and cred.repo == "_ai_cache_":
+                if api_key and api_key != cred.token:
+                    # New API key provided - update it
+                    break
+                print(f"✅ Using cached {provider} credentials")
+                return provider, cred.token
+    
+    # Prompt for credentials if needed
+    if provider is None:
+        print("\n🤖 Select AI Provider:")
+        print("  1. OpenAI (GPT-4, GPT-3.5)")
+        print("  2. Anthropic (Claude)")
+        choice = input("Choice (1/2): ").strip()
+        provider = "openai" if choice == "1" else "anthropic"
+    
+    if api_key is None:
+        import getpass
+        print(f"\n🔑 Enter {provider.title()} API Key:")
+        if provider == "openai":
+            print("  Get your key at: https://platform.openai.com/api-keys")
+        else:
+            print("  Get your key at: https://console.anthropic.com/")
+        api_key = getpass.getpass("API Key: ").strip()
+    
+    # Store credentials
+    cred = RepoCredential(
+        provider=provider,
+        owner="_ai_",
+        repo="_ai_cache_",
+        token=api_key
+    )
+    
+    manager.store(cred)
+    
+    # Also set environment variable for immediate use
+    env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
+    os.environ[env_var] = api_key
+    
+    print(f"✅ {provider.title()} credentials cached successfully!")
+    print(f"   Stored securely in: {manager.credentials_file}")
+    
+    return provider, api_key
+
+
+def get_ai_credentials(provider: str, auto_cache: bool = True) -> Optional[str]:
+    """
+    Get AI provider credentials from cache or environment.
+    
+    Args:
+        provider: AI provider ('openai' or 'anthropic')
+        auto_cache: If True and not cached, prompt to cache
+        
+    Returns:
+        API key or None if not found
+        
+    Example:
+        api_key = get_ai_credentials('openai')
+    """
+    manager = _get_test_creds_manager()
+    
+    # Try environment variable first
+    env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
+    env_key = os.getenv(env_var)
+    if env_key:
+        return env_key
+    
+    if not manager:
+        return None
+    
+    # Try cached credentials
+    manager._load_credentials()
+    for key, cred in manager._credentials.items():
+        if cred.provider == provider and cred.repo == "_ai_cache_":
+            # Set environment variable for compatibility
+            os.environ[env_var] = cred.token
+            return cred.token
+    
+    # Not found - prompt to cache if auto_cache enabled
+    if auto_cache:
+        print(f"\n⚠️  No cached {provider} credentials found")
+        response = input(f"Cache {provider} credentials now? (y/n): ").strip().lower()
+        if response == 'y':
+            _, api_key = cache_ai_credentials(provider=provider, force_prompt=True)
+            return api_key
+    
+    return None
+
+
+def clear_ai_credentials(provider: Optional[str] = None) -> bool:
+    """
+    Clear cached AI credentials.
+    
+    Args:
+        provider: Specific provider to clear ('openai'/'anthropic'), or None for all
+        
+    Returns:
+        True if credentials were cleared, False if none found
+    """
+    manager = _get_test_creds_manager()
+    if not manager:
+        return False
+    
+    manager._load_credentials()
+    cleared = False
+    
+    # Find and remove AI credentials
+    keys_to_remove = []
+    for key, cred in manager._credentials.items():
+        if cred.repo == "_ai_cache_":
+            if provider is None or cred.provider == provider:
+                keys_to_remove.append(key)
+                cleared = True
+    
+    for key in keys_to_remove:
+        del manager._credentials[key]
+    
+    if cleared:
+        manager._save_credentials()
+        print(f"✅ Cleared {provider or 'all'} AI credentials")
+    
+    return cleared
 
 
 if __name__ == "__main__":
@@ -539,13 +716,15 @@ if __name__ == "__main__":
     print("\nAvailable commands:")
     print("  1. Cache BitBucket credentials")
     print("  2. Cache GitHub credentials")
-    print("  3. List cached credentials")
-    print("  4. Clear BitBucket credentials")
-    print("  5. Exit")
+    print("  3. Cache AI credentials (OpenAI/Anthropic)")
+    print("  4. List cached credentials")
+    print("  5. Clear BitBucket credentials")
+    print("  6. Clear AI credentials")
+    print("  7. Exit")
     
     while True:
         print("\n" + "=" * 50)
-        choice = input("\nSelect option (1-5): ").strip()
+        choice = input("\nSelect option (1-7): ").strip()
         
         if choice == "1":
             try:
@@ -558,16 +737,29 @@ if __name__ == "__main__":
                 cache_test_github_creds(force_prompt=True)
             except Exception as e:
                 print(f"❌ Error: {e}")
-                
+        
         elif choice == "3":
+            try:
+                cache_ai_credentials(force_prompt=True)
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                
+        elif choice == "4":
             list_cached_test_creds()
             
-        elif choice == "4":
+        elif choice == "5":
             clear_test_bitbucket_creds()
+        
+        elif choice == "6":
+            provider = input("Clear which provider? (openai/anthropic/all): ").strip().lower()
+            if provider == "all":
+                clear_ai_credentials()
+            else:
+                clear_ai_credentials(provider)
             
-        elif choice == "5" or choice.lower() == 'q':
+        elif choice == "7" or choice.lower() == 'q':
             print("\n✅ Goodbye!")
             break
             
         else:
-            print("❌ Invalid option. Please select 1-5.")
+            print("❌ Invalid option. Please select 1-7.")
