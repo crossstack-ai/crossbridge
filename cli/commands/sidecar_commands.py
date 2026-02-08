@@ -13,7 +13,6 @@ from core.sidecar.observer import SidecarObserver
 from core.sidecar.sampler import Sampler
 from services.sidecar_api import SidecarAPIServer
 from services.sidecar_client import create_remote_client_from_env
-from cli.branding import show_branding
 from cli.errors import CrossBridgeError
 
 app = typer.Typer(
@@ -46,8 +45,6 @@ def start_sidecar(
         export CROSSBRIDGE_SIDECAR_HOST=10.60.67.247
         crossbridge sidecar start --mode client --framework pytest
     """
-    show_branding()
-    
     if mode == "observer":
         console.print(f"[bold green]Starting CrossBridge Sidecar Observer[/bold green]")
         console.print(f"Host: {host}")
