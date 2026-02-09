@@ -672,9 +672,9 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
     if echo "$FILTERED_RESPONSE" | jq -e '.enriched_tests[] | select(.ai_enhanced == true)' > /dev/null 2>&1; then
         echo -e "${YELLOW}AI-Enhanced Test Analysis:${NC}"
         
-        local shown_count=0
-        local max_insights=10
-        local total=$(echo "$FILTERED_RESPONSE" | jq '[.enriched_tests[] | select(.ai_enhanced == true and .ai_reasoning != null)] | length')
+        shown_count=0
+        max_insights=10
+        total=$(echo "$FILTERED_RESPONSE" | jq '[.enriched_tests[] | select(.ai_enhanced == true and .ai_reasoning != null)] | length')
         
         while IFS= read -r test_insight; do
             if [ -z "$test_insight" ]; then
@@ -689,11 +689,11 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
                 break
             fi
             
-            local test_id=$(echo "$test_insight" | jq -r '.id // "N/A"')
-            local test_name=$(echo "$test_insight" | jq -r '.name')
-            local classification=$(echo "$test_insight" | jq -r '.classification')
-            local confidence=$(echo "$test_insight" | jq -r '.confidence')
-            local reasoning=$(echo "$test_insight" | jq -r '.reasoning')
+            test_id=$(echo "$test_insight" | jq -r '.id // "N/A"')
+            test_name=$(echo "$test_insight" | jq -r '.name')
+            classification=$(echo "$test_insight" | jq -r '.classification')
+            confidence=$(echo "$test_insight" | jq -r '.confidence')
+            reasoning=$(echo "$test_insight" | jq -r '.reasoning')
             
             # Clean AI reasoning - aggressively remove apologies and disclaimers
             reasoning=$(echo "$reasoning" | sed -E '
@@ -717,14 +717,14 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
             fi
             
             # Extract first 2-3 sentences (up to 250 chars) for readability
-            local truncated=$(echo "$reasoning" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2\3/' | head -c 250)
+            truncated=$(echo "$reasoning" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2\3/' | head -c 250)
             if [ ${#reasoning} -gt 250 ]; then
                 # Clean truncation - cut at last complete word
                 truncated=$(echo "$truncated" | sed 's/\(.*\) [^ ]*$/\1.../')
             fi
             
             # Format classification for better readability
-            local class_display=$(echo "$classification" | sed 's/_/ > /g')
+            class_display=$(echo "$classification" | sed 's/_/ > /g')
             
             echo ""
             echo "  ┌─────────────────────────────────────────┐"
@@ -751,9 +751,9 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
         echo -e "${YELLOW}Recommendations:${NC}"
         
         # Get unique recommendations (deduplicate similar ones)
-        local recommendations=$(echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.recommendations[]' | sort -u)
-        local shown_count=0
-        local max_recommendations=10
+        recommendations=$(echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.recommendations[]' | sort -u)
+        shown_count=0
+        max_recommendations=10
         
         while IFS= read -r rec; do
             if [ -n "$rec" ]; then
