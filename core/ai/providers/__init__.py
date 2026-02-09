@@ -63,20 +63,37 @@ class OpenAIProvider(LLMProvider):
         *,
         messages: List[AIMessage],
         model_config: ModelConfig,
-        context: AIExecutionContext,
+        context:AIExecutionContext,
     ) -> AIResponse:
         """Generate completion using OpenAI API."""
         client = self._get_client()
+        model = model_config.model
         
         start_time = time.time()
         
         try:
             # Convert messages to OpenAI format
             api_messages = [msg.to_dict() for msg in messages]
+            total_prompt_length = sum(len(msg.content) for msg in messages)
+            
+            # Log API call details
+            logger.info(
+                f"🤖 OpenAI API Call → {self.base_url}/chat/completions",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "messages_count": len(api_messages),
+                    "prompt_length": total_prompt_length,
+                    "temperature": model_config.temperature,
+                    "max_tokens": model_config.max_tokens,
+                    "timeout": model_config.timeout,
+                    "execution_id": context.execution_id
+                }
+            )
             
             # Call OpenAI API
             response = client.chat.completions.create(
-                model=model_config.model,
+                model=model,
                 messages=api_messages,
                 temperature=model_config.temperature,
                 max_tokens=model_config.max_tokens,
@@ -104,11 +121,27 @@ class OpenAIProvider(LLMProvider):
             # Calculate cost
             cost = self.estimate_cost(usage.prompt_tokens, usage.completion_tokens)
             
+            # Log successful response
+            logger.info(
+                f"✅ OpenAI API Response (200 OK) - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "status_code": 200,
+                    "latency_ms": int(latency * 1000),
+                    "prompt_tokens": token_usage.prompt_tokens,
+                    "completion_tokens": token_usage.completion_tokens,
+                    "total_tokens": token_usage.total_tokens,
+                    "response_length": len(content),
+                    "execution_id": context.execution_id,
+                    "cost": cost
+                }
+            )
+            
             return AIResponse(
                 content=content,
                 raw_response=response.model_dump(),
                 provider=self.name(),
-                model=model_config.model,
+                model=model,
                 execution_id=context.execution_id,
                 token_usage=token_usage,
                 cost=cost,
@@ -120,7 +153,21 @@ class OpenAIProvider(LLMProvider):
             )
         
         except Exception as e:
+            latency = time.time() - start_time
             error_msg = str(e)
+            
+            # Log error with details
+            logger.error(
+                f"❌ OpenAI API Error - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "latency_ms": int(latency * 1000),
+                    "error": error_msg,
+                    "error_type": type(e).__name__,
+                    "execution_id": context.execution_id
+                }
+            )
             
             # Handle specific errors
             if "rate_limit" in error_msg.lower():
@@ -205,6 +252,22 @@ class AzureOpenAIProvider(LLMProvider):
         try:
             # Convert messages to OpenAI format
             api_messages = [msg.to_dict() for msg in messages]
+            total_prompt_length = sum(len(msg.content) for msg in messages)
+            
+            # Log API call details
+            logger.info(
+                f"🤖 Azure OpenAI API Call → {self.endpoint}/chat/completions",
+                extra={
+                    "deployment": self.deployment_name,
+                    "endpoint": self.endpoint,
+                    "messages_count": len(api_messages),
+                    "prompt_length": total_prompt_length,
+                    "temperature": model_config.temperature,
+                    "max_tokens": model_config.max_tokens,
+                    "timeout": model_config.timeout,
+                    "execution_id": context.execution_id
+                }
+            )
             
             # Call Azure OpenAI API (use deployment_name instead of model)
             response = client.chat.completions.create(
@@ -236,6 +299,22 @@ class AzureOpenAIProvider(LLMProvider):
             # Calculate cost (same as OpenAI pricing)
             cost = self.estimate_cost(usage.prompt_tokens, usage.completion_tokens)
             
+            # Log successful response
+            logger.info(
+                f"✅ Azure OpenAI API Response (200 OK) - {latency:.2f}s",
+                extra={
+                    "deployment": self.deployment_name,
+                    "status_code": 200,
+                    "latency_ms": int(latency * 1000),
+                    "prompt_tokens": token_usage.prompt_tokens,
+                    "completion_tokens": token_usage.completion_tokens,
+                    "total_tokens": token_usage.total_tokens,
+                    "response_length": len(content),
+                    "execution_id": context.execution_id,
+                    "cost": cost
+                }
+            )
+            
             return AIResponse(
                 content=content,
                 raw_response=response.model_dump(),
@@ -252,7 +331,21 @@ class AzureOpenAIProvider(LLMProvider):
             )
         
         except Exception as e:
+            latency = time.time() - start_time
             error_msg = str(e)
+            
+            # Log error with details
+            logger.error(
+                f"❌ Azure OpenAI API Error - {latency:.2f}s",
+                extra={
+                    "deployment": self.deployment_name,
+                    "endpoint": self.endpoint,
+                    "latency_ms": int(latency * 1000),
+                    "error": error_msg,
+                    "error_type": type(e).__name__,
+                    "execution_id": context.execution_id
+                }
+            )
             
             # Handle specific errors
             if "rate_limit" in error_msg.lower():
@@ -314,6 +407,7 @@ class AnthropicProvider(LLMProvider):
     ) -> AIResponse:
         """Generate completion using Anthropic API."""
         client = self._get_client()
+        model = model_config.model
         
         start_time = time.time()
         
@@ -327,10 +421,26 @@ class AnthropicProvider(LLMProvider):
                 for msg in messages
                 if msg.role != "system"
             ]
+            total_prompt_length = sum(len(msg.content) for msg in messages)
+            
+            # Log API call details
+            logger.info(
+                f"🤖 Anthropic API Call → https://api.anthropic.com/v1/messages",
+                extra={
+                    "model": model,
+                    "messages_count": len(api_messages),
+                    "prompt_length": total_prompt_length,
+                    "has_system_msg": system_msg is not None,
+                    "temperature": model_config.temperature,
+                    "max_tokens": model_config.max_tokens,
+                    "timeout": model_config.timeout,
+                    "execution_id": context.execution_id
+                }
+            )
             
             # Call Anthropic API
             response = client.messages.create(
-                model=model_config.model,
+                model=model,
                 messages=api_messages,
                 system=system_msg,
                 temperature=model_config.temperature,
@@ -357,11 +467,27 @@ class AnthropicProvider(LLMProvider):
                 response.usage.input_tokens, response.usage.output_tokens
             )
             
+            # Log successful response
+            logger.info(
+                f"✅ Anthropic API Response (200 OK) - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "status_code": 200,
+                    "latency_ms": int(latency * 1000),
+                    "prompt_tokens": token_usage.prompt_tokens,
+                    "completion_tokens": token_usage.completion_tokens,
+                    "total_tokens": token_usage.total_tokens,
+                    "response_length": len(content),
+                    "execution_id": context.execution_id,
+                    "cost": cost
+                }
+            )
+            
             return AIResponse(
                 content=content,
                 raw_response=response.model_dump(),
                 provider=self.name(),
-                model=model_config.model,
+                model=model,
                 execution_id=context.execution_id,
                 token_usage=token_usage,
                 cost=cost,
@@ -370,7 +496,20 @@ class AnthropicProvider(LLMProvider):
             )
         
         except Exception as e:
+            latency = time.time() - start_time
             error_msg = str(e)
+            
+            # Log error with details
+            logger.error(
+                f"❌ Anthropic API Error - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "latency_ms": int(latency * 1000),
+                    "error": error_msg,
+                    "error_type": type(e).__name__,
+                    "execution_id": context.execution_id
+                }
+            )
             
             if "rate_limit" in error_msg.lower():
                 raise RateLimitError(f"Anthropic rate limit exceeded: {error_msg}")
@@ -427,17 +566,34 @@ class VLLMProvider(LLMProvider):
         import requests
         
         start_time = time.time()
+        model = model_config.model or self.model_name
         
         try:
             # Convert messages
             api_messages = [msg.to_dict() for msg in messages]
+            total_prompt_length = sum(len(msg.content) for msg in messages)
+            
+            # Log API call details
+            logger.info(
+                f"🤖 vLLM API Call → {self.base_url}/chat/completions",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "messages_count": len(api_messages),
+                    "prompt_length": total_prompt_length,
+                    "temperature": model_config.temperature,
+                    "max_tokens": model_config.max_tokens,
+                    "timeout": model_config.timeout,
+                    "execution_id": context.execution_id
+                }
+            )
             
             # Call vLLM API
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 json={
-                    "model": model_config.model or self.model_name,
+                    "model": model,
                     "messages": api_messages,
                     "temperature": model_config.temperature,
                     "max_tokens": model_config.max_tokens,
@@ -464,11 +620,27 @@ class VLLMProvider(LLMProvider):
                 total_tokens=usage.get("total_tokens", 0),
             )
             
+            # Log successful response
+            logger.info(
+                f"✅ vLLM API Response (200 OK) - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "status_code": 200,
+                    "latency_ms": int(latency * 1000),
+                    "prompt_tokens": token_usage.prompt_tokens,
+                    "completion_tokens": token_usage.completion_tokens,
+                    "total_tokens": token_usage.total_tokens,
+                    "response_length": len(content),
+                    "execution_id": context.execution_id,
+                    "cost": 0.0
+                }
+            )
+            
             return AIResponse(
                 content=content,
                 raw_response=data,
                 provider=self.name(),
-                model=model_config.model or self.model_name,
+                model=model,
                 execution_id=context.execution_id,
                 token_usage=token_usage,
                 cost=0.0,  # Self-hosted has no per-token cost
@@ -476,7 +648,50 @@ class VLLMProvider(LLMProvider):
                 status=ExecutionStatus.COMPLETED,
             )
         
+        except requests.exceptions.Timeout as e:
+            latency = time.time() - start_time
+            logger.error(
+                f"⏱️ vLLM API Timeout after {latency:.1f}s",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "timeout": model_config.timeout,
+                    "latency_ms": int(latency * 1000),
+                    "error": str(e),
+                    "execution_id": context.execution_id
+                }
+            )
+            raise ProviderError(f"vLLM API timeout after {latency:.1f}s: {str(e)}")
+        
+        except requests.exceptions.HTTPError as e:
+            latency = time.time() - start_time
+            status_code = e.response.status_code if e.response else "unknown"
+            logger.error(
+                f"❌ vLLM API HTTP Error ({status_code}) - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "status_code": status_code,
+                    "latency_ms": int(latency * 1000),
+                    "error": str(e),
+                    "execution_id": context.execution_id
+                }
+            )
+            raise ProviderError(f"vLLM API HTTP error ({status_code}): {str(e)}")
+        
         except requests.exceptions.RequestException as e:
+            latency = time.time() - start_time
+            logger.error(
+                f"❌ vLLM API Request Failed - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "latency_ms": int(latency * 1000),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "execution_id": context.execution_id
+                }
+            )
             raise ProviderError(f"vLLM API error: {str(e)}")
     
     def supports_tools(self) -> bool:
