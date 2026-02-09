@@ -9,6 +9,7 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
+from core.logging import get_logger, LogCategory
 from core.ai.base import (
     AuthenticationError,
     LLMProvider,
@@ -24,6 +25,9 @@ from core.ai.models import (
     ProviderType,
     TokenUsage,
 )
+
+# Initialize crossbridge logger
+logger = get_logger(__name__, category=LogCategory.INTELLIGENCE)
 
 
 class OpenAIProvider(LLMProvider):
@@ -533,6 +537,7 @@ class OllamaProvider(LLMProvider):
         import requests
         
         start_time = time.time()
+        model = model_config.model or self.model_name
         
         try:
             # Convert messages
@@ -540,11 +545,29 @@ class OllamaProvider(LLMProvider):
                 {"role": msg.role, "content": msg.content} for msg in messages
             ]
             
+            # Calculate prompt size for logging
+            total_prompt_length = sum(len(msg.content) for msg in messages)
+            
+            # Log API call details
+            logger.info(
+                f"🤖 Ollama API Call → {self.base_url}/api/chat",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "messages_count": len(api_messages),
+                    "prompt_length": total_prompt_length,
+                    "temperature": model_config.temperature,
+                    "max_tokens": model_config.max_tokens,
+                    "timeout": model_config.timeout,
+                    "execution_id": context.execution_id
+                }
+            )
+            
             # Call Ollama API
             response = requests.post(
                 f"{self.base_url}/api/chat",
                 json={
-                    "model": model_config.model or self.model_name,
+                    "model": model,
                     "messages": api_messages,
                     "stream": False,
                     "options": {
@@ -573,11 +596,41 @@ class OllamaProvider(LLMProvider):
                 + data.get("eval_count", 0),
             )
             
+            # Log successful response
+            logger.info(
+                f"✅ Ollama API Response (200 OK) - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "status_code": 200,
+                    "latency_ms": int(latency * 1000),
+                    "prompt_tokens": token_usage.prompt_tokens,
+                    "completion_tokens": token_usage.completion_tokens,
+                    "total_tokens": token_usage.total_tokens,
+                    "response_length": len(content),
+                    "execution_id": context.execution_id,
+                    "cost": 0.0
+                }
+            )
+            
+            # Log detailed metrics for performance monitoring
+            if token_usage.prompt_tokens > 0:
+                tokens_per_second = token_usage.completion_tokens / latency if latency > 0 else 0
+                logger.debug(
+                    f"📊 Ollama Performance: {tokens_per_second:.1f} tokens/sec",
+                    extra={
+                        "model": model,
+                        "tokens_per_second": tokens_per_second,
+                        "prompt_eval_duration": data.get("prompt_eval_duration", 0) / 1e9,  # Convert to seconds
+                        "eval_duration": data.get("eval_duration", 0) / 1e9,
+                        "total_duration": data.get("total_duration", 0) / 1e9
+                    }
+                )
+            
             return AIResponse(
                 content=content,
                 raw_response=data,
                 provider=self.name(),
-                model=model_config.model or self.model_name,
+                model=model,
                 execution_id=context.execution_id,
                 token_usage=token_usage,
                 cost=0.0,  # Local models have no cost
@@ -585,7 +638,50 @@ class OllamaProvider(LLMProvider):
                 status=ExecutionStatus.COMPLETED,
             )
         
+        except requests.exceptions.Timeout as e:
+            latency = time.time() - start_time
+            logger.error(
+                f"⏱️ Ollama API Timeout after {latency:.1f}s",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "timeout": model_config.timeout,
+                    "latency_ms": int(latency * 1000),
+                    "error": str(e),
+                    "execution_id": context.execution_id
+                }
+            )
+            raise ProviderError(f"Ollama API timeout after {latency:.1f}s: {str(e)}")
+        
+        except requests.exceptions.HTTPError as e:
+            latency = time.time() - start_time
+            status_code = e.response.status_code if e.response else "unknown"
+            logger.error(
+                f"❌ Ollama API HTTP Error ({status_code}) - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "status_code": status_code,
+                    "latency_ms": int(latency * 1000),
+                    "error": str(e),
+                    "execution_id": context.execution_id
+                }
+            )
+            raise ProviderError(f"Ollama API HTTP error ({status_code}): {str(e)}")
+        
         except requests.exceptions.RequestException as e:
+            latency = time.time() - start_time
+            logger.error(
+                f"❌ Ollama API Request Failed - {latency:.2f}s",
+                extra={
+                    "model": model,
+                    "endpoint": self.base_url,
+                    "latency_ms": int(latency * 1000),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "execution_id": context.execution_id
+                }
+            )
             raise ProviderError(f"Ollama API error: {str(e)}")
     
     def supports_tools(self) -> bool:
