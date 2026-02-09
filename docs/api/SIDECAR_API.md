@@ -155,6 +155,162 @@ Reload sidecar configuration at runtime without restart.
 
 ---
 
+## Intelligence Analysis APIs
+
+### POST /analyze
+
+Analyze parsed test logs with execution intelligence to classify failures, extract signals, and generate recommendations.
+
+**Request Body:**
+```json
+{
+  "data": {
+    "tests": [...],
+    "framework": "robot",
+    ...
+  },
+  "framework": "robot|cypress|pytest|etc",
+  "workspace_root": "/path/to/project",
+  "enable_ai": true,
+  "ai_provider": "openai|anthropic|ollama|selfhosted",
+  "ai_model": "gpt-3.5-turbo"
+}
+```
+
+**Response Codes:**
+- `200 OK` - Analysis completed successfully
+- `403 Forbidden` - AI license validation failed (cloud providers only)
+- `500 Internal Server Error` - Analysis failed
+
+**Response Format:**
+```json
+{
+  "analyzed": true,
+  "data": { /* original data */ },
+  "intelligence_summary": {
+    "classifications": {
+      "PRODUCT_DEFECT": 2,
+      "AUTOMATION_DEFECT": 1,
+      "ENVIRONMENT_ISSUE": 1
+    },
+    "signals": {
+      "timeout": 1,
+      "assertion_failure": 2,
+      "api_error": 1
+    },
+    "recommendations": [
+      "Check API endpoint availability",
+      "Verify test environment configuration",
+      "Review timeout settings"
+    ],
+    "top_failures": [
+      {
+        "test_name": "Login Test",
+        "failure_type": "API_ERROR",
+        "confidence": 0.95,
+        "reason": "HTTP 500 error from /api/login"
+      }
+    ]
+  },
+  "enriched_tests": [
+    {
+      "id": "test_001",
+      "name": "Login Test",
+      "classification": {
+        "type": "API_ERROR",
+        "confidence": 0.95,
+        "reason": "HTTP 500 error detected"
+      },
+      "signals": [
+        {
+          "type": "api_error",
+          "confidence": 0.95,
+          "message": "API returned status code 500"
+        }
+      ],
+      "ai_enhanced": true,
+      "ai_reasoning": "API gateway timeout - backend service unresponsive"
+    }
+  ]
+}
+```
+
+**Features:**
+- Automatic failure classification (5 categories + 31 sub-categories)
+- Signal extraction (20+ signal types)
+- AI-enhanced root cause analysis (optional)
+- Code reference resolution for automation defects
+- Confidence scoring for all classifications
+- Works deterministically without AI
+
+**AI Providers:**
+- OpenAI (requires API key, ~$0.01-$0.10 per run)
+- Anthropic (requires API key, ~$0.015-$0.15 per run)
+- Azure OpenAI (requires credentials, varies by subscription)
+- Ollama/Self-hosted (no license, free inference)
+
+---
+
+### POST /summarize-recommendations 🆕
+
+Intelligently summarize verbose recommendations using AI to produce concise, actionable outputs.
+
+**Request Body:**
+```json
+{
+  "recommendations": [
+    "The error message 'start_instant_vm job ended with status: failed' suggests that there's a problem with the instant VM (a feature of Hyper-V) process. This could be due to several factors including insufficient resources, configuration issues, or networking problems.",
+    "Another long verbose recommendation that needs summarization..."
+  ],
+  "max_length": 200,
+  "ai_provider": "openai|anthropic|ollama",
+  "ai_model": "gpt-3.5-turbo"
+}
+```
+
+**Response Codes:**
+- `200 OK` - Summarization completed
+- `500 Internal Server Error` - Summarization failed
+
+**Response Format:**
+```json
+{
+  "summarized": true,
+  "recommendations": [
+    "Check Hyper-V instant VM configuration and verify host has sufficient resources to initialize virtual machines",
+    "Review network settings and confirm VM networking is properly configured"
+  ],
+  "original_count": 2,
+  "summarized_count": 2
+}
+```
+
+**Features:**
+- AI-powered intelligent summarization
+- Eliminates mid-sentence truncation
+- Combines duplicate recommendations automatically
+- Maintains technical accuracy while removing fluff
+- Smart sentence-boundary awareness (fallback without AI)
+- Configurable length limits (default: 200 chars)
+- Works with all AI providers (OpenAI, Anthropic, Ollama)
+
+**Fallback Behavior:**
+- If AI unavailable or fails, falls back to sentence-boundary truncation
+- Returns `"summarized": false` when fallback is used
+- Always returns valid recommendations (never fails completely)
+
+**Usage Example:**
+```bash
+# CLI automatically uses this endpoint when --enable-ai is set
+./bin/crossbridge-log output.xml --enable-ai
+
+# Recommendations are intelligently summarized:
+# Before: "The error message... This could be due to several"
+# After: "Check Hyper-V instant VM configuration and verify resources"
+```
+
+---
+
 ## Internal APIs
 
 These APIs are used internally by CrossBridge and are not exposed via HTTP.

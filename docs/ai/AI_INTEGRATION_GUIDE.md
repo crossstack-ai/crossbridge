@@ -10,6 +10,13 @@ CrossBridge supports **AI-enhanced test failure analysis** with multiple provide
 - ☁️ **Cloud:** OpenAI (GPT-3.5, GPT-4), Anthropic (Claude), Azure OpenAI
 - 🏠 **Self-hosted:** Ollama (deepseek-coder, llama3, mistral), vLLM (any HuggingFace model)
 
+**Enhanced Provider Detection:**
+- ✅ Automatic detection at sidecar startup
+- ✅ Clear status messages for each provider type
+- ✅ Cost estimates shown for cloud providers
+- ✅ Model name and endpoint displayed for self-hosted
+- ✅ Helpful usage instructions in startup logs
+
 ---
 
 ## 🚀 Quick Start
@@ -27,6 +34,13 @@ Cost: ~$0.002 per 1000 tokens
 Using AI will incur additional costs:
   • OpenAI GPT-3.5: ~$0.002 per 1000 tokens
   • Typical analysis: $0.01-$0.10 per test run
+
+# Sidecar startup logs show clear status:
+✅ AI AVAILABLE - OpenAI credentials configured
+   💰 Cost: ~$0.01-$0.10 per analysis run
+   🤖 Use --enable-ai flag in crossbridge-log to activate AI analysis
+ExecutionAnalyzer initialized in rule-based mode (workspace: None)
+ExecutionAnalyzer initialized - AI detection happens per-request
 
 # After analysis:
 🤖 AI Usage Summary
@@ -63,6 +77,13 @@ intelligence:
 🤖  AI-ENHANCED ANALYSIS ENABLED (Self-hosted)
 Provider: Self-hosted (deepseek-coder:6.7b)
 Cost: No additional costs (local inference)
+
+# Sidecar startup logs show clear status:
+✅ AI AVAILABLE - Self-hosted model: deepseek-coder:6.7b at http://localhost:11434
+   💰 Cost: Free (self-hosted)
+   🤖 Use --enable-ai flag in crossbridge-log to activate AI analysis
+ExecutionAnalyzer initialized in rule-based mode (workspace: None)
+ExecutionAnalyzer initialized - AI detection happens per-request
 
 # After analysis:
 🤖 AI Usage Summary
@@ -105,11 +126,24 @@ When `--enable-ai` is enabled, CrossBridge provides:
    - Links to similar historical failures
    - **Concise output** - No disclaimers or apologies (90% less verbose)
 
-2. **Fix Recommendations**
+2. **Intelligent Recommendation Summarization** 🆕
+   - **AI-powered condensing** of verbose recommendations
+   - Eliminates mid-sentence truncation (no more "...due to several")
+   - Automatically combines duplicate recommendations
+   - Maintains technical accuracy while removing fluff
+   - Smart sentence-boundary awareness (fallback without AI)
+   - Configurable length limits (default: 200 chars)
+   
+   **Before:** "The error message 'start_instant_vm job ended with status: failed' suggests that there's a problem with the instant VM (a feature of Hyper-V) process. This could be due to several"
+   
+   **After:** "Check Hyper-V instant VM configuration and verify host has sufficient resources to initialize virtual machines"
+
+3. **Fix Recommendations**
    - Specific code-level suggestions
    - Locator improvements
    - Test refactoring advice
    - **Actionable insights** - Direct technical analysis without hedging
+   - **Complete messages** - Uses AI to intelligently summarize long outputs
 
 3. **Pattern Detection**
    - Identifies similar failures

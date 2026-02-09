@@ -862,11 +862,24 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
                 continue
             fi
             
-            # Extract first 2-3 sentences (up to 250 chars) for readability
-            truncated=$(echo "$reasoning" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2\3/' | head -c 250)
-            if [ ${#reasoning} -gt 250 ]; then
-                # Clean truncation - cut at last complete word
-                truncated=$(echo "$truncated" | sed 's/\(.*\) [^ ]*$/\1.../')
+            # Use AI to intelligently summarize reasoning if enabled, otherwise use sentence-boundary truncation
+            if [ "$ENABLE_AI" = "true" ] && [ ${#reasoning} -gt 200 ]; then
+                # Create JSON array with single reasoning text for AI summarization
+                reasoning_json=$(echo "$reasoning" | jq -R -s -c '[.]')
+                truncated=$(summarize_recommendations_with_ai "$reasoning_json" 200 | head -1)
+                
+                # Fallback to manual if AI summarization failed
+                if [ -z "$truncated" ] || [ $(echo "$truncated" | wc -w) -lt 10 ]; then
+                    truncated=$(clean_recommendation "$reasoning")
+                fi
+            else
+                # Fallback: Use clean_recommendation for sentence-boundary-aware truncation
+                truncated=$(clean_recommendation "$reasoning")
+            fi
+            
+            # Skip if truncated result is empty
+            if [ -z "$truncated" ]; then
+                continue
             fi
             
             # Format classification for better readability

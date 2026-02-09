@@ -765,7 +765,34 @@ class SidecarAPIServer:
         # Initialize execution intelligence analyzer
         # AI is detected per-request from cached credentials (not required at startup)
         self._analyzer = ExecutionAnalyzer(enable_ai=False)
-        logger.info("ExecutionAnalyzer initialized - AI will be auto-detected from cached credentials per-request")
+        
+        # Check if AI is actually configured and show appropriate startup message
+        ai_provider = self._detect_configured_ai_provider()
+        if ai_provider:
+            if ai_provider == "selfhosted":
+                config = self._get_selfhosted_ai_config()
+                model_name = config.get("model_name", "unknown") if config else "unknown"
+                endpoint = config.get("endpoint_url", "unknown") if config else "unknown"
+                logger.info(f"✅ AI AVAILABLE - Self-hosted model: {model_name} at {endpoint}")
+                logger.info("   💰 Cost: Free (self-hosted)")
+            elif ai_provider == "openai":
+                logger.info(f"✅ AI AVAILABLE - OpenAI credentials configured")
+                logger.info("   💰 Cost: ~$0.01-$0.10 per analysis run")
+            elif ai_provider == "anthropic":
+                logger.info(f"✅ AI AVAILABLE - Anthropic Claude credentials configured")
+                logger.info("   💰 Cost: ~$0.015-$0.15 per analysis run")
+            elif ai_provider == "azure_openai":
+                logger.info(f"✅ AI AVAILABLE - Azure OpenAI credentials configured")
+                logger.info("   💰 Cost: Varies by Azure subscription")
+            else:
+                logger.info(f"✅ AI AVAILABLE - {ai_provider.upper()} provider detected")
+            
+            logger.info("   🤖 Use --enable-ai flag in crossbridge-log to activate AI analysis")
+        else:
+            logger.info("ℹ️  AI NOT CONFIGURED - Will run rule-based analysis only")
+            logger.info("   Configure AI credentials to enable enhanced failure analysis")
+        
+        logger.info("ExecutionAnalyzer initialized - AI detection happens per-request based on credentials")
         
         @self.app.post("/logs/{log_id}")
         async def store_parsed_log(log_id: str, request: Request):

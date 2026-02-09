@@ -155,8 +155,12 @@ Reduce maintenance costs with intelligent insights and automated failure analysi
 - 💡 **70% Faster Analysis** - Analyze groups instead of individual tests
 - 🔍 **Impact Assessment** - Prioritize fixes by affected test count
 
-#### **AI-Enhanced Analysis** 🤖 🆕
+#### **AI-Enhanced Analysis** 🤖 ENHANCED!
 - 🧠 **Root Cause Insights** - AI explains "why" tests failed
+- 🔧 **Intelligent Recommendation Summarization** 🆕 - AI condenses verbose output into concise, actionable recommendations
+  - Eliminates mid-sentence truncation (complete messages, not "...due to several")
+  - Automatically combines duplicate recommendations
+  - Removes verbose explanations while maintaining technical accuracy
 - 🔧 **Fix Recommendations** - Specific code-level suggestions
 - 📊 **Pattern Matching** - Historical failure analysis
 - 💰 **Cost Transparency** - Show costs before/after processing
@@ -166,6 +170,10 @@ Reduce maintenance costs with intelligent insights and automated failure analysi
   - **Cloud:** OpenAI (GPT-3.5, GPT-4), Anthropic (Claude), Azure OpenAI
   - **Self-hosted:** Ollama (deepseek-coder, llama3), vLLM (any HuggingFace model)
 - 🎨 **Dynamic UI** - Provider-aware banners with cost info
+- 🚀 **Smart Startup Logging** - Clear provider detection messages:
+  - ✅ AI AVAILABLE - OpenAI credentials configured (💰 Cost: ~$0.01-$0.10 per run)
+  - ✅ AI AVAILABLE - Self-hosted model: deepseek-coder:6.7b at http://... (💰 Cost: Free)
+  - ℹ️  AI NOT CONFIGURED - Will run rule-based analysis only
 - 📊 **Smart Duration** - Auto-format time (45s → 3m 25s → 2h 15m)
 - 🔍 **Comprehensive Logging** - All providers log API calls with timing, tokens, and costs
 - 📝 **Concise Formatting** - Clean output without AI disclaimers (90% less verbose)

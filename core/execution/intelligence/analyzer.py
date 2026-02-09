@@ -76,9 +76,11 @@ class ExecutionAnalyzer:
         self.classifier = RuleBasedClassifier()
         self.resolver = CodeReferenceResolver(workspace_root)
         
-        logger.info(
-            f"ExecutionAnalyzer initialized (AI at startup: {enable_ai}, workspace: {workspace_root}) - AI can be enabled per-request"
-        )
+        # Log initialization (note: AI detection happens per-request, not at startup)
+        if enable_ai:
+            logger.info(f"ExecutionAnalyzer initialized with AI enabled (provider: {ai_provider}, workspace: {workspace_root})")
+        else:
+            logger.info(f"ExecutionAnalyzer initialized in rule-based mode (workspace: {workspace_root})")
     
     def analyze(
         self,

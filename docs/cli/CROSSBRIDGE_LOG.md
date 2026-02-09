@@ -94,10 +94,15 @@ Pinpoints exact test code location for automation defects:
 - Test method/function name
 - Framework-specific context
 
-#### **AI-Enhanced Analysis** 🤖 NEW!
+#### **AI-Enhanced Analysis** 🤖 ENHANCED!
 Optional AI-powered insights with cost transparency:
 
 - ✅ **Root Cause Analysis** - AI explains "why" the test failed
+- ✅ **Intelligent Recommendation Summarization** 🆕 - AI condenses verbose output
+  * Eliminates mid-sentence truncation (complete, actionable recommendations)
+  * Automatically combines duplicate recommendations
+  * Removes verbose explanations while maintaining technical accuracy
+  * Smart sentence-boundary awareness (fallback without AI)
 - ✅ **Fix Recommendations** - Specific code-level suggestions
 - ✅ **Similar Failure Patterns** - Historical pattern matching
 - ✅ **Business Impact Assessment** - Severity and urgency scoring
@@ -108,6 +113,15 @@ Optional AI-powered insights with cost transparency:
 **AI Providers Supported:**
 - OpenAI (GPT-3.5, GPT-4, GPT-4-turbo)
 - Anthropic (Claude-3-Sonnet, Claude-3-Opus)
+- Azure OpenAI (GPT models)
+- Self-hosted: Ollama (deepseek-coder, llama3, mistral, etc.)
+
+**Provider Detection at Startup:**
+Sidecar shows clear status messages for each provider:
+- ✅ AI AVAILABLE - OpenAI credentials configured (💰 Cost: ~$0.01-$0.10 per run)
+- ✅ AI AVAILABLE - Anthropic Claude credentials configured (💰 Cost: ~$0.015-$0.15 per run)
+- ✅ AI AVAILABLE - Self-hosted model: deepseek-coder:6.7b at http://... (💰 Cost: Free)
+- ℹ️  AI NOT CONFIGURED - Will run rule-based analysis only
 
 #### **Works Without AI**
 Fully deterministic, rule-based analysis (no AI required for core features)
