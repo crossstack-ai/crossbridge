@@ -334,12 +334,32 @@ enrich_with_intelligence() {
     
     # Show AI warning and get confirmation if AI is enabled
     if [ "$ENABLE_AI" = "true" ]; then
-        # Get AI provider info from sidecar
-        local provider_info=$(curl -s "${SIDECAR_URL}/ai-provider-info" 2>/dev/null)
-        local ai_provider=$(echo "$provider_info" | grep -o '"provider":"[^"]*"' | cut -d'"' -f4)
-        local ai_model=$(echo "$provider_info" | grep -o '"model":"[^"]*"' | cut -d'"' -f4)
-        local cost_per_1k=$(echo "$provider_info" | grep -o '"cost_per_1k_tokens":[0-9.]*' | cut -d':' -f2)
-        local typical_cost=$(echo "$provider_info" | grep -o '"typical_run_cost":"[^"]*"' | cut -d'"' -f4)
+        # Get AI provider info from sidecar (with retry for new endpoint)
+        local provider_info=$(curl -s -w "\n%{http_code}" "${SIDECAR_URL}/ai-provider-info" 2>&1)
+        local http_code=$(echo "$provider_info" | tail -n1)
+        local response_body=$(echo "$provider_info" | sed '$d')
+        
+        # Debug: Show what we got (if verbose)
+        [ "$VERBOSE" = "true" ] && echo "[DEBUG] Provider info HTTP code: $http_code" >&2
+        [ "$VERBOSE" = "true" ] && echo "[DEBUG] Provider info response: $response_body" >&2
+        
+        # Parse JSON response
+        local ai_provider=""
+        local ai_model=""
+        local cost_per_1k=""
+        local typical_cost=""
+        
+        # Check if endpoint exists and returned valid JSON
+        if [ "$http_code" = "200" ] && echo "$response_body" | grep -q '"provider"'; then
+            ai_provider=$(echo "$response_body" | grep -o '"provider":"[^"]*"' | cut -d'"' -f4)
+            ai_model=$(echo "$response_body" | grep -o '"model":"[^"]*"' | cut -d'"' -f4 | grep -v "null")
+            cost_per_1k=$(echo "$response_body" | grep -o '"cost_per_1k_tokens":[0-9.]*' | cut -d':' -f2)
+            typical_cost=$(echo "$response_body" | grep -o '"typical_run_cost":"[^"]*"' | cut -d'"' -f4)
+        else
+            # Endpoint doesn't exist yet (old sidecar) or sidecar not running
+            [ "$VERBOSE" = "true" ] && echo "[DEBUG] Provider info endpoint not available (HTTP $http_code), using fallback" >&2
+            ai_provider="unknown"
+        fi
         
         # Display banner based on provider type
         if [ "$ai_provider" = "selfhosted" ]; then
@@ -359,11 +379,18 @@ enrich_with_intelligence() {
             echo -e "${YELLOW}  • Typical analysis: ${typical_cost}${NC}" >&2
             echo -e "${YELLOW}  • Costs vary by log size and complexity${NC}" >&2
         else
-            # Fallback for unknown/error cases
+            # Fallback for unknown/error/missing provider info
+            # Will be auto-detected during actual analysis
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
             echo -e "${YELLOW}⚠️  AI-ENHANCED ANALYSIS ENABLED${NC}" >&2
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
-            echo -e "${YELLOW}Provider: Unknown (${ai_provider:-not detected})${NC}" >&2
+            if [ "$ai_provider" = "error" ] || [ "$ai_provider" = "none" ] || [ -z "$ai_provider" ]; then
+                echo -e "${YELLOW}Provider: Auto-detecting...${NC}" >&2
+                echo -e "${YELLOW}(Costs may apply if using cloud providers)${NC}" >&2
+            else
+                echo -e "${YELLOW}Provider: ${ai_provider^}${NC}" >&2
+                echo -e "${YELLOW}Using AI for log analysis may incur costs${NC}" >&2
+            fi
         fi
         echo "" >&2
         echo -e "${YELLOW}Checking AI configuration...${NC}" >&2
