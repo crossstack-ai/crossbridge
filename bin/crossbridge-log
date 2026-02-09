@@ -964,7 +964,36 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
             done <<< "$recommendations"
         fi
         
-        # Display summarized recommendations
+        # Save all recommendations to file
+        total_recs=$(echo "$summarized_recs" | grep -c '^.' || echo 0)
+        
+        if [ $total_recs -gt 0 ]; then
+            # Determine recommendations file path (same directory as log file)
+            log_dir=$(dirname "$LOG_FILE")
+            log_basename=$(basename "$LOG_FILE" .xml)
+            recommendations_file="${log_dir}/${log_basename}-recommendations.txt"
+            
+            # Write all recommendations to file
+            {
+                echo "==================================="
+                echo "Crossbridge Analysis Recommendations"
+                echo "==================================="
+                echo "Total: $total_recs recommendations"
+                echo "Generated: $(date)"
+                echo ""
+                
+                rec_num=1
+                while IFS= read -r rec; do
+                    if [ -n "$rec" ]; then
+                        echo "$rec_num. $rec"
+                        echo ""
+                        rec_num=$((rec_num + 1))
+                    fi
+                done <<< "$summarized_recs"
+            } > "$recommendations_file"
+        fi
+        
+        # Display first N recommendations in terminal
         shown_count=0
         max_recommendations=10
         
@@ -973,12 +1002,13 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
                 echo "  ✓ $rec"
                 shown_count=$((shown_count + 1))
                 
-                # Limit to top N recommendations
+                # Show remaining count and file location
                 if [ $shown_count -ge $max_recommendations ]; then
-                    total_recs=$(echo "$summarized_recs" | grep -c '^.')
                     if [ $total_recs -gt $max_recommendations ]; then
                         remaining=$((total_recs - max_recommendations))
-                        echo "  ... and $remaining more recommendations (filtered for clarity)"
+                        echo ""
+                        echo -e "  ${BLUE}📄 $remaining more recommendations available${NC}"
+                        echo -e "  ${BLUE}   View full list: $recommendations_file${NC}"
                     fi
                     break
                 fi
