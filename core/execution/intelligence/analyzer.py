@@ -77,7 +77,7 @@ class ExecutionAnalyzer:
         self.resolver = CodeReferenceResolver(workspace_root)
         
         logger.info(
-            f"ExecutionAnalyzer initialized (AI: {enable_ai}, workspace: {workspace_root})"
+            f"ExecutionAnalyzer initialized (AI at startup: {enable_ai}, workspace: {workspace_root}) - AI can be enabled per-request"
         )
     
     def analyze(

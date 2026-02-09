@@ -761,8 +761,10 @@ class SidecarAPIServer:
         self._log_storage: Dict[str, dict] = {}
         self._max_stored_logs = 100  # Limit to 100 logs
         
-        # Initialize execution intelligence analyzer (works without AI by default)
+        # Initialize execution intelligence analyzer
+        # AI is detected per-request from cached credentials (not required at startup)
         self._analyzer = ExecutionAnalyzer(enable_ai=False)
+        logger.info("ExecutionAnalyzer initialized - AI will be auto-detected from cached credentials per-request")
         
         @self.app.post("/logs/{log_id}")
         async def store_parsed_log(log_id: str, request: Request):
@@ -1173,10 +1175,18 @@ class SidecarAPIServer:
                             raise ValueError(f"Unsupported AI provider: {ai_provider}")
                         
                         if ai_provider_instance:
-                            logger.info(f"AI provider initialized: {ai_provider} with model {ai_model}")
+                            logger.info(f"✅ AI ENABLED for this request: {ai_provider} with model {ai_model}")
                     except Exception as e:
                         logger.error(f"Failed to initialize AI provider: {e}")
                         enable_ai = False  # Disable AI on initialization failure
+                
+                # Log final AI status for this request
+                if enable_ai and ai_provider_instance:
+                    logger.info(f"🤖 AI-enhanced analysis active: {len(failed_tests)} tests will be analyzed with AI")
+                elif enable_ai and not ai_provider_instance:
+                    logger.warning("⚠️  AI requested but provider initialization failed - falling back to rule-based analysis")
+                else:
+                    logger.info(f"📊 Rule-based analysis: {len(failed_tests)} tests (AI not requested)")
                 
                 for test in failed_tests:
                     test_name = test.get("name", "unknown")
