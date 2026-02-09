@@ -162,7 +162,12 @@ Reduce maintenance costs with intelligent insights and automated failure analysi
 - 💰 **Cost Transparency** - Show costs before/after processing
 - 🎫 **License Management** - Tier-based token limits (FREE to UNLIMITED)
 - ✅ **Graceful Fallback** - Works without AI if license invalid
-- 🌟 **Supported Providers** - OpenAI (GPT-3.5, GPT-4), Anthropic (Claude)
+- 🌟 **Supported Providers:**
+  - **Cloud:** OpenAI (GPT-3.5, GPT-4), Anthropic (Claude), Azure OpenAI
+  - **Self-hosted:** Ollama (deepseek-coder, llama3), vLLM (any HuggingFace model)
+- 🎨 **Dynamic UI** - Provider-aware banners with cost info
+- 📊 **Smart Duration** - Auto-format time (45s → 3m 25s → 2h 15m)
+- 🔍 **Comprehensive Logging** - All providers log API calls with timing, tokens, and costs
 
 #### **Intelligent Sampling & Storage** 🆕
 - 🎲 **Smart Sampling** - Multiple strategies (uniform, stratified, priority-based, failure-biased)
@@ -186,8 +191,16 @@ Reduce maintenance costs with intelligent insights and automated failure analysi
 # With correlation grouping
 ./bin/crossbridge-log output.xml --correlation
 
-# With AI enhancement (requires license)
+# With AI enhancement (requires license for cloud providers)
 ./bin/crossbridge-log output.xml --enable-ai
+
+# Self-hosted AI (no license needed, free inference)
+# 1. Set up Ollama with deepseek-coder:6.7b
+# 2. Configure crossbridge.yml for Ollama
+# 3. Run: ./bin/crossbridge-log output.xml --enable-ai
+#    ✓ Shows green banner for self-hosted
+#    ✓ Duration auto-formatted (3m 25s, 2h 15m)
+#    ✓ No cost displayed (local inference)
 ```
 
 **Testing:**

@@ -277,33 +277,82 @@ Shows only failed tests with intelligence analysis.
 ### 8. AI-Enhanced Analysis 🤖 NEW!
 
 ```bash
-# Enable AI-powered insights (requires license)
+# Enable AI-powered insights (requires license for cloud providers)
 ./bin/crossbridge-log output.xml --enable-ai
 
-# Shows cost warning:
-⚠️  AI-ENHANCED ANALYSIS ENABLED
-Using AI will incur additional costs:
-  • OpenAI GPT-3.5: ~$0.002 per 1000 tokens
-  • Typical analysis: $0.01-$0.10 per test run
-
-# After analysis:
-🤖 AI Usage Summary
-  AI Configuration:
-  • Provider: OpenAI
-  • Model: gpt-3.5-turbo
-  
-  Token Usage & Cost:
-  • Prompt Tokens: 1,200
-  • Completion Tokens: 300
-  • Total Tokens: 1,500
-  • Total Cost: $0.0023
-  • Average per Test: 150 tokens ($0.0002)
-  
-  Cost Comparison:
-  • Using gpt-3.5-turbo: $0.002
-  • Same with gpt-4: ~$0.067
-  • Savings: ~$0.065 (93% reduction)
+# Banner varies by configured provider:
 ```
+
+#### OpenAI / Cloud Providers
+```bash
+⚠️  AI-ENHANCED ANALYSIS ENABLED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Provider: Openai (gpt-3.5-turbo)
+Using AI will incur costs:
+  • Cost: ~$0.002 per 1000 tokens
+  • Typical analysis: ~$0.01-$0.10 per run
+  • Costs vary by log size and complexity
+
+Checking AI configuration...
+✓ OpenAI (gpt-3.5-turbo) validated successfully
+```
+
+#### Self-Hosted AI (Ollama/vLLM)
+```bash
+🤖  AI-ENHANCED ANALYSIS ENABLED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Provider: Self-hosted (deepseek-coder:6.7b)
+Cost: No additional costs (local inference)
+License: Not required for self-hosted AI
+
+Checking AI configuration...
+✓ Self-hosted AI configured (deepseek-coder:6.7b) - no license required
+```
+
+#### After Analysis - Smart Duration Formatting
+```bash
+🤖 AI LOG ANALYSIS SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AI Configuration:
+  • Provider: Selfhosted
+  • Model: deepseek-coder:6.7b
+
+AI Analysis Statistics:
+  ✓ Total Tests Analyzed: 78
+  ✓ AI-Enhanced Classifications: 78
+  ✓ Total Time Taken: 54h 2m  ← Smart formatting!
+
+Token Usage & Cost:
+  • Prompt Tokens: 12,708
+  • Completion Tokens: 17,136
+  • Total Tokens: 29,844
+  • Total Cost: $0.0000  ← Zero cost for self-hosted!
+  • Avg Tokens/Test: 382
+  • Avg Cost/Test: $0.0000
+```
+
+**Duration Formatting Examples:**
+- `45s` - Less than 1 minute
+- `3m 25s` - Between 1-60 minutes
+- `2h 15m` - Between 1-24 hours
+- `3d 14h` - More than 24 hours
+
+**Supported AI Providers:**
+
+| Provider | Models | Cost | License Required | Setup |
+|----------|--------|------|------------------|-------|
+| **OpenAI** | gpt-3.5-turbo, gpt-4, gpt-4o | ~$0.002/1K tokens | ✅ Yes | API key |
+| **Anthropic** | Claude 3.5 Sonnet, Opus, Haiku | ~$0.003/1K tokens | ✅ Yes | API key |
+| **Azure OpenAI** | GPT-4, GPT-3.5 (Azure-hosted) | ~$0.002/1K tokens | ✅ Yes | API key + endpoint |
+| **Ollama** | deepseek-coder, llama3, mistral | 💰 Free (self-hosted) | ❌ No | Local installation |
+| **vLLM** | Any HuggingFace model | 💰 Free (self-hosted) | ❌ No | Self-hosted server |
+
+**Provider-Specific Features:**
+- ✅ **All providers** - Comprehensive request/response logging with timing, tokens, and costs
+- ✅ **All providers** - Error tracking (timeouts, HTTP errors, auth failures)
+- ✅ **All providers** - Request correlation via execution_id
+- 🔍 **Ollama only** - Performance metrics (tokens/sec, eval duration)
 
 **AI Enhancement Features:**
 - Root cause analysis for each failure
@@ -312,7 +361,7 @@ Using AI will incur additional costs:
 - Code-level debugging suggestions
 - Business impact assessment
 
-**License Tiers:**
+**License Tiers (Cloud Providers Only):**
 - FREE: 1K daily / 10K monthly tokens (testing)
 - BASIC: 10K daily / 100K monthly tokens (small teams)
 - PROFESSIONAL: 50K daily / 1M monthly tokens (large teams)

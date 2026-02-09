@@ -1,23 +1,29 @@
 # AI Integration Guide - CrossBridge
 
-> **Complete guide to AI-enhanced log analysis with license management and cost transparency**
+> **Complete guide to AI-enhanced log analysis with multi-provider support, license management, and cost transparency**
 
 ## Overview
 
-CrossBridge now supports **AI-enhanced test failure analysis** with complete cost transparency and license governance. This guide covers setup, usage, and best practices for the AI integration.
+CrossBridge supports **AI-enhanced test failure analysis** with multiple provider options (cloud and self-hosted), complete cost transparency, and license governance. This guide covers setup, usage, and best practices for all AI integrations.
+
+**Supported Providers:**
+- ☁️ **Cloud:** OpenAI (GPT-3.5, GPT-4), Anthropic (Claude), Azure OpenAI
+- 🏠 **Self-hosted:** Ollama (deepseek-coder, llama3, mistral), vLLM (any HuggingFace model)
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Enable AI Analysis
+### 1. Cloud Provider (OpenAI/Anthropic)
 
 ```bash
 # Basic usage (shows cost warning)
 ./bin/crossbridge-log output.xml --enable-ai
 
 # Cost warning displayed:
-⚠️  AI-ENHANCED ANALYSIS ENABLED
+⚠️  AI-ENHANCED ANALYSIS ENABLED (OpenAI)
+Provider: Openai (gpt-3.5-turbo)
+Cost: ~$0.002 per 1000 tokens
 Using AI will incur additional costs:
   • OpenAI GPT-3.5: ~$0.002 per 1000 tokens
   • Typical analysis: $0.01-$0.10 per test run
@@ -25,16 +31,53 @@ Using AI will incur additional costs:
 # After analysis:
 🤖 AI Usage Summary
   AI Configuration:
-  • Provider: OpenAI
+  • Provider: Openai
   • Model: gpt-3.5-turbo
   
   Token Usage & Cost:
   • Total Tokens: 1,500
   • Total Cost: $0.0023
   • Average per Test: 150 tokens ($0.0002)
+  
+✓ Total Time Taken: 3m 25s  ← Smart formatted duration!
 ```
 
-### 2. License Setup (Coming Soon)
+### 2. Self-Hosted (Ollama) - NO LICENSE NEEDED 🆓
+
+```bash
+# 1. Install and start Ollama
+ollama pull deepseek-coder:6.7b
+ollama serve
+
+# 2. Configure crossbridge.yml
+intelligence:
+  ai_provider: "ollama"
+  ai_model: "deepseek-coder:6.7b"
+  ollama:
+    base_url: "http://localhost:11434"
+
+# 3. Run analysis (no license required!)
+./bin/crossbridge-log output.xml --enable-ai
+
+# Green banner displayed:
+🤖  AI-ENHANCED ANALYSIS ENABLED (Self-hosted)
+Provider: Self-hosted (deepseek-coder:6.7b)
+Cost: No additional costs (local inference)
+
+# After analysis:
+🤖 AI Usage Summary
+  AI Configuration:
+  • Provider: Self-hosted
+  • Model: deepseek-coder:6.7b
+  
+  Token Usage:
+  • Total Tokens: 1,500
+  • Cost: No additional costs (local inference)
+  
+✓ Total Time Taken: 54h 2m  ← Auto-converted from 54 hours!
+```
+
+### 3. License Setup (Cloud Providers Only)
 
 ```bash
 # Configure AI credentials (planned)
@@ -45,6 +88,8 @@ crossbridge license status
 ```
 
 For now, license configuration is manual via `~/.crossbridge/ai_license.json`.
+
+**Note:** Self-hosted providers (Ollama, vLLM) do NOT require licenses or API keys.
 
 ---
 
@@ -74,21 +119,56 @@ When `--enable-ai` is enabled, CrossBridge provides:
    - Urgency recommendations
    - Priority guidance
 
+### Provider-Aware UI
+
+Dynamic banners based on actual provider:
+
+- ⚠️ **Yellow banner** - Cloud providers with cost warnings
+- 🤖 **Green banner** - Self-hosted providers with "No cost" message
+- 📊 **Smart duration** - Auto-formatted (45s, 3m 25s, 2h 15m, 3d 14h)
+
+### Comprehensive Logging
+
+All AI providers log detailed API call information:
+
+**Pre-Request Logging:**
+- 🤖 Model, endpoint, message count
+- 📝 Prompt length and configuration
+- 🔍 Execution ID for correlation
+
+**Success Logging:**
+- ✅ HTTP 200 status
+- ⏱️ Latency (seconds)
+- 💬 Tokens (prompt/completion/total)
+- 💰 Cost calculation
+- 📊 Response length
+
+**Error Logging:**
+- ❌ Timeouts with duration
+- 🔴 HTTP errors with status codes
+- ⚠️ Generic failures with context
+
+**Provider-Specific:**
+- Ollama: Performance metrics (tokens/sec, eval duration)
+- OpenAI: Full request/response tracking
+- Anthropic: Claude-specific with system messages
+- vLLM: Self-hosted endpoint logging
+
 ### Cost Transparency
 
 Every AI operation provides full transparency:
 
-- **Before Processing:** Cost warning with estimated range
+- **Before Processing:** Cost warning with estimated range (cloud only)
 - **During Processing:** Real-time token tracking
 - **After Processing:** Detailed breakdown with:
   - Prompt tokens used
   - Completion tokens used
   - Total tokens
-  - Exact cost
+  - Exact cost (cloud) or "No cost" (self-hosted)
   - Per-test averages
   - Cost comparison (GPT-3.5 vs GPT-4 savings)
 
-### License Management
+### License Management (Cloud Providers Only)
 
 **Tier-Based Limits:**
 
@@ -111,7 +191,123 @@ Every AI operation provides full transparency:
 
 ## 🔧 Configuration
 
-### License File Format
+### Provider Configuration
+
+CrossBridge supports multiple AI providers. Configure via `crossbridge.yml`:
+
+#### OpenAI (Cloud)
+
+```yaml
+intelligence:
+  ai_provider: "openai"
+  ai_model: "gpt-3.5-turbo"  # or gpt-4, gpt-4o
+  openai:
+    api_key: "${OPENAI_API_KEY}"  # Or hardcode (not recommended)
+    timeout: 30
+```
+
+**Environment Variables:**
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+./bin/crossbridge-log output.xml --enable-ai
+```
+
+#### Anthropic (Cloud)
+
+```yaml
+intelligence:
+  ai_provider: "anthropic"
+  ai_model: "claude-3-5-sonnet-20241022"
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    timeout: 30
+```
+
+**Environment Variables:**
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+./bin/crossbridge-log output.xml --enable-ai
+```
+
+#### Azure OpenAI (Cloud)
+
+```yaml
+intelligence:
+  ai_provider: "azure"
+  ai_model: "gpt-35-turbo"
+  azure:
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    endpoint: "https://your-resource.openai.azure.com/"
+    deployment_name: "gpt-35-turbo"
+    api_version: "2024-02-15-preview"
+```
+
+#### Ollama (Self-hosted) 🆓
+
+```yaml
+intelligence:
+  ai_provider: "ollama"
+  ai_model: "deepseek-coder:6.7b"  # or llama3, mistral, codellama
+  ollama:
+    base_url: "http://localhost:11434"
+    timeout: 60  # Self-hosted may need longer timeout
+```
+
+**Setup:**
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull model
+ollama pull deepseek-coder:6.7b
+
+# Start server
+ollama serve
+
+# Run analysis (no license needed!)
+./bin/crossbridge-log output.xml --enable-ai
+```
+
+**Benefits:**
+- ✅ No API costs
+- ✅ No license required
+- ✅ Full privacy (local inference)
+- ✅ No internet required
+- ⚡ Fast for small models (<10B params)
+
+#### vLLM (Self-hosted) 🆓
+
+```yaml
+intelligence:
+  ai_provider: "vllm"
+  ai_model: "deepseek-ai/deepseek-coder-6.7b-instruct"
+  vllm:
+    base_url: "http://localhost:8000/v1"
+    timeout: 60
+```
+
+**Setup:**
+```bash
+# Install vLLM
+pip install vllm
+
+# Start server
+python -m vllm.entrypoints.openai.api_server \
+  --model deepseek-ai/deepseek-coder-6.7b-instruct \
+  --port 8000
+
+# Run analysis (no license needed!)
+./bin/crossbridge-log output.xml --enable-ai
+```
+
+**Benefits:**
+- ✅ No API costs
+- ✅ No license required
+- ✅ Any HuggingFace model
+- ✅ Optimized inference (faster than Ollama)
+- 🔥 GPU acceleration support
+
+### License File Format (Cloud Providers Only)
 
 Location: `~/.crossbridge/ai_license.json`
 
@@ -346,12 +542,99 @@ Invalid API key or insufficient permissions
 3. Switch to GPT-3.5-turbo instead of GPT-4
 4. Use free deterministic analysis for non-critical runs
 5. Set up cost alerts at 80% of budget
+6. **Switch to self-hosted (Ollama/vLLM)** - Zero API costs! 🆓
+
+### Issue: API Timeouts or 500 Errors
+
+```
+❌ HTTP Error (500) - Internal Server Error
+❌ Request timeout after 30s
+```
+
+**Debugging with Comprehensive Logging:**
+
+All AI providers now log detailed request/response information. Check container logs:
+
+```bash
+# View Ollama/OpenAI/Anthropic API calls
+docker-compose logs -f crossbridge-sidecar | grep "🤖"
+
+# Logs show:
+# 🤖 Ollama API Call → http://localhost:11434/api/chat
+#   Model: deepseek-coder:6.7b
+#   Messages: 2 (prompt length: 1543 chars)
+#   Temperature: 0.3, Max tokens: 2000
+#   Execution ID: abc123-def456
+#
+# ✅ Ollama API Response (200 OK) - 2.45s
+#   HTTP Status: 200 OK
+#   Latency: 2.45s
+#   Tokens: prompt=387, completion=234, total=621
+#   Cost: $0.0009
+#   Response length: 1234 chars
+#   Performance: 253.47 tokens/sec
+#
+# ❌ HTTP Error (500) - http://localhost:11434/api/chat
+#   Model: deepseek-coder:6.7b
+#   Timeout: 30s
+#   Status Code: 500
+#   Error: Internal Server Error
+```
+
+**What the logs provide:**
+- 🤖 Pre-request: Model, endpoint, config, execution_id
+- ✅ Success: Latency, tokens, cost, performance metrics
+- ❌ Errors: HTTP status, timeouts, full error context
+
+**Solutions:**
+1. Check model availability: `ollama list`
+2. Verify endpoint accessibility: `curl http://localhost:11434/api/tags`
+3. Increase timeout in crossbridge.yml: `timeout: 60`
+4. Check system resources (RAM/GPU for self-hosted)
+5. Correlate errors using execution_id across logs
+
+### Issue: Provider Unknown or Auto-detecting
+
+```
+🔍 AI Provider Info: Auto-detecting...
+```
+
+**Cause:** Sidecar API doesn't have `/ai-provider-info` endpoint (old version)
+
+**Solutions:**
+1. Update sidecar container: `docker-compose pull`
+2. Restart services: `docker-compose up -d`
+3. Verify endpoint: `curl http://localhost:5001/ai-provider-info`
+
+**Backward Compatibility:** CLI gracefully falls back to generic banner if endpoint is unavailable.
+
+### Zero-Cost Alternative: Self-Hosted AI 🆓
+
+**Want AI without API costs? Use self-hosted providers:**
+
+| Provider | Setup Effort | Performance | Cost |
+|----------|--------------|-------------|------|
+| **Ollama** | Easy (5 min) | Good for <10B models | $0 |
+| **vLLM** | Medium (15 min) | Excellent (GPU optimized) | $0 |
+
+**Benefits:**
+- ✅ No API keys needed
+- ✅ No license required
+- ✅ No monthly costs
+- ✅ Full privacy (local inference)
+- ✅ No internet dependency
+- ✅ Green banner in UI (🤖)
+- ✅ Comprehensive logging enabled
+
+**See "Provider Configuration" section above for setup instructions.**
 
 ---
 
 ## 📊 Cost Estimation
 
 ### Pricing (as of Feb 2026)
+
+**Cloud Providers:**
 
 **OpenAI:**
 - GPT-3.5-turbo: $0.0015 per 1K tokens (prompt + completion)
@@ -362,20 +645,34 @@ Invalid API key or insufficient permissions
 - Claude-3-Sonnet: $0.006 per 1K tokens
 - Claude-3-Opus: $0.0375 per 1K tokens
 
+**Azure OpenAI:**
+- Same as OpenAI prices (varies by region)
+
+**Self-Hosted (FREE):** 🆓
+- **Ollama:** $0 per token (local inference)
+- **vLLM:** $0 per token (local inference)
+- **Hardware cost:** One-time GPU cost (optional, can run on CPU)
+
 ### Typical Usage
 
-| Scenario | Tests | Tokens/Test | Total Tokens | Cost (GPT-3.5) |
-|----------|-------|-------------|--------------|----------------|
-| **Small run** | 10 failures | 150 | 1,500 | $0.002 |
-| **Medium run** | 50 failures | 150 | 7,500 | $0.011 |
-| **Large run** | 200 failures | 150 | 30,000 | $0.045 |
-| **CI/CD daily** | 500 failures | 150 | 75,000 | $0.113 |
-| **Monthly** | 10K failures | 150 | 1.5M | $2.25 |
+| Scenario | Tests | Tokens/Test | Total Tokens | GPT-3.5 Cost | Ollama Cost |
+|----------|-------|-------------|--------------|--------------|-------------|
+| **Small run** | 10 failures | 150 | 1,500 | $0.002 | $0 🆓 |
+| **Medium run** | 50 failures | 150 | 7,500 | $0.011 | $0 🆓 |
+| **Large run** | 200 failures | 150 | 30,000 | $0.045 | $0 🆓 |
+| **CI/CD daily** | 500 failures | 150 | 75,000 | $0.113 | $0 🆓 |
+| **Monthly** | 10K failures | 150 | 1.5M | $2.25 | $0 🆓 |
+
+**Annual Cost Comparison:**
+- OpenAI GPT-3.5: **$27/year**
+- Ollama/vLLM: **$0/year** 🎉
 
 ### Cost Optimization Examples
 
 **Baseline: 1000 test failures/day**
 - Without AI: $0
+- With OpenAI GPT-3.5: ~$2.25/month
+- **With Ollama (self-hosted): $0/month** 🆓
 - With AI (all tests): $0.225/day = $6.75/month
 - With correlation (70% reduction): $0.068/day = $2.03/month
 - With filtering (50% reduction): $0.113/day = $3.38/month
