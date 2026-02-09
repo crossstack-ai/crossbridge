@@ -668,23 +668,23 @@ if echo "$FILTERED_RESPONSE" | jq -e '.ai_usage.total_tokens' > /dev/null 2>&1; 
     echo "  ✓ AI-Enhanced Classifications: $ANALYZED_TESTS"
     echo ""
     echo -e "${YELLOW}Token Usage & Cost:${NC}"
-    echo "  • Prompt Tokens: $(printf '%,d' $PROMPT_TOKENS)"
-    echo "  • Completion Tokens: $(printf '%,d' $COMPLETION_TOKENS)"
-    echo "  • Total Tokens: $(printf '%,d' $TOTAL_TOKENS)"
+    echo "  • Prompt Tokens: $PROMPT_TOKENS"
+    echo "  • Completion Tokens: $COMPLETION_TOKENS"
+    echo "  • Total Tokens: $TOTAL_TOKENS"
     echo "  • Total Cost: \$$(printf '%.4f' $COST)"
     
     if [ "$ANALYZED_TESTS" -gt 0 ]; then
         AVG_TOKENS=$((TOTAL_TOKENS / ANALYZED_TESTS))
-        AVG_COST=$(echo "scale=4; $COST / $ANALYZED_TESTS" | bc)
-        echo "  • Avg Tokens/Test: $(printf '%,d' $AVG_TOKENS)"
+        AVG_COST=$(awk "BEGIN {printf \"%.4f\", $COST / $ANALYZED_TESTS}")
+        echo "  • Avg Tokens/Test: $AVG_TOKENS"
         echo "  • Avg Cost/Test: \$$AVG_COST"
     fi
     
     # Cost comparison
     if [ "$PROVIDER" = "openai" ] && [[ "$MODEL" == *"gpt-3.5"* ]]; then
-        GPT4_COST=$(echo "scale=2; $COST * 30" | bc)
-        SAVINGS=$(echo "scale=2; $GPT4_COST - $COST" | bc)
-        SAVINGS_PCT=$(echo "scale=0; ($SAVINGS / $GPT4_COST) * 100" | bc)
+        GPT4_COST=$(awk "BEGIN {printf \"%.2f\", $COST * 30}")
+        SAVINGS=$(awk "BEGIN {printf \"%.2f\", $GPT4_COST - $COST}")
+        SAVINGS_PCT=$(awk "BEGIN {printf \"%.0f\", ($SAVINGS / $GPT4_COST) * 100}")
         
         echo ""
         echo -e "${GREEN}Cost Savings:${NC}"
