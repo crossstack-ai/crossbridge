@@ -920,7 +920,14 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
                     "    • \(.test_name): \(.code_reference)"'
                 echo ""
             fi
+        else
+            # Debug: top_failures array exists but is empty
+            [ "$VERBOSE" = "true" ] && echo -e "${YELLOW}[Debug] top_failures array is empty${NC}" >&2
         fi
+    else
+        # Debug: top_failures field is missing
+        [ "$VERBOSE" = "true" ] && echo -e "${YELLOW}[Debug] .intelligence_summary.top_failures field missing from response${NC}" >&2
+        [ "$VERBOSE" = "true" ] && echo -e "${YELLOW}[Debug] Available fields: $(echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary | keys | join(", ")')${NC}" >&2
     fi
     
     echo ""

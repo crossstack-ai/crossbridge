@@ -1304,7 +1304,20 @@ Keep response concise (max 200 words)."""
                         enriched_tests.append(enriched_test)
                         
                     except Exception as e:
-                        logger.warning(f"Failed to analyze test {test_name}: {e}")
+                        logger.warning(f"Failed to analyze test {test_name}: {e}", exc_info=True)
+                        
+                        # Still add to top_failures even if analysis failed
+                        if len(top_failures) < 5:
+                            failure_detail = {
+                                "test_name": test_name[:80],
+                                "failure_type": "ANALYSIS_FAILED",
+                                "confidence": 0.0,
+                                "reason": error_msg[:200] if error_msg else f"Analysis failed: {str(e)[:150]}",
+                                "code_reference": None,
+                                "stacktrace": None
+                            }
+                            top_failures.append(failure_detail)
+                        
                         enriched_tests.append(test)
                 
                 # Track AI usage in license
@@ -1334,6 +1347,13 @@ Keep response concise (max 200 words)."""
                     },
                     "enriched_tests": enriched_tests
                 }
+                
+                # Log summary for debugging
+                logger.info(f"Analysis complete: {len(enriched_tests)} tests enriched, {len(top_failures)} top failures, {len(classifications)} classification types")
+                if len(top_failures) > 0:
+                    logger.info(f"Top failures: {[f['test_name'] for f in top_failures]}")
+                else:
+                    logger.warning(f"No top failures populated despite {len(failed_tests)} failed tests and {len(enriched_tests)} enriched tests")
                 
                 # Add AI usage info if AI was used
                 if ai_token_usage:
@@ -1720,15 +1740,18 @@ Keep response concise (max 200 words)."""
                 if correlation_summary["total_correlated"] > 0:
                     correlation_summary["avg_confidence"] = total_confidence / correlation_summary["total_correlated"]
                 
+                # Log summary for debugging
+                logger.info(f"Correlation analysis complete: {len(enriched_tests)} tests enriched, {len(top_failures)} top failures")
+                
                 return {
                     "analyzed": True,
                     "data": data,
                     "intelligence_summary": {
                         "classifications": classifications,
                         "signals": signals_summary,
-                        "recommendations": list(recommendations)
+                        "recommendations": list(recommendations),
+                        "top_failures": top_failures  # Move inside intelligence_summary for consistency
                     },
-                    "top_failures": top_failures,
                     "enriched_tests": enriched_tests,
                     "correlation_summary": correlation_summary,
                     "correlated_app_errors": correlated_app_errors[:10]  # Top 10
