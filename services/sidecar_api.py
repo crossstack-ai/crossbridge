@@ -1274,9 +1274,50 @@ Keep response concise (max 200 words)."""
                                     total_completion_tokens += ai_response.token_usage.completion_tokens
                                     ai_cost += ai_response.cost
                                 
-                                # Add AI insights to classification
-                                result.classification.reason = f"{result.classification.reason}\n\nAI Insights: {ai_response.content[:300]}"
-                                recommendations.add(ai_response.content[:200])
+                                # Clean AI response - remove apologies and disclaimers
+                                ai_content = ai_response.content.strip()
+                                
+                                # Filter out apology patterns
+                                apology_patterns = [
+                                    r"^(I'm sorry|I am sorry|Unfortunately|However, I)",
+                                    r"^As an? (AI|assistant|model|language model)",
+                                    r"^I (don't|do not|cannot|can't) (have|provide|access)",
+                                    r"developed by (Deepseek|OpenAI|Anthropic|Claude)",
+                                    r"^My (primary|main) (function|purpose|training)",
+                                    r"^Without (more|actual|specific) (context|information)"
+                                ]
+                                
+                                # Split into sentences and filter
+                                cleaned_content = []
+                                for sentence in re.split(r'([.!?]\s+)', ai_content):
+                                    if not sentence.strip():
+                                        continue
+                                    # Skip sentences with apology patterns
+                                    skip = False
+                                    for pattern in apology_patterns:
+                                        if re.search(pattern, sentence, re.IGNORECASE):
+                                            skip = True
+                                            break
+                                    if not skip:
+                                        cleaned_content.append(sentence)
+                                
+                                cleaned_text = ''.join(cleaned_content).strip()
+                                
+                                # Truncate at sentence boundary (max 300 chars)
+                                if len(cleaned_text) > 300:
+                                    # Find last sentence boundary before 300 chars
+                                    truncated = cleaned_text[:300]
+                                    last_period = max(truncated.rfind('.'), truncated.rfind('!'), truncated.rfind('?'))
+                                    if last_period > 100:  # Ensure we have meaningful content
+                                        cleaned_text = truncated[:last_period + 1]
+                                    else:
+                                        # Fallback: truncate at word boundary
+                                        cleaned_text = truncated.rsplit(' ', 1)[0] + '...'
+                                
+                                # Only add AI insights if we have meaningful content
+                                if cleaned_text and len(cleaned_text) > 50:
+                                    result.classification.reason = f"{result.classification.reason}\\n\\nAI Insights: {cleaned_text}"
+                                    recommendations.add(cleaned_text[:200])
                                 
                             except Exception as ai_err:
                                 logger.warning(f"AI analysis failed for {test_name}: {ai_err}")
