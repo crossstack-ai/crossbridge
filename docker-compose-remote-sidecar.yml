@@ -45,7 +45,7 @@ services:
       - ./crossbridge-data/cache:/data/cache
       
       # Mount credentials directory for AI provider auto-detection
-      - ${HOME}/.crossbridge:/root/.crossbridge:ro
+      - ${HOME}/.crossbridge:/home/crossbridge/.crossbridge:ro
       
       # Mount configuration (optional)
       - ./crossbridge.yml:/opt/crossbridge/crossbridge.yml:ro
