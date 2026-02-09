@@ -12,6 +12,7 @@ Supports all frameworks via unified event format.
 """
 
 import json
+import os
 import asyncio
 from typing import Dict, Any, Optional, Union, List
 from datetime import datetime
@@ -1068,6 +1069,9 @@ class SidecarAPIServer:
                 ai_provider = body.get("ai_provider")
                 ai_model = body.get("ai_model")
                 
+                # Get timeout from environment variable (for self-hosted AI like Ollama)
+                ai_timeout = int(os.getenv("OLLAMA_TIMEOUT", "120")) if enable_ai else 60
+                
                 # Auto-detect AI provider from cached credentials if not specified
                 if enable_ai and not ai_provider:
                     logger.info("AI enabled but no provider specified - attempting auto-detection")
@@ -1153,7 +1157,7 @@ class SidecarAPIServer:
                                 endpoint_url = config['endpoint_url']
                                 model_name = config['model_name'] or ai_model
                                 
-                                logger.info(f"Self-hosted AI configured: {endpoint_url} with model {model_name}")
+                                logger.info(f"Self-hosted AI configured: {endpoint_url} with model {model_name}, timeout: {ai_timeout}s")
                                 
                                 # Initialize Ollama provider (works with Ollama, LM Studio, etc.)
                                 ai_provider_instance = OllamaProvider({
@@ -1163,7 +1167,7 @@ class SidecarAPIServer:
                                 
                                 # Override ai_model with configured model
                                 ai_model = model_name
-                                logger.info(f"Self-hosted AI provider initialized: {endpoint_url} with model {model_name}")
+                                logger.info(f"Self-hosted AI provider initialized: {endpoint_url} with model {model_name}, timeout: {ai_timeout}s")
                             else:
                                 logger.error("Self-hosted AI provider selected but no configuration found")
                                 enable_ai = False
@@ -1227,7 +1231,12 @@ Keep response concise (max 200 words)."""
                                 # Call AI provider
                                 ai_response = ai_provider_instance.complete(
                                     messages=[AIMessage(role="user", content=prompt)],
-                                    model_config=ModelConfig(model=ai_model, max_tokens=300, temperature=0.3),
+                                    model_config=ModelConfig(
+                                        model=ai_model,
+                                        max_tokens=300,
+                                        temperature=0.3,
+                                        timeout=ai_timeout
+                                    ),
                                     context=AIExecutionContext(execution_id=f"log_analysis_{test_name[:20]}")
                                 )
                                 
