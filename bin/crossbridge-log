@@ -520,10 +520,11 @@ enrich_with_intelligence() {
     
     # Show spinner while curl is running
     local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local spin_chars=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local spin_index=0
     while kill -0 $curl_pid 2>/dev/null; do
-        local temp=${spinstr#?}
-        printf "\r${BLUE}  %-70s [%c]${NC}" "Processing test results and extracting failure patterns..." "$spinstr" >&2
-        spinstr=$temp${spinstr%"$temp"}
+        printf "\r${BLUE}  %-70s [%s]${NC}" "Processing test results and extracting failure patterns..." "${spin_chars[$spin_index]}" >&2
+        spin_index=$(( (spin_index + 1) % ${#spin_chars[@]} ))
         sleep 0.15
     done
     
