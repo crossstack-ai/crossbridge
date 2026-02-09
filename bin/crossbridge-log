@@ -327,6 +327,9 @@ enrich_with_intelligence() {
         return
     fi
     
+    # Capture start time for duration tracking
+    local AI_START_TIME=$(date +%s)
+    
     echo -e "${BLUE}Running intelligence analysis...${NC}" >&2
     
     # Show AI warning and get confirmation if AI is enabled
@@ -432,6 +435,11 @@ enrich_with_intelligence() {
     
     # If analysis endpoint exists and succeeded, use enriched data
     if echo "$enriched" | jq -e '.analyzed' > /dev/null 2>&1; then
+        # Capture end time and calculate duration
+        local AI_END_TIME=$(date +%s)
+        local AI_DURATION=$((AI_END_TIME - AI_START_TIME))
+        export AI_ANALYSIS_DURATION=$AI_DURATION
+        
         echo "$enriched"
         echo -e "${GREEN}✓ Intelligence analysis complete${NC}" >&2
     else
@@ -666,6 +674,9 @@ if echo "$FILTERED_RESPONSE" | jq -e '.ai_usage.total_tokens' > /dev/null 2>&1; 
     echo -e "${YELLOW}AI Analysis Statistics:${NC}"
     echo "  ✓ Total Tests Analyzed: $ANALYZED_TESTS"
     echo "  ✓ AI-Enhanced Classifications: $ANALYZED_TESTS"
+    if [ -n "$AI_ANALYSIS_DURATION" ]; then
+        echo "  ✓ Total Time Taken: ${AI_ANALYSIS_DURATION}s"
+    fi
     echo ""
     echo -e "${YELLOW}Token Usage & Cost:${NC}"
     echo "  • Prompt Tokens: $PROMPT_TOKENS"
