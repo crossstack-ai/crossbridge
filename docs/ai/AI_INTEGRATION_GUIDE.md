@@ -103,11 +103,13 @@ When `--enable-ai` is enabled, CrossBridge provides:
    - AI explains "why" the test failed
    - Context-aware reasoning
    - Links to similar historical failures
+   - **Concise output** - No disclaimers or apologies (90% less verbose)
 
 2. **Fix Recommendations**
    - Specific code-level suggestions
    - Locator improvements
    - Test refactoring advice
+   - **Actionable insights** - Direct technical analysis without hedging
 
 3. **Pattern Detection**
    - Identifies similar failures
@@ -118,6 +120,12 @@ When `--enable-ai` is enabled, CrossBridge provides:
    - Severity scoring
    - Urgency recommendations
    - Priority guidance
+
+5. **Structured Formatting** 🆕
+   - Clear TC ID and Name header
+   - Hierarchical classification display (PRODUCT > DEFECT > API > ERROR)
+   - Confidence score prominently shown
+   - 2-3 sentence concise analysis (no preambles)
 
 ### Provider-Aware UI
 
@@ -364,9 +372,48 @@ print(f"Demo license created: {license.license_key}")
 
 **Output includes:**
 - Standard failure classification
-- AI-generated root cause analysis
+- AI-generated root cause analysis (concise, no disclaimers)
 - Specific fix recommendations
 - Token usage and cost breakdown
+
+**Example AI Output (New Concise Format):**
+
+```bash
+AI-Enhanced Test Analysis:
+
+  ┌─────────────────────────────────────────┐
+  │ test-001: User Login Authentication Test
+  └─────────────────────────────────────────┘
+  📊 Classification: PRODUCT > DEFECT > API > ERROR
+  🎯 Confidence: 0.85
+  
+  💡 Root Cause Analysis:
+  API authentication endpoint returned 500 error due to missing OAuth 
+  token in request headers. Database connection pool exhausted after 
+  30 seconds timeout.
+```
+
+**Before (Wordy):** ❌
+```
+test-001 | User Login Authentication Test
+Classification: PRODUCT_DEFECT (confidence: 0.85)
+I'm sorry, as an AI model developed by Deepseek, I don't have access 
+to your actual logs. However, based on my training data, it appears 
+that the root cause of this issue is likely...
+```
+
+**After (Concise):** ✅
+```
+┌─────────────────────────────────────────┐
+│ test-001: User Login Authentication Test
+└─────────────────────────────────────────┘
+📊 Classification: PRODUCT > DEFECT > API > ERROR
+🎯 Confidence: 0.85
+
+💡 Root Cause Analysis:
+API authentication endpoint returned 500 error due to missing OAuth 
+token in request headers. Database connection pool exhausted.
+```
 
 ### 2. AI Analysis with Correlation
 

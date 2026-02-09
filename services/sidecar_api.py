@@ -1779,6 +1779,182 @@ Keep response concise (max 200 words)."""
             except Exception as e:
                 logger.error(f"Correlation analysis failed: {e}", exc_info=True)
                 raise HTTPException(status_code=500, detail=f"Correlation analysis failed: {str(e)}")
+        
+        @self.app.post("/summarize-recommendations")
+        async def summarize_recommendations(request: Request):
+            """
+            Intelligently summarize long recommendations using AI
+            
+            Takes verbose recommendations and returns concise, actionable summaries
+            that fit within display limits while maintaining complete meaning.
+            
+            Request body:
+            {
+                "recommendations": ["long recommendation 1", "long recommendation 2", ...],
+                "max_length": 200,  // optional, default 200 chars per recommendation
+                "ai_provider": "openai|anthropic|ollama",  // optional, auto-detect if not provided
+                "ai_model": "gpt-3.5-turbo"  // optional
+            }
+            
+            Response:
+            {
+                "summarized": true,
+                "recommendations": ["short summary 1", "short summary 2", ...],
+                "original_count": 5,
+                "summarized_count": 3
+            }
+            """
+            try:
+                body = await request.json()
+                recommendations = body.get("recommendations", [])
+                max_length = body.get("max_length", 200)
+                ai_provider = body.get("ai_provider")
+                ai_model = body.get("ai_model", "gpt-3.5-turbo")
+                
+                if not recommendations:
+                    return {
+                        "summarized": False,
+                        "recommendations": [],
+                        "original_count": 0,
+                        "summarized_count": 0
+                    }
+                
+                # Auto-detect AI provider if not specified
+                if not ai_provider:
+                    ai_provider = self._detect_configured_ai_provider()
+                    if not ai_provider:
+                        # Fallback to simple truncation if no AI available
+                        return self._simple_summarize(recommendations, max_length)
+                
+                # Get timeout from environment (especially for self-hosted AI)
+                ai_timeout = int(os.getenv("OLLAMA_TIMEOUT", "120"))
+                
+                # Initialize AI provider
+                model_config = ModelConfig(
+                    provider=ai_provider,
+                    model_name=ai_model,
+                    max_tokens=150,  # Concise summaries
+                    temperature=0.3,  # More deterministic
+                    timeout=ai_timeout
+                )
+                
+                provider_instance = None
+                if ai_provider.lower() in ["openai", "azure_openai"]:
+                    provider_instance = OpenAIProvider(model_config)
+                elif ai_provider.lower() == "anthropic":
+                    provider_instance = AnthropicProvider(model_config)
+                elif ai_provider.lower() in ["ollama", "selfhosted"]:
+                    provider_instance = OllamaProvider(model_config)
+                
+                if not provider_instance:
+                    logger.warning(f"Unknown AI provider: {ai_provider}, using simple truncation")
+                    return self._simple_summarize(recommendations, max_length)
+                
+                # Build prompt for summarization
+                recommendations_text = "\n".join([f"{i+1}. {rec}" for i, rec in enumerate(recommendations)])
+                
+                system_prompt = f"""You are a test automation expert. Summarize these test failure recommendations into concise, actionable points.
+Requirements:
+- Each summary must be under {max_length} characters
+- Keep the core actionable advice
+- Remove verbose explanations and background context
+- Use direct, imperative language (e.g., "Check API endpoints" not "You should check...")
+- Maintain technical accuracy
+- If multiple recommendations address same issue, combine them
+- Return ONLY the summarized recommendations, one per line, numbered"""
+
+                user_prompt = f"""Summarize these recommendations concisely:\n\n{recommendations_text}"""
+                
+                messages = [
+                    AIMessage(role="system", content=system_prompt),
+                    AIMessage(role="user", content=user_prompt)
+                ]
+                
+                # Call AI for summarization
+                logger.info(f"Calling {ai_provider} to summarize {len(recommendations)} recommendations")
+                
+                try:
+                    response = await asyncio.to_thread(
+                        provider_instance.generate,
+                        messages=messages,
+                        context=AIExecutionContext(
+                            test_name="recommendation_summarization",
+                            framework="crossbridge",
+                            timeout=ai_timeout
+                        )
+                    )
+                    
+                    # Parse response - extract numbered list
+                    summary_text = response.content.strip()
+                    summarized = []
+                    
+                    for line in summary_text.split('\n'):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        # Remove numbering (1., 2., etc.)
+                        line = line.lstrip('0123456789).• -')
+                        line = line.strip()
+                        if len(line) > 20:  # Valid recommendation
+                            summarized.append(line[:max_length])
+                    
+                    logger.info(f"✅ Summarized {len(recommendations)} → {len(summarized)} recommendations")
+                    
+                    return {
+                        "summarized": True,
+                        "recommendations": summarized,
+                        "original_count": len(recommendations),
+                        "summarized_count": len(summarized)
+                    }
+                    
+                except Exception as ai_error:
+                    logger.error(f"AI summarization failed: {ai_error}", exc_info=True)
+                    # Fallback to simple truncation
+                    return self._simple_summarize(recommendations, max_length)
+                
+            except Exception as e:
+                logger.error(f"Recommendation summarization failed: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
+    
+    def _simple_summarize(self, recommendations: List[str], max_length: int) -> Dict[str, Any]:
+        """Fallback: Simple sentence-boundary-aware truncation"""
+        summarized = []
+        
+        for rec in recommendations:
+            if len(rec) <= max_length:
+                summarized.append(rec)
+                continue
+            
+            # Find sentence boundaries
+            sentences = []
+            current = []
+            for char in rec:
+                current.append(char)
+                if char in '.!?' and len(''.join(current)) > 20:
+                    sentences.append(''.join(current).strip())
+                    current = []
+            
+            # Build summary from complete sentences
+            summary = ""
+            for sentence in sentences:
+                if len(summary) + len(sentence) + 1 <= max_length:
+                    summary += sentence + " "
+                else:
+                    break
+            
+            if summary:
+                summarized.append(summary.strip())
+            else:
+                # Last resort: truncate at word boundary
+                words = rec[:max_length].rsplit(' ', 1)
+                summarized.append(words[0] + "...")
+        
+        return {
+            "summarized": False,  # Indicates simple truncation used
+            "recommendations": summarized,
+            "original_count": len(recommendations),
+            "summarized_count": len(summarized)
+        }
     
     async def start(self):
         """Start the API server"""

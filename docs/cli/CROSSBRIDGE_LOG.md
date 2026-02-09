@@ -361,6 +361,42 @@ Token Usage & Cost:
 - Code-level debugging suggestions
 - Business impact assessment
 
+**AI-Enhanced Test Analysis Output:**
+
+CrossBridge displays AI insights in a clean, structured format:
+
+```bash
+AI-Enhanced Test Analysis:
+
+  ┌─────────────────────────────────────────┐
+  │ test-001: User Login Authentication Test
+  └─────────────────────────────────────────┘
+  📊 Classification: PRODUCT > DEFECT > API > ERROR
+  🎯 Confidence: 0.85
+  
+  💡 Root Cause Analysis:
+  API authentication endpoint returned 500 error due to missing OAuth 
+  token in request headers. Database connection pool exhausted after 
+  30 seconds timeout.
+
+  ┌─────────────────────────────────────────┐
+  │ test-002: Payment Processing Flow
+  └─────────────────────────────────────────┘
+  📊 Classification: ENVIRONMENT > ISSUE > TIMEOUT
+  🎯 Confidence: 0.92
+  
+  💡 Root Cause Analysis:
+  Payment gateway response exceeded configured 10s timeout. Network 
+  latency to external service averages 8.5s under load.
+```
+
+**Key Features:**
+- ✅ **Structured Format** - TC ID, Name, Classification, Confidence clearly displayed
+- ✅ **Clean Output** - No AI disclaimers like "I'm sorry, as an AI..."
+- ✅ **Concise Analysis** - 2-3 sentences focused on technical root cause
+- ✅ **Hierarchical Classification** - Easy-to-read format (PRODUCT > DEFECT > API > ERROR)
+- ✅ **Actionable Insights** - Direct technical analysis without hedging
+
 **License Tiers (Cloud Providers Only):**
 - FREE: 1K daily / 10K monthly tokens (testing)
 - BASIC: 10K daily / 100K monthly tokens (small teams)

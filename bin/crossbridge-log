@@ -686,7 +686,7 @@ apply_filters() {
     echo "$data"
 }
 
-# Clean and format AI recommendations for better readability
+# Clean and format AI recommendations for better readability (legacy - kept for fallback)
 clean_recommendation() {
     local rec="$1"
     
@@ -707,17 +707,78 @@ clean_recommendation() {
     rec=$(echo "$rec" | sed 's/^(This|The test) (failure|error) is (likely |probably |most likely )?due to //')
     rec=$(echo "$rec" | sed 's/^(It appears|It seems) (that |like )?//')
     
-    # Extract first 2-3 complete sentences (up to 350 chars for full context)
-    local sentences=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2\3/' | head -c 350)
+    # Find complete sentences (at sentence boundaries)
+    local sentences=""
+    local temp_rec="$rec"
+    local char_count=0
+    local max_chars=200
     
-    # If truncated mid-word, cut at last complete word
-    if [ ${#sentences} -eq 350 ]; then
-        sentences=$(echo "$sentences" | sed 's/\(.*\) [^ ]*$/\1.../')
-    fi
+    # Extract sentences one by one until we hit the limit
+    while [ -n "$temp_rec" ] && [ $char_count -lt $max_chars ]; do
+        # Extract first sentence (ending with . ! or ?)
+        local sentence=$(echo "$temp_rec" | sed -n 's/^\([^.!?]*[.!?]\).*/\1/p')
+        
+        if [ -z "$sentence" ]; then
+            # No sentence boundary found, take what we have
+            if [ $char_count -eq 0 ]; then
+                # First iteration and no sentence boundary - truncate at word boundary
+                sentences=$(echo "$temp_rec" | head -c $max_chars)
+                if [ ${#temp_rec} -gt $max_chars ]; then
+                    sentences=$(echo "$sentences" | sed 's/\(.*\) [^ ]*$/\1.../')
+                fi
+            fi
+            break
+        fi
+        
+        local sentence_len=${#sentence}
+        if [ $((char_count + sentence_len)) -gt $max_chars ]; then
+            # Adding this sentence would exceed limit
+            break
+        fi
+        
+        sentences="${sentences}${sentence} "
+        char_count=$((char_count + sentence_len + 1))
+        temp_rec=$(echo "$temp_rec" | sed "s/^[^.!?]*[.!?]//")
+        temp_rec=$(echo "$temp_rec" | sed 's/^[[:space:]]*//')
+    done
+    
+    sentences=$(echo "$sentences" | sed 's/[[:space:]]*$//')
     
     # Only output if we have meaningful content (at least 25 chars)
     if [ -n "$sentences" ] && [ ${#sentences} -gt 25 ]; then
         echo "$sentences"
+    fi
+}
+
+# Summarize recommendations using AI for intelligent, concise summaries
+summarize_recommendations_with_ai() {
+    local recommendations_json="$1"
+    local max_length="${2:-200}"
+    
+    # Check if we have AI enabled
+    if [ "$ENABLE_AI" != "true" ]; then
+        echo "$recommendations_json"
+        return
+    fi
+    
+    # Build payload for summarization
+    local payload=$(echo "$recommendations_json" | jq \
+        --argjson max_length "$max_length" \
+        '{recommendations: ., max_length: $max_length, ai_provider: "'"${AI_PROVIDER:-}"'"}')
+    
+    # Call sidecar's summarization endpoint
+    local summarized=$(echo "$payload" | \
+        curl -s -X POST "${SIDECAR_URL}/summarize-recommendations" \
+        -H "Content-Type: application/json" \
+        --data-binary @- 2>/dev/null)
+    
+    # Check if AI summarization succeeded
+    if echo "$summarized" | jq -e '.summarized == true' > /dev/null 2>&1; then
+        echo "$summarized" | jq -r '.recommendations[]'
+        [ "${DEBUG:-false}" = "true" ] && echo "DEBUG: AI summarized $(echo "$summarized" | jq -r '.original_count') → $(echo "$summarized" | jq -r '.summarized_count') recommendations" >&2
+    else
+        # Fallback to original recommendations
+        echo "$recommendations_json" | jq -r '.[]'
     fi
 }
 
@@ -837,28 +898,46 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
         
         # Get unique recommendations (deduplicate similar ones)
         recommendations=$(echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.recommendations[]' | sort -u)
+        
+        # Collect recommendations into JSON array for batch AI summarization
+        recommendations_array=$(echo "$recommendations" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+        
+        # Summarize with AI if enabled, otherwise use clean_recommendation
+        if [ "$ENABLE_AI" = "true" ]; then
+            summarized_recs=$(summarize_recommendations_with_ai "$recommendations_array" 200)
+        else
+            # Fallback to client-side cleaning
+            summarized_recs=""
+            while IFS= read -r rec; do
+                if [ -n "$rec" ]; then
+                    cleaned=$(clean_recommendation "$rec")
+                    if [ -n "$cleaned" ]; then
+                        summarized_recs="${summarized_recs}${cleaned}"$'\n'
+                    fi
+                fi
+            done <<< "$recommendations"
+        fi
+        
+        # Display summarized recommendations
         shown_count=0
         max_recommendations=10
         
         while IFS= read -r rec; do
             if [ -n "$rec" ]; then
-                cleaned=$(clean_recommendation "$rec")
-                if [ -n "$cleaned" ]; then
-                    echo "  ✓ $cleaned"
-                    shown_count=$((shown_count + 1))
-                    
-                    # Limit to top N recommendations
-                    if [ $shown_count -ge $max_recommendations ]; then
-                        total_recs=$(echo "$recommendations" | wc -l)
-                        if [ $total_recs -gt $max_recommendations ]; then
-                            remaining=$((total_recs - max_recommendations))
-                            echo "  ... and $remaining more recommendations (filtered for clarity)"
-                        fi
-                        break
+                echo "  ✓ $rec"
+                shown_count=$((shown_count + 1))
+                
+                # Limit to top N recommendations
+                if [ $shown_count -ge $max_recommendations ]; then
+                    total_recs=$(echo "$summarized_recs" | grep -c '^.')
+                    if [ $total_recs -gt $max_recommendations ]; then
+                        remaining=$((total_recs - max_recommendations))
+                        echo "  ... and $remaining more recommendations (filtered for clarity)"
                     fi
+                    break
                 fi
             fi
-        done <<< "$recommendations"
+        done <<< "$summarized_recs"
         
         # If no useful recommendations after filtering
         if [ $shown_count -eq 0 ]; then

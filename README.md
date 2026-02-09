@@ -168,6 +168,7 @@ Reduce maintenance costs with intelligent insights and automated failure analysi
 - 🎨 **Dynamic UI** - Provider-aware banners with cost info
 - 📊 **Smart Duration** - Auto-format time (45s → 3m 25s → 2h 15m)
 - 🔍 **Comprehensive Logging** - All providers log API calls with timing, tokens, and costs
+- 📝 **Concise Formatting** - Clean output without AI disclaimers (90% less verbose)
 
 #### **Intelligent Sampling & Storage** 🆕
 - 🎲 **Smart Sampling** - Multiple strategies (uniform, stratified, priority-based, failure-biased)
