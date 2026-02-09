@@ -987,8 +987,12 @@ class SidecarAPIServer:
                 
                 # Auto-detect AI provider from cached credentials if not specified
                 if enable_ai and not ai_provider:
+                    logger.info("AI enabled but no provider specified - attempting auto-detection")
                     ai_provider = self._detect_configured_ai_provider()
-                    if not ai_provider:
+                    if ai_provider:
+                        logger.info(f"Auto-detected AI provider: {ai_provider}")
+                    else:
+                        logger.warning("Failed to auto-detect AI provider - falling back to openai")
                         ai_provider = "openai"  # fallback
                 
                 if not ai_model:
@@ -1004,11 +1008,16 @@ class SidecarAPIServer:
                     self._analyzer.resolver.workspace_root = workspace_root
                 
                 # Validate AI license if AI is enabled (skip for self-hosted)
-                if enable_ai and ai_provider.lower() != "selfhosted":
-                    validator = LicenseValidator()
-                    is_valid, message, license = validator.validate_license(ai_provider, "log_analysis")
-                    if not is_valid:
-                        raise HTTPException(status_code=403, detail=f"AI License validation failed: {message}")
+                if enable_ai:
+                    logger.info(f"AI validation check - provider: {ai_provider}")
+                    if ai_provider.lower() == "selfhosted":
+                        logger.info("Self-hosted AI detected - skipping license validation")
+                    else:
+                        validator = LicenseValidator()
+                        is_valid, message, license = validator.validate_license(ai_provider, "log_analysis")
+                        if not is_valid:
+                            logger.error(f"License validation failed for {ai_provider}: {message}")
+                            raise HTTPException(status_code=403, detail=f"AI License validation failed: {message}")
                 
                 # Extract failed tests for analysis
                 failed_tests = self._extract_failed_tests(data, framework)
@@ -1267,19 +1276,25 @@ Keep response concise (max 200 words)."""
             
             manager = _get_test_creds_manager()
             if not manager:
+                logger.info("No credential manager available - cryptography may not be installed")
                 return None
             
             # Check for cached AI credentials
+            logger.info(f"Loading credentials from: {manager.credentials_file if hasattr(manager, 'credentials_file') else 'unknown'}")
             manager._load_credentials()
+            
+            logger.info(f"Found {len(manager._credentials)} total credentials")
             for key, cred in manager._credentials.items():
+                logger.debug(f"Checking credential: provider={cred.provider}, repo={cred.repo}")
                 if cred.repo == "_ai_cache_":
                     # Return the configured provider
-                    logger.info(f"Detected cached AI provider: {cred.provider}")
+                    logger.info(f"✅ Detected cached AI provider: {cred.provider}")
                     return cred.provider
             
+            logger.info("No AI credentials found in cache (repo='_ai_cache_')")
             return None
         except Exception as e:
-            logger.warning(f"Failed to detect AI provider from cache: {e}")
+            logger.error(f"Failed to detect AI provider from cache: {e}", exc_info=True)
             return None
     
     def _get_selfhosted_ai_config(self) -> Optional[dict]:

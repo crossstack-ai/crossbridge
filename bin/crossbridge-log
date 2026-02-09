@@ -339,28 +339,42 @@ enrich_with_intelligence() {
         echo -e "${YELLOW}  • Typical analysis: \$0.01-\$0.10 per test run${NC}" >&2
         echo -e "${YELLOW}  • Costs vary by log size and complexity${NC}" >&2
         echo "" >&2
-        echo -e "${YELLOW}Checking AI license...${NC}" >&2
+        echo -e "${YELLOW}Checking AI configuration...${NC}" >&2
         
-        # Validate license by calling sidecar (which validates via license.py)
-        # We'll do a test call to verify license before processing all logs
+        # Check AI provider configuration by calling sidecar
+        # The sidecar will auto-detect the configured provider from cache
         local test_payload='{"data":{"tests":[]},"framework":"test","enable_ai":true}'
         local license_check=$(echo "$test_payload" | curl -s -X POST "${SIDECAR_URL}/analyze" \
             -H "Content-Type: application/json" --data-binary @- 2>&1)
         
+        # Check if it's a license failure (but not for self-hosted providers)
         if echo "$license_check" | grep -q "AI License validation failed\|403"; then
-            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
-            echo -e "${RED}❌ AI License Validation Failed${NC}" >&2
-            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
-            echo -e "${RED}No valid AI license found or license expired.${NC}" >&2
-            echo "" >&2
-            echo -e "${YELLOW}To use AI features:${NC}" >&2
-            echo -e "${YELLOW}  1. Configure AI settings: crossbridge configure ai${NC}" >&2
-            echo -e "${YELLOW}  2. Obtain a valid license${NC}" >&2
-            echo -e "${YELLOW}  3. Run analysis again with --enable-ai${NC}" >&2
-            echo "" >&2
-            echo -e "${BLUE}Continuing with standard analysis (no AI)...${NC}" >&2
-            ENABLE_AI=false
+            # Check if the error mentions self-hosted or if we should continue anyway
+            if echo "$license_check" | grep -q "selfhosted\|Self-hosted"; then
+                # Self-hosted provider detected - no license needed
+                echo -e "${GREEN}✓ Self-hosted AI detected - no license required${NC}" >&2
+                echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            else
+                # Cloud provider requires license
+                echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+                echo -e "${RED}❌ AI License Validation Failed${NC}" >&2
+                echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+                echo -e "${RED}No valid AI license found or license expired.${NC}" >&2
+                echo "" >&2
+                echo -e "${YELLOW}To use AI features:${NC}" >&2
+                echo -e "${YELLOW}  1. Configure AI settings: crossbridge test-creds --action cache-ai${NC}" >&2
+                echo -e "${YELLOW}  2. For cloud providers: Obtain a valid license${NC}" >&2
+                echo -e "${YELLOW}  3. For self-hosted: Cache your endpoint URL and model${NC}" >&2
+                echo "" >&2
+                echo -e "${BLUE}Continuing with standard analysis (no AI)...${NC}" >&2
+                ENABLE_AI=false
+            fi
+        elif echo "$license_check" | grep -q "Self-hosted AI configured"; then
+            # Successfully detected self-hosted AI from logs
+            echo -e "${GREEN}✓ Self-hosted AI configured - no license required${NC}" >&2
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
         else
+            # Cloud provider with valid license
             echo -e "${GREEN}✓ AI license validated successfully${NC}" >&2
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
         fi
