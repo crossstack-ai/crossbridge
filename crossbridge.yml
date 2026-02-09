@@ -133,6 +133,26 @@ crossbridge:
     max_tokens: 2048           # Max response length
     timeout: 60                # Request timeout in seconds
     
+    # ── Self-Hosted AI (Ollama) Overrides ─────────────────────────────────
+    # When using Ollama or other self-hosted models, override settings here
+    # These settings apply when provider is set to 'ollama'
+    ollama:
+      # Ollama base URL (default for local: http://localhost:11434)
+      base_url: http://localhost:11434
+      
+      # Model name (e.g., deepseek-coder:6.7b, codellama:7b, llama2:13b)
+      model: deepseek-coder:6.7b
+      
+      # Timeout for self-hosted models (longer than cloud APIs)
+      # Self-hosted models typically take 30-90s depending on hardware
+      timeout: 120              # Increased timeout for local inference
+      
+      # Token limit optimized for log analysis (faster responses)
+      max_tokens: 300           # Reduced for speed, sufficient for recommendations
+      
+      # Temperature (same as cloud defaults)
+      temperature: 0.7
+    
     # ── AI Semantic Engine ────────────────────────────────────────────────
     # Semantic search, duplicate detection, and smart test selection
     semantic_engine:
