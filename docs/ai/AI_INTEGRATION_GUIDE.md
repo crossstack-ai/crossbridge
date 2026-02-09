@@ -125,18 +125,30 @@ When `--enable-ai` is enabled, CrossBridge provides:
    - Context-aware reasoning
    - Links to similar historical failures
    - **Concise output** - No disclaimers or apologies (90% less verbose)
+   - **AI-powered summarization** - Intelligent condensing prevents mid-sentence cuts
 
-2. **Intelligent Recommendation Summarization** 🆕
-   - **AI-powered condensing** of verbose recommendations
+2. **Intelligent Summarization** 🆕
+   - **Applies to both recommendations AND root cause analysis text**
+   - **AI-powered condensing** of verbose output into actionable insights
    - Eliminates mid-sentence truncation (no more "...due to several")
    - Automatically combines duplicate recommendations
    - Maintains technical accuracy while removing fluff
    - Smart sentence-boundary awareness (fallback without AI)
-   - Configurable length limits (default: 200 chars)
+   - Configurable length limits (default: 200 chars per item)
+   - **Uses dedicated `/summarize-recommendations` API endpoint**
    
-   **Before:** "The error message 'start_instant_vm job ended with status: failed' suggests that there's a problem with the instant VM (a feature of Hyper-V) process. This could be due to several"
+   **Before (truncated):** 
+   ```
+   ✓ The error message "start_instant_vm job ended with status: failed" 
+     suggests that there's a problem with the instant VM (a feature of 
+     Hyper-V) process. This could be due to
+   ```
    
-   **After:** "Check Hyper-V instant VM configuration and verify host has sufficient resources to initialize virtual machines"
+   **After (AI summarized):** 
+   ```
+   ✓ Check Hyper-V instant VM configuration and verify host has 
+     sufficient resources to initialize virtual machines
+   ```
 
 3. **Fix Recommendations**
    - Specific code-level suggestions

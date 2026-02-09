@@ -97,12 +97,14 @@ Pinpoints exact test code location for automation defects:
 #### **AI-Enhanced Analysis** 🤖 ENHANCED!
 Optional AI-powered insights with cost transparency:
 
-- ✅ **Root Cause Analysis** - AI explains "why" the test failed
-- ✅ **Intelligent Recommendation Summarization** 🆕 - AI condenses verbose output
-  * Eliminates mid-sentence truncation (complete, actionable recommendations)
+- ✅ **Root Cause Analysis** - AI explains "why" the test failed (with intelligent summarization)
+- ✅ **Intelligent Summarization** 🆕 - AI condenses all verbose output
+  * **Applies to both recommendations AND root cause analysis text**
+  * Eliminates mid-sentence truncation (complete, actionable messages)
   * Automatically combines duplicate recommendations
   * Removes verbose explanations while maintaining technical accuracy
   * Smart sentence-boundary awareness (fallback without AI)
+  * Uses dedicated `/summarize-recommendations` API endpoint
 - ✅ **Fix Recommendations** - Specific code-level suggestions
 - ✅ **Similar Failure Patterns** - Historical pattern matching
 - ✅ **Business Impact Assessment** - Severity and urgency scoring
