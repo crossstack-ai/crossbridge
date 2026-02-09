@@ -502,7 +502,7 @@ enrich_with_intelligence() {
     echo "" >&2
     
     if [ "$ENABLE_AI" = "true" ]; then
-        echo -e "${BLUE}🤖 Running AI-enhanced analysis... (this may take 30-120 seconds for large logs)${NC}" >&2
+        echo -e "${BLUE}🤖 Running AI-enhanced analysis... (this may take 30-120 minutes for large logs)${NC}" >&2
     else
         echo -e "${BLUE}Running intelligence analysis...${NC}" >&2
     fi
@@ -1135,11 +1135,15 @@ display_results() {
             if [ "$SLOWEST_TESTS" -gt 0 ]; then
                 DISPLAY_COUNT=$((SLOWEST_TESTS < 5 ? SLOWEST_TESTS : 5))
                 echo -e "${YELLOW}Slowest Tests (Top $DISPLAY_COUNT):${NC}"
-                echo "$data" | jq -r '.slowest_tests[0:5][] | 
-                    (.elapsed_ms / 1000 | floor) as $total_seconds |
-                    ($total_seconds / 60 | floor) as $minutes |
-                    ($total_seconds % 60) as $seconds |
-                    "  ⏱️  \(.name): \($minutes)m \($seconds)s"'
+                
+                # Format each test duration using format_duration function
+                echo "$data" | jq -r '.slowest_tests[0:5][] | "\(.elapsed_ms)|\(.name)"' | \
+                while IFS='|' read -r elapsed_ms test_name; do
+                    elapsed_seconds=$((elapsed_ms / 1000))
+                    duration_str=$(format_duration $elapsed_seconds)
+                    echo "  ⏱️  ${test_name}: ${duration_str}"
+                done
+                
                 echo ""
             fi
             ;;
