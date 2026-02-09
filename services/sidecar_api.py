@@ -963,7 +963,7 @@ class SidecarAPIServer:
             """
             try:
                 # Detect cached provider
-                provider = self._detect_ai_provider()
+                provider = self._detect_configured_ai_provider()
                 
                 if not provider:
                     return {
