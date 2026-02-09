@@ -874,10 +874,52 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
         if [ "$TOP_FAILURES_COUNT" -gt 0 ]; then
             echo ""
             echo -e "${YELLOW}Top Failure Details:${NC}"
+            echo ""
+            
+            # Table header
+            printf "  %-40s %-25s %-12s %s\n" "Test Case" "Failure Type" "Confidence" "Error Summary"
+            printf "  %-40s %-25s %-12s %s\n" "$(printf '%.0s─' {1..40})" "$(printf '%.0s─' {1..25})" "$(printf '%.0s─' {1..12})" "$(printf '%.0s─' {1..50})"
+            
+            # Table rows
             echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.top_failures[] | 
-                "  • \(.test_name)\n    Type: \(.failure_type) (confidence: \(.confidence))\n    Error: \(.reason)" +
-                (if .code_reference then "\n    Location: \(.code_reference)" else "" end) +
-                (if .stacktrace then "\n    Stack trace: \(.stacktrace | split("\n")[0:3] | join("\n    "))" else "" end)'
+                [.test_name, .failure_type, (.confidence | tostring), .reason] | @tsv' | \
+            while IFS=$'\t' read -r test_name failure_type confidence reason; do
+                # Truncate long test names to fit column width
+                if [ ${#test_name} -gt 38 ]; then
+                    test_name="${test_name:0:35}..."
+                fi
+                
+                # Truncate long failure types
+                if [ ${#failure_type} -gt 23 ]; then
+                    failure_type="${failure_type:0:20}..."
+                fi
+                
+                # Truncate long error messages to fit and add ...
+                if [ ${#reason} -gt 48 ]; then
+                    reason="${reason:0:45}..."
+                fi
+                
+                # Color confidence based on value
+                if (( $(echo "$confidence > 0.8" | bc -l 2>/dev/null || echo 0) )); then
+                    conf_color="${GREEN}"
+                elif (( $(echo "$confidence > 0.6" | bc -l 2>/dev/null || echo 0) )); then
+                    conf_color="${YELLOW}"
+                else
+                    conf_color="${RED}"
+                fi
+                
+                printf "  %-40s %-25s ${conf_color}%-12s${NC} %s\n" "$test_name" "$failure_type" "$confidence" "$reason"
+            done
+            
+            echo ""
+            
+            # Show additional details for code references if available
+            if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.top_failures[] | select(.code_reference != null)' > /dev/null 2>&1; then
+                echo -e "${BLUE}  Code References:${NC}"
+                echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.top_failures[] | select(.code_reference != null) | 
+                    "    • \(.test_name): \(.code_reference)"'
+                echo ""
+            fi
         fi
     fi
     
