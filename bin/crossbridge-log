@@ -636,6 +636,41 @@ apply_filters() {
     echo "$data"
 }
 
+# Clean and format AI recommendations for better readability
+clean_recommendation() {
+    local rec="$1"
+    
+    # Skip unhelpful AI apologies and disclaimers (strict filtering)
+    if echo "$rec" | grep -qiE "^(I'm sorry|I am sorry|As an? (AI|large language model)|I don't have|I do not have|I cannot|I can't|My (primary|main) (function|purpose)|Unfortunately|However, I|Please note|It's (important|worth) to note|Keep in mind|Without (more|actual|specific) (context|information|details)|developed by (Deepseek|OpenAI|Anthropic|Claude))"; then
+        return
+    fi
+    
+    # Remove mid-sentence disclaimers and hedging
+    rec=$(echo "$rec" | sed -E 's/[,;] ?(as an AI|based on my training|I cannot determine|without more context)[^.!?]*(\.|,)/./Ig')
+    
+    # Remove common prefixes that add no value
+    rec=$(echo "$rec" | sed 's/^Root Cause Analysis:[[:space:]]*//')
+    rec=$(echo "$rec" | sed 's/^Root Cause:[[:space:]]*//')
+    rec=$(echo "$rec" | sed 's/^Analysis:[[:space:]]*//')
+    rec=$(echo "$rec" | sed 's/^The root cause of (this issue|the test failure|the error) is (likely |probably )?//')
+    rec=$(echo "$rec" | sed 's/^The (error message|test failure|issue) (indicates|suggests) that //')
+    rec=$(echo "$rec" | sed 's/^(This|The test) (failure|error) is (likely |probably |most likely )?due to //')
+    rec=$(echo "$rec" | sed 's/^(It appears|It seems) (that |like )?//')
+    
+    # Truncate to first 1-2 complete sentences (up to 180 chars)
+    local sentences=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2/' | head -c 180)
+    
+    # If truncated mid-word, cut at last complete word
+    if [ ${#sentences} -eq 180 ]; then
+        sentences=$(echo "$sentences" | sed 's/\(.*\) [^ ]*$/\1.../')
+    fi
+    
+    # Only output if we have meaningful content (at least 25 chars)
+    if [ -n "$sentences" ] && [ ${#sentences} -gt 25 ]; then
+        echo "$sentences"
+    fi
+}
+
 # Capture start time for AI analysis duration tracking
 AI_START_TIME=$(date +%s)
 
@@ -878,41 +913,6 @@ format_duration() {
         else
             echo "${days}d ${hours}h"
         fi
-    fi
-}
-
-# Clean and format AI recommendations for better readability
-clean_recommendation() {
-    local rec="$1"
-    
-    # Skip unhelpful AI apologies and disclaimers (strict filtering)
-    if echo "$rec" | grep -qiE "^(I'm sorry|I am sorry|As an? (AI|large language model)|I don't have|I do not have|I cannot|I can't|My (primary|main) (function|purpose)|Unfortunately|However, I|Please note|It's (important|worth) to note|Keep in mind|Without (more|actual|specific) (context|information|details)|developed by (Deepseek|OpenAI|Anthropic|Claude))"; then
-        return
-    fi
-    
-    # Remove mid-sentence disclaimers and hedging
-    rec=$(echo "$rec" | sed -E 's/[,;] ?(as an AI|based on my training|I cannot determine|without more context)[^.!?]*(\.|,)/./Ig')
-    
-    # Remove common prefixes that add no value
-    rec=$(echo "$rec" | sed 's/^Root Cause Analysis:[[:space:]]*//')
-    rec=$(echo "$rec" | sed 's/^Root Cause:[[:space:]]*//')
-    rec=$(echo "$rec" | sed 's/^Analysis:[[:space:]]*//')
-    rec=$(echo "$rec" | sed 's/^The root cause of (this issue|the test failure|the error) is (likely |probably )?//')
-    rec=$(echo "$rec" | sed 's/^The (error message|test failure|issue) (indicates|suggests) that //')
-    rec=$(echo "$rec" | sed 's/^(This|The test) (failure|error) is (likely |probably |most likely )?due to //')
-    rec=$(echo "$rec" | sed 's/^(It appears|It seems) (that |like )?//')
-    
-    # Truncate to first 1-2 complete sentences (up to 180 chars)
-    local sentences=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2/' | head -c 180)
-    
-    # If truncated mid-word, cut at last complete word
-    if [ ${#sentences} -eq 180 ]; then
-        sentences=$(echo "$sentences" | sed 's/\(.*\) [^ ]*$/\1.../')
-    fi
-    
-    # Only output if we have meaningful content (at least 25 chars)
-    if [ -n "$sentences" ] && [ ${#sentences} -gt 25 ]; then
-        echo "$sentences"
     fi
 }
 
