@@ -641,8 +641,86 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
         echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.signals | to_entries[] | "  • \(.key): \(.value)"'
     fi
     
-    # Show recommendations
-    if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.recommendations' > /dev/null 2>&1; then
+    # Show AI-enhanced test insights
+    if echo "$FILTERED_RESPONSE" | jq -e '.enriched_tests[] | select(.ai_enhanced == true)' > /dev/null 2>&1; then
+        echo -e "${YELLOW}AI-Enhanced Test Analysis:${NC}"
+        
+        local shown_count=0
+        local max_insights=10
+        local total=$(echo "$FILTERED_RESPONSE" | jq '[.enriched_tests[] | select(.ai_enhanced == true and .ai_reasoning != null)] | length')
+        
+        while IFS= read -r test_insight; do
+            if [ -z "$test_insight" ]; then
+                continue
+            fi
+            
+            if [ $shown_count -ge $max_insights ]; then
+                if [ $total -gt $max_insights ]; then
+                    echo ""
+                    echo "  ... and $((total - max_insights)) more AI-enhanced tests (use filters to see specific tests)"
+                fi
+                break
+            fi
+            
+            local test_id=$(echo "$test_insight" | jq -r '.id // "N/A"')
+            local test_name=$(echo "$test_insight" | jq -r '.name')
+            local classification=$(echo "$test_insight" | jq -r '.classification')
+            local confidence=$(echo "$test_insight" | jq -r '.confidence')
+            local reasoning=$(echo "$test_insight" | jq -r '.reasoning')
+            
+            # Clean AI reasoning - aggressively remove apologies and disclaimers
+            reasoning=$(echo "$reasoning" | sed -E '
+                # Remove apology/disclaimer sentences at start
+                /^[[:space:]]*(I'\''m sorry|As an? (AI|large language model)|Unfortunately|However, I|My (training|primary|main) (data|function))/d
+                /^[[:space:]]*I (don'\''t|do not|cannot|can'\''t) (have|provide|access)/d
+                /developed by (Deepseek|OpenAI|Anthropic|Claude)/Id
+                # Remove generic hedging phrases
+                /^[[:space:]]*(Please note|It'\''s (important|worth) (noting|to note)|Keep in mind|Based on (my|the) (training|analysis))/d
+                /^[[:space:]]*Without (more|actual|specific|complete) (context|information|details)/d
+                # Remove empty lines
+                /^[[:space:]]*$/d
+            ')
+            
+            # Additional inline cleanup - remove mid-sentence disclaimers
+            reasoning=$(echo "$reasoning" | sed -E 's/[,;] ?(as an AI|based on my training data|I cannot determine)[^.!?]*(\.|,)/./Ig')
+            
+            # Skip if reasoning is empty or too short after cleaning
+            if [ -z "$reasoning" ] || [ $(echo "$reasoning" | wc -w) -lt 10 ]; then
+                continue
+            fi
+            
+            # Extract first 2-3 sentences (up to 250 chars) for readability
+            local truncated=$(echo "$reasoning" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2\3/' | head -c 250)
+            if [ ${#reasoning} -gt 250 ]; then
+                # Clean truncation - cut at last complete word
+                truncated=$(echo "$truncated" | sed 's/\(.*\) [^ ]*$/\1.../')
+            fi
+            
+            # Format classification for better readability
+            local class_display=$(echo "$classification" | sed 's/_/ > /g')
+            
+            echo ""
+            echo "  ┌─────────────────────────────────────────┐"
+            echo "  │ ${test_id}: ${test_name}"
+            echo "  └─────────────────────────────────────────┘"
+            echo "  📊 Classification: ${class_display}"
+            echo "  🎯 Confidence: ${confidence}"
+            echo "  "
+            echo "  💡 Root Cause Analysis:"
+            echo "  ${truncated}"
+            
+            shown_count=$((shown_count + 1))
+        done < <(echo "$FILTERED_RESPONSE" | jq -c '.enriched_tests[] | select(.ai_enhanced == true and .ai_reasoning != null) | {
+            id: .id,
+            name: .name,
+            classification: .classification.failure_type,
+            confidence: .classification.confidence,
+            reasoning: .ai_reasoning
+        }')
+        
+        echo ""
+    elif echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.recommendations' > /dev/null 2>&1; then
+        # Fallback to generic recommendations if no AI-enhanced tests
         echo -e "${YELLOW}Recommendations:${NC}"
         
         # Get unique recommendations (deduplicate similar ones)
@@ -780,31 +858,34 @@ format_duration() {
 clean_recommendation() {
     local rec="$1"
     
-    # Skip unhelpful AI apologies and disclaimers
-    if echo "$rec" | grep -qiE "^(I'm sorry|As an AI|I don't have access|I cannot|My primary function)"; then
+    # Skip unhelpful AI apologies and disclaimers (strict filtering)
+    if echo "$rec" | grep -qiE "^(I'm sorry|I am sorry|As an? (AI|large language model)|I don't have|I do not have|I cannot|I can't|My (primary|main) (function|purpose)|Unfortunately|However, I|Please note|It's (important|worth) to note|Keep in mind|Without (more|actual|specific) (context|information|details)|developed by (Deepseek|OpenAI|Anthropic|Claude))"; then
         return
     fi
     
-    # Remove "Root Cause Analysis:" prefix if present
+    # Remove mid-sentence disclaimers and hedging
+    rec=$(echo "$rec" | sed -E 's/[,;] ?(as an AI|based on my training|I cannot determine|without more context)[^.!?]*(\.|,)/./Ig')
+    
+    # Remove common prefixes that add no value
     rec=$(echo "$rec" | sed 's/^Root Cause Analysis:[[:space:]]*//')
+    rec=$(echo "$rec" | sed 's/^Root Cause:[[:space:]]*//')
+    rec=$(echo "$rec" | sed 's/^Analysis:[[:space:]]*//')
+    rec=$(echo "$rec" | sed 's/^The root cause of (this issue|the test failure|the error) is (likely |probably )?//')
+    rec=$(echo "$rec" | sed 's/^The (error message|test failure|issue) (indicates|suggests) that //')
+    rec=$(echo "$rec" | sed 's/^(This|The test) (failure|error) is (likely |probably |most likely )?due to //')
+    rec=$(echo "$rec" | sed 's/^(It appears|It seems) (that |like )?//')
     
-    # Remove redundant "The root cause" if it starts the sentence
-    rec=$(echo "$rec" | sed 's/^The root cause of this issue is likely //')
-    rec=$(echo "$rec" | sed 's/^The root cause of the test failure is //')
-    rec=$(echo "$rec" | sed 's/^The error message indicates that //')
-    rec=$(echo "$rec" | sed 's/^The test failure is likely due to //')
+    # Truncate to first 1-2 complete sentences (up to 180 chars)
+    local sentences=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2/' | head -c 180)
     
-    # Truncate to first complete sentence (up to 150 chars) for readability
-    local first_sentence=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\).*/\1/' | head -c 150)
-    
-    # If truncated mid-word, find last space and cut there
-    if [ ${#first_sentence} -eq 150 ]; then
-        first_sentence=$(echo "$first_sentence" | sed 's/\(.*\) [^ ]*$/\1.../')
+    # If truncated mid-word, cut at last complete word
+    if [ ${#sentences} -eq 180 ]; then
+        sentences=$(echo "$sentences" | sed 's/\(.*\) [^ ]*$/\1.../')
     fi
     
-    # Only output if we have meaningful content
-    if [ -n "$first_sentence" ] && [ ${#first_sentence} -gt 20 ]; then
-        echo "$first_sentence"
+    # Only output if we have meaningful content (at least 25 chars)
+    if [ -n "$sentences" ] && [ ${#sentences} -gt 25 ]; then
+        echo "$sentences"
     fi
 }
 

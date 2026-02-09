@@ -191,16 +191,20 @@ class AIEnhancer:
 ### FAILURE EVIDENCE
 {evidence_summary}
 
-### INSTRUCTIONS (STRICT)
-1. Do NOT include apologies, disclaimers, or model descriptions
-2. Do NOT change the failure type
-3. Group similar failures and identify patterns
-4. For each significant finding, provide:
-   - Root Cause: Specific, actionable cause
-   - Evidence: List of supporting log entries
-   - Recommended Action: Concrete fix steps
-   - Severity: High/Medium/Low
-   - Confidence Score: 0.0-1.0
+### INSTRUCTIONS (STRICT - VIOLATIONS WILL BE REJECTED)
+1. NEVER include apologies like "I'm sorry", "Unfortunately", "I cannot"
+2. NEVER include disclaimers like "As an AI", "based on my training", "I don't have access"
+3. NEVER include hedging like "It appears", "It seems", "likely", "probably" in root cause
+4. NEVER include model/company references (Deepseek, OpenAI, Anthropic, Claude)
+5. DO NOT change the failure type classification
+6. START directly with technical analysis - no preamble
+7. Group similar failures and identify concrete patterns
+8. For each finding, provide:
+   - Root Cause: Direct, specific technical cause (no hedging)
+   - Evidence: Exact log entries that prove the cause
+   - Recommended Action: Concrete fix steps with code/config examples
+   - Severity: High/Medium/Low based on impact
+   - Confidence Score: 0.0-1.0 (1.0 = certain, 0.5 = uncertain)
 
 ### OUTPUT JSON (MANDATORY FORMAT)
 Respond ONLY with valid JSON in this exact structure:
@@ -300,28 +304,51 @@ CRITICAL: Output ONLY the JSON. No extra text, no apologies, no markdown.
         """
         Remove LLM verbosity, apologies, and generic disclaimers.
         
+        Aggressively filters wordy AI responses to keep only technical content.
         Matches Recommendation #3: Post-Process LLM Outputs.
         """
-        # Patterns to remove (case-insensitive)
+        # Expanded patterns to remove (case-insensitive)
         noise_patterns = [
-            r"(?i)I'?m sorry.*?(?:model|AI|assistant).*?\.",
-            r"(?i)As an? (?:large language model|AI|assistant).*?\.",
-            r"(?i)I don'?t have access to.*?\.",
-            r"(?i)I cannot.*?(?:real-time|actual|live).*?\.",
-            r"(?i)Please note that.*?\.",
-            r"(?i)It'?s important to note.*?\.",
-            r"(?i)Keep in mind.*?\.",
+            # Direct apologies
+            r"(?i)I'?m sorry(?:,| that| but)?.*?\.",
+            r"(?i)I am sorry(?:,| that| but)?.*?\.",
+            r"(?i)Unfortunately(?:,)?.*?\.",
+            # AI/Model references
+            r"(?i)As an? (?:large language model|AI|assistant|language model).*?\.",
+            r"(?i)(?:developed|created|trained) by (?:Deepseek|OpenAI|Anthropic|Claude).*?\.",
+            r"(?i)My (?:training data|primary function|main purpose|knowledge cutoff).*?\.",
+            # Capability disclaimers
+            r"(?i)I (?:don'?t|do not|can'?t|cannot) (?:have access|provide|determine|verify|confirm).*?\.",
+            r"(?i)Without (?:more|actual|specific|complete|additional) (?:context|information|details|data).*?\.",
+            # Generic hedging (when used as standalone sentence)
+            r"(?i)(?:^|\. )(?:Please note|It'?s (?:important|worth) noting?|Keep in mind|However|Nevertheless) that.*?\.",
+            r"(?i)(?:^|\. )(?:It appears|It seems|This (?:might|could|may) (?:be|indicate)).*?\.",
+            # Based on my analysis (when vague)
+            r"(?i)Based on (?:my|the) (?:training|analysis),.*?\.",
         ]
         
         def clean_text(text: str) -> str:
-            """Remove noise patterns from text"""
+            """Remove noise patterns from text and strip leading hedging phrases"""
             if not text:
                 return text
             
+            # Apply all noise removal patterns
             for pattern in noise_patterns:
                 text = re.sub(pattern, '', text)
             
-            return text.strip()
+            # Strip leading hedging words that start sentences
+            text = re.sub(r'^(?:Likely|Probably|Possibly|Perhaps|Maybe|Potentially)[,:]?\s*', '', text, flags=re.IGNORECASE)
+            text = re.sub(r'^(?:The|This) (?:root cause|issue|error|failure) (?:appears to be|seems to be|is likely|is probably)\s*', '', text, flags=re.IGNORECASE)
+            
+            # Clean up extra whitespace
+            text = re.sub(r'\s+', ' ', text)
+            text = text.strip()
+            
+            # Remove if text is now too short or meaningless
+            if len(text) < 10:
+                return ""
+            
+            return text
         
         # Clean all text fields
         if 'reasoning' in response:
