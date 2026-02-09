@@ -27,7 +27,7 @@ from core.ai.models import (
 )
 
 # Initialize crossbridge logger
-logger = get_logger(__name__, category=LogCategory.INTELLIGENCE)
+logger = get_logger(__name__, category=LogCategory.AI)
 
 
 class OpenAIProvider(LLMProvider):
