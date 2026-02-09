@@ -644,7 +644,38 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
     # Show recommendations
     if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary.recommendations' > /dev/null 2>&1; then
         echo -e "${YELLOW}Recommendations:${NC}"
-        echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.recommendations[] | "  ✓ \(.)"'
+        
+        # Get unique recommendations (deduplicate similar ones)
+        local recommendations=$(echo "$FILTERED_RESPONSE" | jq -r '.intelligence_summary.recommendations[]' | sort -u)
+        local shown_count=0
+        local max_recommendations=10
+        
+        while IFS= read -r rec; do
+            if [ -n "$rec" ]; then
+                cleaned=$(clean_recommendation "$rec")
+                if [ -n "$cleaned" ]; then
+                    echo "  ✓ $cleaned"
+                    shown_count=$((shown_count + 1))
+                    
+                    # Limit to top N recommendations
+                    if [ $shown_count -ge $max_recommendations ]; then
+                        local total_recs=$(echo "$recommendations" | wc -l)
+                        if [ $total_recs -gt $max_recommendations ]; then
+                            local remaining=$((total_recs - max_recommendations))
+                            echo "  ... and $remaining more recommendations (filtered for clarity)"
+                        fi
+                        break
+                    fi
+                fi
+            fi
+        done <<< "$recommendations"
+        
+        # If no useful recommendations after filtering
+        if [ $shown_count -eq 0 ]; then
+            echo "  • Check API endpoint configuration and request parameters"
+            echo "  • Review error logs for detailed failure information"
+            echo "  • Verify test environment setup and connectivity"
+        fi
     fi
     
     # Show top failure details with code references
@@ -742,6 +773,38 @@ format_duration() {
         else
             echo "${days}d ${hours}h"
         fi
+    fi
+}
+
+# Clean and format AI recommendations for better readability
+clean_recommendation() {
+    local rec="$1"
+    
+    # Skip unhelpful AI apologies and disclaimers
+    if echo "$rec" | grep -qiE "^(I'm sorry|As an AI|I don't have access|I cannot|My primary function)"; then
+        return
+    fi
+    
+    # Remove "Root Cause Analysis:" prefix if present
+    rec=$(echo "$rec" | sed 's/^Root Cause Analysis:[[:space:]]*//')
+    
+    # Remove redundant "The root cause" if it starts the sentence
+    rec=$(echo "$rec" | sed 's/^The root cause of this issue is likely //')
+    rec=$(echo "$rec" | sed 's/^The root cause of the test failure is //')
+    rec=$(echo "$rec" | sed 's/^The error message indicates that //')
+    rec=$(echo "$rec" | sed 's/^The test failure is likely due to //')
+    
+    # Truncate to first complete sentence (up to 150 chars) for readability
+    local first_sentence=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\).*/\1/' | head -c 150)
+    
+    # If truncated mid-word, find last space and cut there
+    if [ ${#first_sentence} -eq 150 ]; then
+        first_sentence=$(echo "$first_sentence" | sed 's/\(.*\) [^ ]*$/\1.../')
+    fi
+    
+    # Only output if we have meaningful content
+    if [ -n "$first_sentence" ] && [ ${#first_sentence} -gt 20 ]; then
+        echo "$first_sentence"
     fi
 }
 
