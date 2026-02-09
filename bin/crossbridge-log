@@ -707,11 +707,11 @@ clean_recommendation() {
     rec=$(echo "$rec" | sed 's/^(This|The test) (failure|error) is (likely |probably |most likely )?due to //')
     rec=$(echo "$rec" | sed 's/^(It appears|It seems) (that |like )?//')
     
-    # Truncate to first 1-2 complete sentences (up to 180 chars)
-    local sentences=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2/' | head -c 180)
+    # Extract first 2-3 complete sentences (up to 350 chars for full context)
+    local sentences=$(echo "$rec" | sed 's/\([^.!?]*[.!?]\)\([^.!?]*[.!?]\)\([^.!?]*[.!?]\).*/\1\2\3/' | head -c 350)
     
     # If truncated mid-word, cut at last complete word
-    if [ ${#sentences} -eq 180 ]; then
+    if [ ${#sentences} -eq 350 ]; then
         sentences=$(echo "$sentences" | sed 's/\(.*\) [^ ]*$/\1.../')
     fi
     
@@ -849,9 +849,9 @@ if echo "$FILTERED_RESPONSE" | jq -e '.intelligence_summary' > /dev/null 2>&1; t
                     
                     # Limit to top N recommendations
                     if [ $shown_count -ge $max_recommendations ]; then
-                        local total_recs=$(echo "$recommendations" | wc -l)
+                        total_recs=$(echo "$recommendations" | wc -l)
                         if [ $total_recs -gt $max_recommendations ]; then
-                            local remaining=$((total_recs - max_recommendations))
+                            remaining=$((total_recs - max_recommendations))
                             echo "  ... and $remaining more recommendations (filtered for clarity)"
                         fi
                         break
