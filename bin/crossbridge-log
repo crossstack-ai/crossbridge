@@ -758,12 +758,32 @@ summarize_recommendations_with_ai() {
     
     # Check if we have AI enabled
     if [ "$ENABLE_AI" != "true" ]; then
-        echo "$recommendations_json"
+        # No AI - apply client-side filtering to each recommendation
+        echo "$recommendations_json" | jq -r '.[]' | while IFS= read -r rec; do
+            if [ -n "$rec" ]; then
+                cleaned=$(clean_recommendation "$rec")
+                [ -n "$cleaned" ] && echo "$cleaned"
+            fi
+        done
+        return
+    fi
+    
+    # Pre-filter apologies and useless content before sending to AI
+    local filtered_json=$(echo "$recommendations_json" | jq -r '.[]' | while IFS= read -r rec; do
+        # Skip obvious apologies and disclaimers
+        if echo "$rec" | grep -qiE "^(I'm sorry|I am sorry|As an? (AI|large language model)|I don't have|I do not have|I cannot|I can't|Unfortunately|developed by (Deepseek|OpenAI|Anthropic))"; then
+            continue
+        fi
+        echo "$rec"
+    done | jq -R -s -c 'split("\n") | map(select(length > 0))')
+    
+    # If all recommendations filtered out, return empty
+    if [ "$(echo "$filtered_json" | jq '. | length')" -eq 0 ]; then
         return
     fi
     
     # Build payload for summarization
-    local payload=$(echo "$recommendations_json" | jq \
+    local payload=$(echo "$filtered_json" | jq \
         --argjson max_length "$max_length" \
         '{recommendations: ., max_length: $max_length, ai_provider: "'"${AI_PROVIDER:-}"'"}')
     
@@ -775,11 +795,23 @@ summarize_recommendations_with_ai() {
     
     # Check if AI summarization succeeded
     if echo "$summarized" | jq -e '.summarized == true' > /dev/null 2>&1; then
-        echo "$summarized" | jq -r '.recommendations[]'
+        # Still apply final filtering to AI output
+        echo "$summarized" | jq -r '.recommendations[]' | while IFS= read -r rec; do
+            # Skip if AI still generated apologies
+            if echo "$rec" | grep -qiE "^(I'm sorry|I am sorry|As an? (AI|model)|I don't have|I cannot|developed by)"; then
+                continue
+            fi
+            echo "$rec"
+        done
         [ "${DEBUG:-false}" = "true" ] && echo "DEBUG: AI summarized $(echo "$summarized" | jq -r '.original_count') → $(echo "$summarized" | jq -r '.summarized_count') recommendations" >&2
     else
-        # Fallback to original recommendations
-        echo "$recommendations_json" | jq -r '.[]'
+        # Fallback: Use clean_recommendation for each item
+        echo "$filtered_json" | jq -r '.[]' | while IFS= read -r rec; do
+            if [ -n "$rec" ]; then
+                cleaned=$(clean_recommendation "$rec")
+                [ -n "$cleaned" ] && echo "$cleaned"
+            fi
+        done
     fi
 }
 

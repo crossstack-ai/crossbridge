@@ -13,6 +13,7 @@ Supports all frameworks via unified event format.
 
 import json
 import os
+import re
 import asyncio
 from typing import Dict, Any, Optional, Union, List
 from datetime import datetime
@@ -1880,17 +1881,31 @@ Keep response concise (max 200 words)."""
                 # Build prompt for summarization
                 recommendations_text = "\n".join([f"{i+1}. {rec}" for i, rec in enumerate(recommendations)])
                 
-                system_prompt = f"""You are a test automation expert. Summarize these test failure recommendations into concise, actionable points.
-Requirements:
-- Each summary must be under {max_length} characters
-- Keep the core actionable advice
-- Remove verbose explanations and background context
-- Use direct, imperative language (e.g., "Check API endpoints" not "You should check...")
-- Maintain technical accuracy
-- If multiple recommendations address same issue, combine them
-- Return ONLY the summarized recommendations, one per line, numbered"""
+                system_prompt = f"""You are a test automation expert summarizing failure recommendations.
 
-                user_prompt = f"""Summarize these recommendations concisely:\n\n{recommendations_text}"""
+CRITICAL RULES - DO NOT VIOLATE:
+1. NEVER apologize or say "I'm sorry", "Unfortunately", "I cannot", "I don't have access"
+2. NEVER mention you are an AI, assistant, or language model
+3. NEVER say "based on my training" or "developed by"
+4. NEVER add disclaimers or hedging phrases
+5. DO NOT say "without more context" or "I cannot determine"
+
+REQUIREMENTS:
+- Each summary must be under {max_length} characters
+- Direct, imperative language only ("Check API endpoints" NOT "You should check...")
+- Technical and actionable advice only
+- Combine duplicate recommendations
+- Return ONLY the summarized points, numbered 1., 2., 3., etc.
+- NO conversational text, NO apologies, NO explanations about your capabilities
+
+EXAMPLE OUTPUT:
+1. Check API endpoint configuration and verify response codes
+2. Review authentication tokens and credentials expiration
+3. Increase timeout values in application configuration
+
+Now summarize the recommendations below following these rules exactly."""
+
+                user_prompt = f"""Recommendations to summarize:\n\n{recommendations_text}"""
                 
                 messages = [
                     AIMessage(role="system", content=system_prompt),
@@ -1911,17 +1926,40 @@ Requirements:
                         )
                     )
                     
-                    # Parse response - extract numbered list
+                    # Parse response - extract numbered list and filter apologies
                     summary_text = response.content.strip()
                     summarized = []
+                    
+                    # Apology patterns to filter out
+                    apology_patterns = [
+                        r"^(I'm sorry|I am sorry|Unfortunately|However, I)",
+                        r"^As an? (AI|assistant|model|language model)",
+                        r"^I (don't|do not|cannot|can't) (have|provide|access)",
+                        r"developed by (Deepseek|OpenAI|Anthropic|Claude)",
+                        r"^My (primary|main) (function|purpose|training)",
+                        r"^Without (more|actual|specific) (context|information)"
+                    ]
                     
                     for line in summary_text.split('\n'):
                         line = line.strip()
                         if not line:
                             continue
+                        
                         # Remove numbering (1., 2., etc.)
                         line = line.lstrip('0123456789).• -')
                         line = line.strip()
+                        
+                        # Skip apologies and disclaimers
+                        skip = False
+                        for pattern in apology_patterns:
+                            if re.search(pattern, line, re.IGNORECASE):
+                                logger.warning(f"Filtered apology from AI output: {line[:50]}...")
+                                skip = True
+                                break
+                        
+                        if skip:
+                            continue
+                        
                         if len(line) > 20:  # Valid recommendation
                             summarized.append(line[:max_length])
                     
