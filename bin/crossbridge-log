@@ -420,22 +420,23 @@ enrich_with_intelligence() {
             fi
         fi
         echo "" >&2
-        echo -e "${YELLOW}Checking AI configuration...${NC}" >&2
+        echo -e "${BLUE}Checking AI configuration...${NC}" >&2
         
-        # Check AI provider configuration by calling sidecar
-        # The sidecar will auto-detect the configured provider from cache
-        local test_payload='{"data":{"tests":[]},"framework":"test","enable_ai":true}'
-        local license_check=$(echo "$test_payload" | curl -s -X POST "${SIDECAR_URL}/analyze" \
-            -H "Content-Type: application/json" --data-binary @- 2>&1)
-        
-        # Check if it's a license failure (but not for self-hosted providers)
-        if echo "$license_check" | grep -q "AI License validation failed\|403"; then
-            # Check if the error mentions self-hosted or if we should continue anyway
-            if echo "$license_check" | grep -q "selfhosted\|Self-hosted"; then
-                # Self-hosted provider detected - no license needed
-                echo -e "${GREEN}✓ Self-hosted AI detected - no license required${NC}" >&2
-                echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
-            else
+        # For self-hosted AI, show immediate confirmation with model details
+        if [ "$ai_provider" = "selfhosted" ]; then
+            local model_display="${ai_model:-unknown model}"
+            echo -e "${GREEN}✅ Detected cached AI provider: Self-Hosted [Model: ${model_display}]${NC}" >&2
+            echo "" >&2
+            echo -e "${BLUE}ℹ️  Self-hosted AI detected - skipping license validation${NC}" >&2
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+        else
+            # For cloud providers, validate license with sidecar
+            local test_payload='{"data":{"tests":[]},"framework":"test","enable_ai":true}'
+            local license_check=$(echo "$test_payload" | curl -s -X POST "${SIDECAR_URL}/analyze" \
+                -H "Content-Type: application/json" --data-binary @- 2>&1)
+            
+            # Check if it's a license failure
+            if echo "$license_check" | grep -q "AI License validation failed\|403"; then
                 # Cloud provider requires license
                 echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
                 echo -e "${RED}❌ AI License Validation Failed${NC}" >&2
@@ -449,21 +450,23 @@ enrich_with_intelligence() {
                 echo "" >&2
                 echo -e "${BLUE}Continuing with standard analysis (no AI)...${NC}" >&2
                 ENABLE_AI=false
-            fi
-        elif echo "$license_check" | grep -q "Self-hosted AI configured"; then
-            # Successfully detected self-hosted AI from logs
-            echo -e "${GREEN}✓ Self-hosted AI configured (${ai_model:-unknown}) - no license required${NC}" >&2
-            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
-        else
-            # Cloud provider with valid license
-            if [ "$ai_provider" = "openai" ]; then
-                echo -e "${GREEN}✓ OpenAI (${ai_model:-gpt-3.5-turbo}) validated successfully${NC}" >&2
-            elif [ "$ai_provider" = "anthropic" ]; then
-                echo -e "${GREEN}✓ Anthropic (${ai_model:-claude-3-sonnet}) validated successfully${NC}" >&2
             else
-                echo -e "${GREEN}✓ AI license validated successfully${NC}" >&2
+                # Cloud provider with valid license
+                if [ "$ai_provider" = "openai" ]; then
+                    echo -e "${GREEN}✅ Detected cached AI provider: OpenAI [Model: ${ai_model:-gpt-3.5-turbo}]${NC}" >&2
+                    echo "" >&2
+                    echo -e "${GREEN}✓ License validated successfully${NC}" >&2
+                elif [ "$ai_provider" = "anthropic" ]; then
+                    echo -e "${GREEN}✅ Detected cached AI provider: Anthropic [Model: ${ai_model:-claude-3-sonnet}]${NC}" >&2
+                    echo "" >&2
+                    echo -e "${GREEN}✓ License validated successfully${NC}" >&2
+                else
+                    echo -e "${GREEN}✅ AI provider detected${NC}" >&2
+                    echo "" >&2
+                    echo -e "${GREEN}✓ License validated successfully${NC}" >&2
+                fi
+                echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
             fi
-            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
         fi
     fi
     
