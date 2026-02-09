@@ -1171,13 +1171,21 @@ if echo "$FILTERED_RESPONSE" | jq -e '.ai_usage.total_tokens' > /dev/null 2>&1; 
     echo "  • Prompt Tokens: $PROMPT_TOKENS"
     echo "  • Completion Tokens: $COMPLETION_TOKENS"
     echo "  • Total Tokens: $TOTAL_TOKENS"
-    echo "  • Total Cost: \$$(printf '%.4f' $COST)"
+    
+    # Only show cost for cloud providers (not self-hosted)
+    if [[ "$PROVIDER" != "selfhosted" && "$PROVIDER" != "ollama" ]]; then
+        echo "  • Total Cost: \$$(printf '%.4f' $COST)"
+    fi
     
     if [ "$ANALYZED_TESTS" -gt 0 ]; then
         AVG_TOKENS=$((TOTAL_TOKENS / ANALYZED_TESTS))
-        AVG_COST=$(awk "BEGIN {printf \"%.4f\", $COST / $ANALYZED_TESTS}")
         echo "  • Avg Tokens/Test: $AVG_TOKENS"
-        echo "  • Avg Cost/Test: \$$AVG_COST"
+        
+        # Only show average cost for cloud providers
+        if [[ "$PROVIDER" != "selfhosted" && "$PROVIDER" != "ollama" ]]; then
+            AVG_COST=$(awk "BEGIN {printf \"%.4f\", $COST / $ANALYZED_TESTS}")
+            echo "  • Avg Cost/Test: \$$AVG_COST"
+        fi
     fi
     
     # Cost comparison
@@ -1266,7 +1274,13 @@ display_results() {
                 while IFS='|' read -r elapsed_ms test_name; do
                     elapsed_seconds=$((elapsed_ms / 1000))
                     duration_str=$(format_duration $elapsed_seconds)
-                    echo "  ⏱️  ${test_name}: ${duration_str}"
+                    
+                    # Truncate long test names for better display (max 80 chars)
+                    if [ ${#test_name} -gt 80 ]; then
+                        test_name="${test_name:0:77}..."
+                    fi
+                    
+                    printf "  %-85s %s\n" "$test_name" "$duration_str"
                 done
                 
                 echo ""
