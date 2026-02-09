@@ -943,6 +943,87 @@ class SidecarAPIServer:
             
             return {"status": "deleted", "id": log_id}
         
+        @self.app.get("/ai-provider-info")
+        async def get_ai_provider_info():
+            """
+            Get cached AI provider information for display purposes.
+            
+            Returns provider type, model name, and cost estimates.
+            Used by CLI to show dynamic AI banners based on actual configuration.
+            
+            Response:
+            {
+                "provider": "openai|anthropic|selfhosted|none",
+                "model": "gpt-3.5-turbo|claude-3-sonnet|deepseek-coder:6.7b|null",
+                "endpoint": "http://..." (for self-hosted only),
+                "cost_per_1k_tokens": 0.002 or 0.0 (for self-hosted),
+                "typical_run_cost": "~$0.01-$0.10" or "No cost",
+                "requires_license": true/false
+            }
+            """
+            try:
+                # Detect cached provider
+                provider = self._detect_ai_provider()
+                
+                if not provider:
+                    return {
+                        "provider": "none",
+                        "model": None,
+                        "cost_per_1k_tokens": 0.0,
+                        "typical_run_cost": "N/A - No AI configured",
+                        "requires_license": False
+                    }
+                
+                # Get provider-specific details
+                result = {"provider": provider}
+                
+                if provider == "selfhosted":
+                    # Get self-hosted config
+                    config = self._get_selfhosted_ai_config()
+                    if config:
+                        result["model"] = config.get("model_name", "unknown")
+                        result["endpoint"] = config.get("endpoint_url", "unknown")
+                        result["cost_per_1k_tokens"] = 0.0
+                        result["typical_run_cost"] = "No cost (self-hosted)"
+                        result["requires_license"] = False
+                    else:
+                        result["model"] = "unknown"
+                        result["cost_per_1k_tokens"] = 0.0
+                        result["typical_run_cost"] = "No cost (self-hosted)"
+                        result["requires_license"] = False
+                
+                elif provider == "openai":
+                    result["model"] = "gpt-3.5-turbo"  # Default model
+                    result["cost_per_1k_tokens"] = 0.002
+                    result["typical_run_cost"] = "~$0.01-$0.10 per run"
+                    result["requires_license"] = True
+                
+                elif provider == "anthropic":
+                    result["model"] = "claude-3-sonnet"  # Default model
+                    result["cost_per_1k_tokens"] = 0.003
+                    result["typical_run_cost"] = "~$0.015-$0.15 per run"
+                    result["requires_license"] = True
+                
+                else:
+                    # Unknown provider
+                    result["model"] = "unknown"
+                    result["cost_per_1k_tokens"] = 0.0
+                    result["typical_run_cost"] = "Unknown"
+                    result["requires_license"] = True
+                
+                return result
+                
+            except Exception as e:
+                logger.error(f"Failed to get AI provider info: {e}", exc_info=True)
+                return {
+                    "provider": "error",
+                    "model": None,
+                    "error": str(e),
+                    "cost_per_1k_tokens": 0.0,
+                    "typical_run_cost": "Unknown",
+                    "requires_license": False
+                }
+        
         @self.app.post("/analyze")
         async def analyze_logs(request: Request):
             """

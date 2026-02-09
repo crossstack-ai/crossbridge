@@ -334,13 +334,37 @@ enrich_with_intelligence() {
     
     # Show AI warning and get confirmation if AI is enabled
     if [ "$ENABLE_AI" = "true" ]; then
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
-        echo -e "${YELLOW}⚠️  AI-ENHANCED ANALYSIS ENABLED${NC}" >&2
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
-        echo -e "${YELLOW}Using AI for log analysis will incur additional costs:${NC}" >&2
-        echo -e "${YELLOW}  • OpenAI GPT-3.5: ~\$0.002 per 1000 tokens${NC}" >&2
-        echo -e "${YELLOW}  • Typical analysis: \$0.01-\$0.10 per test run${NC}" >&2
-        echo -e "${YELLOW}  • Costs vary by log size and complexity${NC}" >&2
+        # Get AI provider info from sidecar
+        local provider_info=$(curl -s "${SIDECAR_URL}/ai-provider-info" 2>/dev/null)
+        local ai_provider=$(echo "$provider_info" | grep -o '"provider":"[^"]*"' | cut -d'"' -f4)
+        local ai_model=$(echo "$provider_info" | grep -o '"model":"[^"]*"' | cut -d'"' -f4)
+        local cost_per_1k=$(echo "$provider_info" | grep -o '"cost_per_1k_tokens":[0-9.]*' | cut -d':' -f2)
+        local typical_cost=$(echo "$provider_info" | grep -o '"typical_run_cost":"[^"]*"' | cut -d'"' -f4)
+        
+        # Display banner based on provider type
+        if [ "$ai_provider" = "selfhosted" ]; then
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${GREEN}🤖  AI-ENHANCED ANALYSIS ENABLED${NC}" >&2
+            echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${GREEN}Provider: Self-hosted (${ai_model})${NC}" >&2
+            echo -e "${GREEN}Cost: No additional costs (local inference)${NC}" >&2
+            echo -e "${GREEN}License: Not required for self-hosted AI${NC}" >&2
+        elif [ "$ai_provider" = "openai" ] || [ "$ai_provider" = "anthropic" ]; then
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${YELLOW}⚠️  AI-ENHANCED ANALYSIS ENABLED${NC}" >&2
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${YELLOW}Provider: ${ai_provider^} (${ai_model})${NC}" >&2
+            echo -e "${YELLOW}Using AI for log analysis will incur costs:${NC}" >&2
+            echo -e "${YELLOW}  • Cost: ~\$${cost_per_1k} per 1000 tokens${NC}" >&2
+            echo -e "${YELLOW}  • Typical analysis: ${typical_cost}${NC}" >&2
+            echo -e "${YELLOW}  • Costs vary by log size and complexity${NC}" >&2
+        else
+            # Fallback for unknown/error cases
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${YELLOW}⚠️  AI-ENHANCED ANALYSIS ENABLED${NC}" >&2
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+            echo -e "${YELLOW}Provider: Unknown (${ai_provider:-not detected})${NC}" >&2
+        fi
         echo "" >&2
         echo -e "${YELLOW}Checking AI configuration...${NC}" >&2
         
@@ -374,11 +398,17 @@ enrich_with_intelligence() {
             fi
         elif echo "$license_check" | grep -q "Self-hosted AI configured"; then
             # Successfully detected self-hosted AI from logs
-            echo -e "${GREEN}✓ Self-hosted AI configured - no license required${NC}" >&2
+            echo -e "${GREEN}✓ Self-hosted AI configured (${ai_model:-unknown}) - no license required${NC}" >&2
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
         else
             # Cloud provider with valid license
-            echo -e "${GREEN}✓ AI license validated successfully${NC}" >&2
+            if [ "$ai_provider" = "openai" ]; then
+                echo -e "${GREEN}✓ OpenAI (${ai_model:-gpt-3.5-turbo}) validated successfully${NC}" >&2
+            elif [ "$ai_provider" = "anthropic" ]; then
+                echo -e "${GREEN}✓ Anthropic (${ai_model:-claude-3-sonnet}) validated successfully${NC}" >&2
+            else
+                echo -e "${GREEN}✓ AI license validated successfully${NC}" >&2
+            fi
             echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
         fi
     fi
