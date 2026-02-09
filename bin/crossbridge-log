@@ -498,10 +498,57 @@ enrich_with_intelligence() {
     
     # Call sidecar's analyze endpoint to add classification and signals
     # This leverages ExecutionAnalyzer, signal extraction, and code resolution
-    local enriched=$(echo "$payload" | \
+    # Show progress indicator for long-running analysis (especially with AI enabled)
+    echo "" >&2
+    
+    if [ "$ENABLE_AI" = "true" ]; then
+        echo -e "${BLUE}🤖 Running AI-enhanced analysis... (this may take 30-120 seconds for large logs)${NC}" >&2
+    else
+        echo -e "${BLUE}Running intelligence analysis...${NC}" >&2
+    fi
+    
+    # Create temp file for curl output
+    local temp_response=$(mktemp)
+    
+    # Run curl in background with progress indicator
+    (echo "$payload" | \
         curl -s -X POST "${SIDECAR_URL}${endpoint}" \
         -H "Content-Type: application/json" \
-        --data-binary @- 2>&1)
+        --data-binary @- > "$temp_response" 2>&1) &
+    
+    local curl_pid=$!
+    
+    # Show spinner while curl is running
+    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    while kill -0 $curl_pid 2>/dev/null; do
+        local temp=${spinstr#?}
+        printf "\r${BLUE}  %-70s [%c]${NC}" "Processing test results and extracting failure patterns..." "$spinstr" >&2
+        spinstr=$temp${spinstr%"$temp"}
+        sleep 0.15
+    done
+    
+    # Clear spinner line
+    printf "\r%-80s\r" " " >&2
+    
+    # Wait for curl to complete and get exit code
+    wait $curl_pid
+    local curl_exit=$?
+    
+    # Read the response
+    local enriched=$(cat "$temp_response")
+    rm -f "$temp_response"
+    
+    # Show completion message
+    if [ $curl_exit -eq 0 ] && echo "$enriched" | jq empty 2>/dev/null; then
+        if [ "$ENABLE_AI" = "true" ]; then
+            echo -e "${GREEN}✓ AI analysis completed successfully${NC}" >&2
+        else
+            echo -e "${GREEN}✓ Analysis completed${NC}" >&2
+        fi
+    else
+        echo -e "${YELLOW}⚠ Analysis completed with warnings${NC}" >&2
+    fi
+    echo "" >&2
     
     # Check if we got a valid response
     if ! echo "$enriched" | jq empty 2>/dev/null; then
