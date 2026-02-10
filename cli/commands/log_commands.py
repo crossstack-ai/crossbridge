@@ -222,8 +222,9 @@ class LogParser:
             endpoint = "/analyze"
         
         try:
-            # Show progress spinner with transient=True for better animation
+            # Show progress spinner with threading for animation
             import threading
+            import time
             
             response_holder = [None]
             error_holder = [None]
@@ -239,7 +240,7 @@ class LogParser:
                     error_holder[0] = e
             
             # Start request in background thread
-            request_thread = threading.Thread(target=make_request)
+            request_thread = threading.Thread(target=make_request, daemon=True)
             request_thread.start()
             
             # Show animated spinner while request is in progress
@@ -249,13 +250,14 @@ class LogParser:
                 console=console,
                 transient=True  # Disappears when done
             ) as progress:
-                progress.add_task(
+                task = progress.add_task(
                     "Processing test results and extracting failure patterns...",
                     total=None
                 )
                 
-                # Wait for request to complete
-                request_thread.join()
+                # Keep spinner alive while thread is running
+                while request_thread.is_alive():
+                    time.sleep(0.1)  # Small delay to allow spinner animation
             
             # Check for errors
             if error_holder[0]:
