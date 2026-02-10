@@ -14,12 +14,21 @@ import logging
 import os
 from typing import Optional
 
-# Configure logging BEFORE any CrossBridge imports to prevent INFO logs from observability modules
+# Configure root logger BEFORE any CrossBridge imports to prevent INFO logs from observability modules
 _log_level = os.getenv("CROSSBRIDGE_LOG_LEVEL", "WARNING").upper()
+_root_logger = logging.getLogger()
+_root_logger.setLevel(getattr(logging, _log_level, logging.WARNING))
+# Also configure basicConfig for any new loggers
 logging.basicConfig(
     level=getattr(logging, _log_level, logging.WARNING),
-    format='%(message)s'
+    format='%(message)s',
+    force=True  # Override any existing configuration
 )
+
+# Immediately silence any existing loggers (in case modules are already loaded)
+for logger_name in list(logging.Logger.manager.loggerDict.keys()):
+    if 'observability' in logger_name or 'core.' in logger_name:
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
 
 from cli.branding import (
     show_welcome,
@@ -1059,6 +1068,17 @@ def _get_error_suggestion(error_code: Optional[str]) -> Optional[str]:
 
 def main():
     """Entry point for CLI."""
+    # Ensure logging is configured before Typer processes commands
+    import logging
+    import os
+    _log_level = os.getenv("CROSSBRIDGE_LOG_LEVEL", "WARNING").upper()
+    logging.getLogger().setLevel(getattr(logging, _log_level, logging.WARNING))
+    
+    # Silence all core.observability loggers
+    for logger_name in list(logging.Logger.manager.loggerDict.keys()):
+        if 'observability' in logger_name:
+            logging.getLogger(logger_name).setLevel(logging.WARNING)
+    
     app()
 
 
