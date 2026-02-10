@@ -10,6 +10,7 @@ import sys
 import os
 import json
 import requests
+import time
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime
@@ -200,10 +201,10 @@ class LogParser:
         if not data:
             return data
         
-        console.print("[blue]Running intelligence analysis...[/blue]")
-        
         if enable_ai:
             self._show_ai_banner(framework)
+        else:
+            console.print("[blue]Running intelligence analysis...[/blue]")
         
         # Build payload
         payload = {
@@ -302,25 +303,31 @@ class LogParser:
                 model = info.get("model", "")
                 
                 if provider == "selfhosted":
-                    console.print("\n" + "━" * 41, style="green")
+                    console.print()
+                    console.print("━" * 41, style="green")
                     console.print("🤖  AI-ENHANCED ANALYSIS ENABLED", style="green bold")
                     console.print("━" * 41, style="green")
                     console.print(f"[green]Provider: Self-hosted ({model})[/green]")
                     console.print("[green]Cost: No additional costs (local inference)[/green]")
+                    console.print()
                 else:
                     cost_per_1k = info.get("cost_per_1k_tokens", 0)
                     typical_cost = info.get("typical_run_cost", "$0.01-$0.10")
                     
-                    console.print("\n" + "━" * 41, style="yellow")
+                    console.print()
+                    console.print("━" * 41, style="yellow")
                     console.print("⚠️  AI-ENHANCED ANALYSIS ENABLED", style="yellow bold")
                     console.print("━" * 41, style="yellow")
                     console.print(f"[yellow]Provider: {provider.title()} ({model})[/yellow]")
                     console.print(f"[yellow]Cost: ~${cost_per_1k} per 1000 tokens[/yellow]")
                     console.print(f"[yellow]Typical analysis: {typical_cost}[/yellow]")
+                    console.print()
         except Exception:
-            console.print("\n" + "━" * 41, style="yellow")
+            console.print()
+            console.print("━" * 41, style="yellow")
             console.print("⚠️  AI-ENHANCED ANALYSIS ENABLED", style="yellow bold")
             console.print("━" * 41, style="yellow")
+            console.print()
     
     def apply_filters(self, data: dict, filters: dict) -> dict:
         """Apply filtering to the parsed data."""
@@ -728,7 +735,7 @@ def parse_log_file(
         logger.error(f"Unknown log format: {log_file}")
         raise typer.Exit(1)
     
-    console.print(f"[green]✓ Detected framework: {framework}[/green]")
+    console.print(f"[green]✓[/green] Detected framework: [blue]{framework}[/blue]")
     logger.info(f"Detected framework: {framework}")
     
     # Parse log
