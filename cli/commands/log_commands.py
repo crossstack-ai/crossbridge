@@ -223,7 +223,7 @@ class LogParser:
             endpoint = "/analyze"
         
         try:
-            # Use raw stderr output like bash script for maximum compatibility
+            # Simple approach: use print() with flush for spinner
             response_holder = [None]
             error_holder = [None]
             
@@ -237,7 +237,7 @@ class LogParser:
                 except Exception as e:
                     error_holder[0] = e
             
-            # Spinner frames (same as bash)
+            # Spinner frames
             spin_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
             message = "Processing test results and extracting failure patterns..."
             
@@ -245,18 +245,23 @@ class LogParser:
             request_thread = threading.Thread(target=make_request, daemon=True)
             request_thread.start()
             
-            # Show spinner using raw stderr (like bash script does)
+            # Small delay to ensure thread starts
+            time.sleep(0.05)
+            
+            # Show spinner using print with flush
             spin_index = 0
             while request_thread.is_alive():
-                # Write to stderr with carriage return (exact bash approach)
-                sys.stderr.write(f"\r  {message} [{spin_chars[spin_index]}]")
-                sys.stderr.flush()
+                print(f"\r  {message} [{spin_chars[spin_index]}]", end='', flush=True, file=sys.stderr)
                 spin_index = (spin_index + 1) % len(spin_chars)
                 time.sleep(0.15)
+                
+            # Ensure we show at least one frame if request was very fast
+            if spin_index == 0:
+                print(f"\r  {message} [{spin_chars[0]}]", end='', flush=True, file=sys.stderr)
+                time.sleep(0.15)
             
-            # Clear spinner line
-            sys.stderr.write("\r" + " " * 80 + "\r")
-            sys.stderr.flush()
+            # Clear spinner line  
+            print("\r" + " " * 80, end='\r', flush=True, file=sys.stderr)
             
             # Wait for thread to fully finish
             request_thread.join(timeout=1)
