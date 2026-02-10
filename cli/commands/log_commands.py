@@ -222,24 +222,46 @@ class LogParser:
             endpoint = "/analyze"
         
         try:
-            # Show progress spinner
+            # Show progress spinner with transient=True for better animation
+            import threading
+            
+            response_holder = [None]
+            error_holder = [None]
+            
+            def make_request():
+                try:
+                    response_holder[0] = requests.post(
+                        f"{self.sidecar_url}{endpoint}",
+                        json=payload,
+                        timeout=7200  # 2 hours for AI analysis
+                    )
+                except Exception as e:
+                    error_holder[0] = e
+            
+            # Start request in background thread
+            request_thread = threading.Thread(target=make_request)
+            request_thread.start()
+            
+            # Show animated spinner while request is in progress
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
-                console=console
+                console=console,
+                transient=True  # Disappears when done
             ) as progress:
-                task = progress.add_task(
+                progress.add_task(
                     "Processing test results and extracting failure patterns...",
                     total=None
                 )
                 
-                response = requests.post(
-                    f"{self.sidecar_url}{endpoint}",
-                    json=payload,
-                    timeout=7200  # 2 hours for AI analysis
-                )
-                
-                progress.stop()
+                # Wait for request to complete
+                request_thread.join()
+            
+            # Check for errors
+            if error_holder[0]:
+                raise error_holder[0]
+            
+            response = response_holder[0]
             
             if response.status_code == 200:
                 result = response.json()
