@@ -249,12 +249,13 @@ class LogParser:
             CURSOR_UP_ONE = '\x1b[1A'
             ERASE_LINE = '\x1b[2K'
             
-            # Show spinner using ANSI escape codes for better Windows support
+            # Show spinner - keep going until we have a response or error
             spin_index = 0
             # Print initial line
             print(f"  {message} [{spin_chars[spin_index]}]", file=sys.stderr)
             
-            while request_thread.is_alive():
+            # Keep spinning until we have a response or error (not just thread alive)
+            while response_holder[0] is None and error_holder[0] is None:
                 # Move cursor up, erase line, print new content
                 print(f"{CURSOR_UP_ONE}{ERASE_LINE}  {message} [{spin_chars[spin_index]}]", file=sys.stderr, flush=True)
                 spin_index = (spin_index + 1) % len(spin_chars)
