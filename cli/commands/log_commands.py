@@ -22,10 +22,70 @@ from rich import box
 
 console = Console()
 
+# Create typer app without callback - main command will be default
 log_app = typer.Typer(
     name="log",
-    help="Parse and analyze test execution logs"
+    help="Parse and analyze test execution logs",
+    no_args_is_help=True,
+    invoke_without_command=True,
 )
+
+
+@log_app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    log_file: Optional[Path] = typer.Argument(None, help="Path to log file to parse", exists=True),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to file"),
+    enable_ai: bool = typer.Option(False, "--enable-ai", help="Enable AI-enhanced analysis"),
+    app_logs: Optional[str] = typer.Option(None, "--app-logs", "-a", help="Application logs for correlation"),
+    test_name: Optional[str] = typer.Option(None, "--test-name", "-t", help="Filter by test name pattern"),
+    test_id: Optional[str] = typer.Option(None, "--test-id", "-i", help="Filter by test ID"),
+    status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status (PASS/FAIL/SKIP)"),
+    error_code: Optional[str] = typer.Option(None, "--error-code", "-e", help="Filter by error code"),
+    pattern: Optional[str] = typer.Option(None, "--pattern", "-p", help="Filter by text pattern"),
+    time_from: Optional[str] = typer.Option(None, "--time-from", help="Filter tests after datetime"),
+    time_to: Optional[str] = typer.Option(None, "--time-to", help="Filter tests before datetime"),
+    no_analyze: bool = typer.Option(False, "--no-analyze", help="Disable intelligence analysis"),
+):
+    """
+    Parse and analyze test execution logs.
+    
+    Supports multiple test frameworks with automatic detection:
+    - Robot Framework (output.xml)
+    - Cypress (cypress-results.json)
+    - Playwright (playwright-trace.json)
+    - Behave (behave-results.json)
+    - Java Cucumber (*Steps.java)
+    
+    \b
+    Examples:
+        crossbridge log output.xml
+        crossbridge log output.xml --enable-ai
+        crossbridge log output.xml --output results.json
+        crossbridge log output.xml --test-name "Login*"
+        crossbridge log output.xml --status FAIL
+    """
+    # If no log file provided, show help
+    if log_file is None:
+        console.print("[yellow]No log file specified![/yellow]")
+        ctx.get_help()
+        raise typer.Exit(0)
+    
+    # Run the log parsing
+    parse_log_file(
+        log_file=log_file,
+        output=output,
+        enable_ai=enable_ai,
+        app_logs=app_logs,
+        test_name=test_name,
+        test_id=test_id,
+        status=status,
+        error_code=error_code,
+        pattern=pattern,
+        time_from=time_from,
+        time_to=time_to,
+        no_analyze=no_analyze,
+    )
 
 
 class LogParser:
@@ -481,39 +541,21 @@ class LogParser:
         console.print(table)
 
 
-@log_app.command()
-def parse(
-    log_file: Path = typer.Argument(..., help="Path to log file to parse", exists=True),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to file"),
-    enable_ai: bool = typer.Option(False, "--enable-ai", help="Enable AI-enhanced analysis"),
-    app_logs: Optional[str] = typer.Option(None, "--app-logs", "-a", help="Application logs for correlation"),
-    test_name: Optional[str] = typer.Option(None, "--test-name", "-t", help="Filter by test name pattern"),
-    test_id: Optional[str] = typer.Option(None, "--test-id", "-i", help="Filter by test ID"),
-    status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status (PASS/FAIL/SKIP)"),
-    error_code: Optional[str] = typer.Option(None, "--error-code", "-e", help="Filter by error code"),
-    pattern: Optional[str] = typer.Option(None, "--pattern", "-p", help="Filter by text pattern"),
-    time_from: Optional[str] = typer.Option(None, "--time-from", help="Filter tests after datetime"),
-    time_to: Optional[str] = typer.Option(None, "--time-to", help="Filter tests before datetime"),
-    no_analyze: bool = typer.Option(False, "--no-analyze", help="Disable intelligence analysis"),
+def parse_log_file(
+    log_file: Path,
+    output: Optional[Path] = None,
+    enable_ai: bool = False,
+    app_logs: Optional[str] = None,
+    test_name: Optional[str] = None,
+    test_id: Optional[str] = None,
+    status: Optional[str] = None,
+    error_code: Optional[str] = None,
+    pattern: Optional[str] = None,
+    time_from: Optional[str] = None,
+    time_to: Optional[str] = None,
+    no_analyze: bool = False,
 ):
-    """
-    Parse and analyze test execution logs.
-    
-    Supports multiple test frameworks with automatic detection:
-    - Robot Framework (output.xml)
-    - Cypress (cypress-results.json)
-    - Playwright (playwright-trace.json)
-    - Behave (behave-results.json)
-    - Java Cucumber (*Steps.java)
-    
-    \b
-    Examples:
-        crossbridge log output.xml
-        crossbridge log output.xml --enable-ai
-        crossbridge log output.xml --output results.json
-        crossbridge log output.xml --test-name "Login*"
-        crossbridge log output.xml --status FAIL
-    """
+    """Core log parsing logic."""
     parser = LogParser()
     
     # Check sidecar
