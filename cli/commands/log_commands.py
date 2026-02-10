@@ -10,13 +10,11 @@ import sys
 import os
 import json
 import requests
-import time
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich import box
 
@@ -222,9 +220,8 @@ class LogParser:
             endpoint = "/analyze"
         
         try:
-            # Show progress spinner with threading for animation
+            # Use console.status() for animated spinner - simpler and more reliable
             import threading
-            import time
             
             response_holder = [None]
             error_holder = [None]
@@ -243,21 +240,10 @@ class LogParser:
             request_thread = threading.Thread(target=make_request, daemon=True)
             request_thread.start()
             
-            # Show animated spinner while request is in progress
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-                transient=True  # Disappears when done
-            ) as progress:
-                task = progress.add_task(
-                    "Processing test results and extracting failure patterns...",
-                    total=None
-                )
-                
-                # Keep spinner alive while thread is running
-                while request_thread.is_alive():
-                    time.sleep(0.1)  # Small delay to allow spinner animation
+            # Show animated spinner using console.status() - handles animation automatically
+            with console.status("[bold cyan]Processing test results and extracting failure patterns...", spinner="dots") as status:
+                # Wait for request to complete while spinner animates
+                request_thread.join()
             
             # Check for errors
             if error_holder[0]:
