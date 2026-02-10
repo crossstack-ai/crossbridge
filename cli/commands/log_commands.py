@@ -11,12 +11,15 @@ import os
 import json
 import requests
 import time
+import threading
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich.live import Live
+from rich.text import Text
 from rich import box
 
 from core.logging import get_logger
@@ -221,11 +224,7 @@ class LogParser:
             endpoint = "/analyze"
         
         try:
-            # Manual spinner implementation for better Windows/Git Bash compatibility
-            import threading
-            import time
-            import sys
-            
+            # Use Rich Live display for animated spinner
             response_holder = [None]
             error_holder = [None]
             stop_spinner = [False]
@@ -242,36 +241,24 @@ class LogParser:
                 finally:
                     stop_spinner[0] = True
             
-            def animate_spinner():
-                """Manual spinner animation that works in all terminals."""
-                spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+            # Spinner frames
+            spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+            message = "Processing test results and extracting failure patterns..."
+            
+            # Start request thread
+            request_thread = threading.Thread(target=make_request, daemon=True)
+            request_thread.start()
+            
+            # Show animated spinner using Rich Live
+            with Live(console=console, refresh_per_second=10, transient=True) as live:
                 idx = 0
-                message = "Processing test results and extracting failure patterns..."
-                
                 while not stop_spinner[0]:
-                    # Use \r to return to start of line and overwrite
-                    sys.stdout.write(f"\r{spinner_chars[idx]} {message}")
-                    sys.stdout.flush()
+                    live.update(Text(f"{spinner_chars[idx]} {message}"))
                     idx = (idx + 1) % len(spinner_chars)
                     time.sleep(0.1)
-                
-                # Clear the spinner line when done
-                sys.stdout.write("\r" + " " * (len(message) + 3) + "\r")
-                sys.stdout.flush()
             
-            # Start both threads
-            request_thread = threading.Thread(target=make_request, daemon=True)
-            spinner_thread = threading.Thread(target=animate_spinner, daemon=True)
-            
-            request_thread.start()
-            spinner_thread.start()
-            
-            # Wait for request to complete
-            request_thread.join()
-            
-            # Stop spinner and wait for it to finish
-            stop_spinner[0] = True
-            spinner_thread.join(timeout=1)
+            # Wait for request thread to fully complete
+            request_thread.join(timeout=1)
             
             # Check for errors
             if error_holder[0]:
