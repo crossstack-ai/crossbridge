@@ -220,11 +220,14 @@ class LogParser:
             endpoint = "/analyze"
         
         try:
-            # Use console.status() for animated spinner - simpler and more reliable
+            # Manual spinner implementation for better Windows/Git Bash compatibility
             import threading
+            import time
+            import sys
             
             response_holder = [None]
             error_holder = [None]
+            stop_spinner = [False]
             
             def make_request():
                 try:
@@ -235,15 +238,39 @@ class LogParser:
                     )
                 except Exception as e:
                     error_holder[0] = e
+                finally:
+                    stop_spinner[0] = True
             
-            # Start request in background thread
+            def animate_spinner():
+                """Manual spinner animation that works in all terminals."""
+                spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+                idx = 0
+                message = "Processing test results and extracting failure patterns..."
+                
+                while not stop_spinner[0]:
+                    # Use \r to return to start of line and overwrite
+                    sys.stdout.write(f"\r{spinner_chars[idx]} {message}")
+                    sys.stdout.flush()
+                    idx = (idx + 1) % len(spinner_chars)
+                    time.sleep(0.1)
+                
+                # Clear the spinner line when done
+                sys.stdout.write("\r" + " " * (len(message) + 3) + "\r")
+                sys.stdout.flush()
+            
+            # Start both threads
             request_thread = threading.Thread(target=make_request, daemon=True)
-            request_thread.start()
+            spinner_thread = threading.Thread(target=animate_spinner, daemon=True)
             
-            # Show animated spinner using console.status() - handles animation automatically
-            with console.status("[bold cyan]Processing test results and extracting failure patterns...", spinner="dots") as status:
-                # Wait for request to complete while spinner animates
-                request_thread.join()
+            request_thread.start()
+            spinner_thread.start()
+            
+            # Wait for request to complete
+            request_thread.join()
+            
+            # Stop spinner and wait for it to finish
+            stop_spinner[0] = True
+            spinner_thread.join(timeout=1)
             
             # Check for errors
             if error_holder[0]:
