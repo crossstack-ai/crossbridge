@@ -245,23 +245,23 @@ class LogParser:
             request_thread = threading.Thread(target=make_request, daemon=True)
             request_thread.start()
             
-            # Small delay to ensure thread starts
-            time.sleep(0.05)
+            # ANSI escape codes for cursor control
+            CURSOR_UP_ONE = '\x1b[1A'
+            ERASE_LINE = '\x1b[2K'
             
-            # Show spinner using print with flush
+            # Show spinner using ANSI escape codes for better Windows support
             spin_index = 0
+            # Print initial line
+            print(f"  {message} [{spin_chars[spin_index]}]", file=sys.stderr)
+            
             while request_thread.is_alive():
-                print(f"\r  {message} [{spin_chars[spin_index]}]", end='', flush=True, file=sys.stderr)
+                # Move cursor up, erase line, print new content
+                print(f"{CURSOR_UP_ONE}{ERASE_LINE}  {message} [{spin_chars[spin_index]}]", file=sys.stderr, flush=True)
                 spin_index = (spin_index + 1) % len(spin_chars)
                 time.sleep(0.15)
-                
-            # Ensure we show at least one frame if request was very fast
-            if spin_index == 0:
-                print(f"\r  {message} [{spin_chars[0]}]", end='', flush=True, file=sys.stderr)
-                time.sleep(0.15)
             
-            # Clear spinner line  
-            print("\r" + " " * 80, end='\r', flush=True, file=sys.stderr)
+            # Clear the spinner line
+            print(f"{CURSOR_UP_ONE}{ERASE_LINE}", file=sys.stderr, end='', flush=True)
             
             # Wait for thread to fully finish
             request_thread.join(timeout=1)
