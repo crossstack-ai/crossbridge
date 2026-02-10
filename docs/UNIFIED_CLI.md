@@ -99,6 +99,7 @@ crossbridge run <test-command> [args...]
 - `CROSSBRIDGE_SIDECAR_PORT` - Sidecar API port (default: 8765)
 - `CROSSBRIDGE_ENABLED` - Enable/disable CrossBridge (default: true)
 - `CROSSBRIDGE_ADAPTER_DIR` - Adapter cache directory (default: ~/.crossbridge/adapters)
+- `CROSSBRIDGE_LOG_LEVEL` - Console log level: DEBUG, INFO, WARNING, ERROR (default: WARNING)
 
 **Examples:**
 ```bash
@@ -208,6 +209,7 @@ CrossBridge can be configured via:
    export CROSSBRIDGE_SIDECAR_HOST=remote.host
    export CROSSBRIDGE_SIDECAR_PORT=9000
    export CROSSBRIDGE_ENABLED=true
+   export CROSSBRIDGE_LOG_LEVEL=WARNING  # DEBUG, INFO, WARNING, ERROR
    ```
 
 2. **Configuration File** (crossbridge.yml)
@@ -265,6 +267,22 @@ If tests run but without CrossBridge monitoring:
 2. Verify sidecar is reachable
 3. Check adapter cache directory exists
 4. Review command output for warnings
+
+### Enable Verbose Console Logging
+
+By default, CrossBridge shows only warnings and errors on the console for clean output. All detailed logs are saved to `~/.crossbridge/logs/`. To enable verbose console output:
+
+```bash
+# Set log level to INFO for detailed console output
+export CROSSBRIDGE_LOG_LEVEL=INFO
+crossbridge log output.xml --enable-ai
+
+# Or DEBUG for maximum verbosity
+export CROSSBRIDGE_LOG_LEVEL=DEBUG
+crossbridge run pytest tests/
+```
+
+**Note:** Even at WARNING level, all logs (including DEBUG) are written to the log file at `~/.crossbridge/logs/run-YYYYMMDD_HHMMSS.log`.
 
 ## CI/CD Integration
 

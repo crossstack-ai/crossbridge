@@ -95,7 +95,7 @@ def main_menu(ctx: typer.Context):
     """CrossBridge Main Menu - Interactive CLI for test framework operations."""
     # Setup logging for all commands
     import os
-    log_level = os.getenv("CROSSBRIDGE_LOG_LEVEL", "INFO")
+    log_level = os.getenv("CROSSBRIDGE_LOG_LEVEL", "WARNING")
     setup_logging(log_level=log_level)
     
     # If a subcommand was invoked, don't show the menu

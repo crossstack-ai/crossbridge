@@ -336,6 +336,10 @@ class LogParser:
         if data.get("intelligence_summary"):
             self._display_intelligence_summary(data)
         
+        # Display detailed AI failure analysis if available
+        if data.get("ai_analysis"):
+            self._display_ai_failure_analysis(data)
+        
         # Display AI usage if available
         if data.get("ai_usage"):
             self._display_ai_usage(data)
@@ -375,7 +379,7 @@ class LogParser:
         # Failed keywords
         failed_kw = data.get("failed_keywords", [])
         if failed_kw:
-            console.print(f"[red]Failed Keywords (showing {min(len(failed_kw), 5)}):[ /red]")
+            console.print(f"[red]Failed Keywords (showing {min(len(failed_kw), 5)}):[/red]")
             for kw in failed_kw[:5]:
                 name = kw.get("name", "Unknown")
                 library = kw.get("library", "")
@@ -499,6 +503,112 @@ class LogParser:
             for key, value in signals.items():
                 console.print(f"  • {key}: {value}")
             console.print()
+    
+    def _display_ai_failure_analysis(self, data: dict):
+        """Display detailed AI failure analysis."""
+        ai_analysis = data.get("ai_analysis", {})
+        
+        if not ai_analysis:
+            return
+        
+        console.print()
+        console.print("━" * 41, style="cyan")
+        console.print("  🤖 AI Failure Analysis", style="cyan bold")
+        console.print("━" * 41, style="cyan")
+        console.print()
+        
+        # Get failure analyses
+        failure_analyses = ai_analysis.get("failure_analyses", [])
+        
+        if not failure_analyses:
+            console.print("[dim]No AI failure analyses available[/dim]")
+            return
+        
+        for idx, analysis in enumerate(failure_analyses, 1):
+            # Test/Failure identification
+            test_name = analysis.get("test_name", "Unknown Test")
+            failure_id = analysis.get("failure_id", "N/A")
+            
+            console.print(f"[yellow]Failure #{idx}:[/yellow] {test_name}")
+            if failure_id != "N/A":
+                console.print(f"[dim]ID: {failure_id}[/dim]")
+            console.print()
+            
+            # Category and confidence
+            category = analysis.get("category", "unknown")
+            confidence = analysis.get("final_confidence", 0.0)
+            primary_rule = analysis.get("primary_rule", "")
+            
+            category_color = {
+                "flaky": "yellow",
+                "product_defect": "red",
+                "automation_defect": "magenta",
+                "environment_issue": "blue",
+                "test_data_issue": "cyan"
+            }.get(category.lower(), "white")
+            
+            console.print(f"  [blue]Classification:[/blue] [{category_color}]{category.upper()}[/{category_color}]")
+            console.print(f"  [blue]Confidence:[/blue] {confidence:.1%}")
+            if primary_rule:
+                console.print(f"  [blue]Primary Rule:[/blue] {primary_rule}")
+            console.print()
+            
+            # Root cause / AI explanation
+            explanation = analysis.get("ai_explanation", analysis.get("explanation", ""))
+            if explanation:
+                console.print(f"  [green]Root Cause Analysis:[/green]")
+                # Wrap long explanations
+                for line in explanation.split('\n'):
+                    if line.strip():
+                        console.print(f"    {line.strip()}")
+                console.print()
+            
+            # Code references
+            code_refs = analysis.get("code_references", [])
+            if code_refs:
+                console.print(f"  [green]Code References:[/green]")
+                for ref in code_refs[:3]:  # Show top 3
+                    file_path = ref.get("file", "")
+                    line_num = ref.get("line", "")
+                    context = ref.get("context", "")
+                    if file_path:
+                        console.print(f"    📄 {file_path}:{line_num}")
+                        if context:
+                            console.print(f"       [dim]{context}[/dim]")
+                console.print()
+            
+            # Evidence context
+            evidence = analysis.get("evidence_context", {})
+            if evidence:
+                error_summary = evidence.get("error_message_summary", "")
+                stacktrace = evidence.get("stacktrace_summary", "")
+                
+                if error_summary and error_summary != stacktrace:
+                    console.print(f"  [blue]Error:[/blue] {error_summary}")
+                if stacktrace:
+                    console.print(f"  [blue]Stack Trace:[/blue] {stacktrace}")
+                
+                if error_summary or stacktrace:
+                    console.print()
+            
+            # Rule influences (show top contributing rules)
+            rule_influence = analysis.get("rule_influence", [])
+            if rule_influence:
+                # Filter to matched rules or top contributors
+                top_rules = [r for r in rule_influence if r.get("matched", False) or r.get("contribution", 0) > 0][:3]
+                if top_rules:
+                    console.print(f"  [dim]Key Decision Factors:[/dim]")
+                    for rule in top_rules:
+                        rule_name = rule.get("rule_name", "")
+                        rule_explanation = rule.get("explanation", "")
+                        matched = "✓" if rule.get("matched", False) else "○"
+                        console.print(f"    {matched} {rule_name}: {rule_explanation}")
+                    console.print()
+            
+            # Separator between failures
+            if idx < len(failure_analyses):
+                console.print("[dim]" + "─" * 41 + "[/dim]")
+                console.print()
     
     def _display_ai_usage(self, data: dict):
         """Display AI usage summary."""

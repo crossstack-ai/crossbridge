@@ -16,14 +16,15 @@ from typing import Optional
 
 
 def setup_logging(
-    log_level: str = "INFO",
+    log_level: str = "WARNING",
     log_dir: Optional[Path] = None
 ) -> Path:
     """
     Setup logging for CrossBridge.
     
     Args:
-        log_level: Console log level (INFO, DEBUG, WARNING, ERROR)
+        log_level: Console log level (DEBUG, INFO, WARNING, ERROR). Default: WARNING
+                  Set CROSSBRIDGE_LOG_LEVEL=INFO for verbose console output
         log_dir: Optional custom log directory
     
     Returns:
