@@ -60,6 +60,10 @@ def setup_logging(
     
     # Root logger configuration
     root_logger = logging.getLogger()
+    
+    # Clear any existing handlers (e.g., from basicConfig at module load)
+    root_logger.handlers.clear()
+    
     root_logger.setLevel(logging.DEBUG)  # Capture everything
     
     # File handler - Full debug

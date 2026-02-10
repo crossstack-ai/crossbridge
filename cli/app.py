@@ -11,7 +11,15 @@ Company: CrossStack AI
 import typer
 import sys
 import logging
+import os
 from typing import Optional
+
+# Configure logging BEFORE any CrossBridge imports to prevent INFO logs from observability modules
+_log_level = os.getenv("CROSSBRIDGE_LOG_LEVEL", "WARNING").upper()
+logging.basicConfig(
+    level=getattr(logging, _log_level, logging.WARNING),
+    format='%(message)s'
+)
 
 from cli.branding import (
     show_welcome,
