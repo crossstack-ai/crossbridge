@@ -61,9 +61,13 @@ app.add_typer(search_app, name="search")
 app.add_typer(analyze_group, name="analyze")
 # Add execution orchestration commands
 app.add_typer(execution_commands, name="exec")
-# Add sidecar commands
-from cli.commands.sidecar_commands import app as sidecar_app
-app.add_typer(sidecar_app, name="sidecar")
+# Add sidecar commands (optional - requires fastapi)
+try:
+    from cli.commands.sidecar_commands import app as sidecar_app
+    app.add_typer(sidecar_app, name="sidecar")
+except ImportError:
+    # Sidecar commands require fastapi which is optional
+    pass
 # Add test runner and log parser commands
 from cli.commands.run_commands import run_app
 from cli.commands.log_commands import log_app
