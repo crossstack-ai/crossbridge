@@ -23,6 +23,20 @@ Design Contract:
 - NEW tests auto-register on first run (NO remigration)
 """
 
+# Configure CrossBridge logging level BEFORE importing any modules that create loggers
+import os
+from core.logging import set_global_log_level, LogLevel
+
+_log_level_str = os.getenv("CROSSBRIDGE_LOG_LEVEL", "WARNING").upper()
+_log_level_map = {
+    "DEBUG": LogLevel.DEBUG,
+    "INFO": LogLevel.INFO,
+    "WARNING": LogLevel.WARNING,
+    "ERROR": LogLevel.ERROR,
+    "CRITICAL": LogLevel.CRITICAL
+}
+set_global_log_level(_log_level_map.get(_log_level_str, LogLevel.WARNING))
+
 from .events import CrossBridgeEvent, EventType
 from .hook_sdk import CrossBridgeHookSDK
 from .hook_integrator import HookIntegrator
