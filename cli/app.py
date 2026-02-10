@@ -64,6 +64,11 @@ app.add_typer(execution_commands, name="exec")
 # Add sidecar commands
 from cli.commands.sidecar_commands import app as sidecar_app
 app.add_typer(sidecar_app, name="sidecar")
+# Add test runner and log parser commands
+from cli.commands.run_commands import run_app
+from cli.commands.log_commands import log_app
+app.add_typer(run_app, name="run")
+app.add_typer(log_app, name="log")
 
 # Install custom exception hook to suppress tracebacks in CLI
 def _custom_exception_hook(exc_type, exc_value, exc_traceback):
@@ -119,11 +124,15 @@ def main_menu(ctx: typer.Context):
     console.print("    • Add AI provider credentials (OpenAI/Anthropic)")
     console.print("    • View/Clear cached data\n")
     
-    console.print("[5] [red]Exit[/red]\n")
+    console.print("[5] [cyan]Test Execution & Logs[/cyan] - Run tests and parse logs")
+    console.print("    • Run tests with CrossBridge monitoring (crossbridge run)")
+    console.print("    • Parse and analyze logs (crossbridge log)\n")
+    
+    console.print("[6] [red]Exit[/red]\n")
     
     choice = Prompt.ask(
-        "Enter choice [1–5] (default: 1)",
-        choices=["1", "2", "3", "4", "5"],
+        "Enter choice [1–6] (default: 1)",
+        choices=["1", "2", "3", "4", "5", "6"],
         default="1",
         show_choices=False
     )
@@ -141,6 +150,28 @@ def main_menu(ctx: typer.Context):
         # Call test_credentials with no action to show interactive menu
         ctx.invoke(test_credentials, action=None, platform=None, username=None, token=None, repo_url=None)
     elif choice == "5":
+        # Show submenu for test execution and logs
+        console.print("\n[cyan]Test Execution & Logs:[/cyan]")
+        console.print("  [1] Run tests with CrossBridge monitoring")
+        console.print("  [2] Parse and analyze logs")
+        console.print("  [3] Back to main menu\n")
+        
+        sub_choice = Prompt.ask(
+            "Enter choice [1-3]",
+            choices=["1", "2", "3"],
+            default="3"
+        )
+        
+        if sub_choice == "1":
+            console.print("\n[yellow]Tip: Use 'crossbridge run <test-command>' directly[/yellow]")
+            console.print("[yellow]Example: crossbridge run robot tests/[/yellow]\n")
+        elif sub_choice == "2":
+            console.print("\n[yellow]Tip: Use 'crossbridge log <log-file>' directly[/yellow]")
+            console.print("[yellow]Example: crossbridge log output.xml[/yellow]\n")
+        else:
+            # Recursively show main menu
+            ctx.invoke(main_menu)
+    elif choice == "6":
         console.print("\n[dim]Goodbye![/dim]")
         raise typer.Exit(0)
 

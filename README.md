@@ -57,41 +57,71 @@ Work with existing tests as-is — zero code changes required.
 
 ---
 
-## 🎯 Quick Start: Universal Wrapper (NEW!)
+## 🎯 Quick Start: Unified CLI (NEW!)
 
-**The easiest way to integrate CrossBridge: Zero code changes, zero configuration files.**
+**The easiest way to integrate CrossBridge: Zero code changes, unified command interface.**
 
 ### Installation (30 seconds)
 
-**Linux/macOS:**
 ```bash
-curl -sSL https://crossbridge.io/install.sh | bash
+# Install from PyPI (recommended)
+pip install crossbridge
+
+# Or from source
+pip install -e .
+
+# Or from Git
+pip install git+https://github.com/crossstack-ai/crossbridge.git
 ```
 
-**Windows (PowerShell):**
-```powershell
-iwr -useb https://crossbridge.io/install.ps1 | iex
-```
+📖 **[Complete Installation Guide](docs/INSTALLATION.md)** - Enterprise, offline, CI/CD, and more installation scenarios
 
 ### Usage
 
-**Instead of:**
+**Run tests with monitoring:**
 ```bash
-robot tests/
-pytest tests/
-jest tests/
-mvn test
+# Instead of: robot tests/
+crossbridge run robot tests/
+
+# Instead of: pytest tests/
+crossbridge run pytest tests/
+
+# Instead of: jest tests/
+crossbridge run jest tests/
+
+# Instead of: mvn test
+crossbridge run mvn test
 ```
 
-**Just use:**
+**Parse and analyze logs:**
 ```bash
-crossbridge-run robot tests/
-crossbridge-run pytest tests/
-crossbridge-run jest tests/
-crossbridge-run mvn test
+# Parse Robot Framework output
+crossbridge log output.xml
+
+# Parse with AI enhancement
+crossbridge log output.xml --enable-ai
+
+# Filter failed tests
+crossbridge log output.xml --status FAIL
 ```
 
 **That's it!** No listener files, no configuration changes, no repository modifications.
+
+### Legacy Script Support
+
+The original bash scripts are still available for backward compatibility:
+
+```bash
+# Legacy commands (deprecated but still work)
+./bin/crossbridge-run robot tests/
+./bin/crossbridge-log output.xml
+
+# New unified commands (recommended)
+crossbridge run robot tests/
+crossbridge log output.xml
+```
+
+**Migration Path:** Update `crossbridge-run` → `crossbridge run` and `crossbridge-log` → `crossbridge log` in your CI/CD scripts.
 
 ### How It Works
 
@@ -2266,6 +2296,43 @@ pytest tests/
 ---
 
 ## 📚 Documentation
+
+### 🚀 Getting Started
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get up and running in 5 minutes
+- **[Unified CLI Guide](docs/UNIFIED_CLI.md)** - Complete reference for the crossbridge command
+- **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate from bash scripts to unified CLI
+- **[Installation](docs/INSTALLATION.md)** - Detailed setup instructions
+
+### 🔧 Core Features
+- **[Test Execution](docs/UNIFIED_CLI.md#crossbridge-run)** - Run tests with monitoring
+- **[Log Parsing](docs/UNIFIED_CLI.md#crossbridge-log)** - Analyze test results
+- **[Intelligence Engine](docs/intelligence/README.md)** - AI-powered failure analysis
+- **[Flaky Detection](docs/flaky-detection/README.md)** - Identify unstable tests
+
+### 📖 Advanced Topics
+- **[Sidecar Architecture](docs/REMOTE_SIDECAR_README.md)** - Understanding the sidecar
+- **[Adapter Development](docs/adapters/README.md)** - Create custom adapters
+- **[CI/CD Integration](docs/ci-cd/README.md)** - Jenkins, GitHub Actions, GitLab
+- **[API Reference](docs/api/README.md)** - REST API documentation
+
+### 🔌 Integrations
+- **[MCP (Model Context Protocol)](docs/mcp/README.md)** - AI agent integration
+- **[GitHub Integration](docs/integrations/github.md)** - PR automation
+- **[Jira Integration](docs/integrations/jira.md)** - Issue tracking
+
+### 🏗️ Architecture
+- **[System Design](docs/architecture/OVERVIEW.md)** - High-level architecture
+- **[Data Flow](docs/architecture/DATA_FLOW.md)** - How data moves through the system
+- **[Security](docs/architecture/SECURITY.md)** - Security considerations
+
+### 📦 Framework Support
+- **[Robot Framework](docs/frameworks/robot.md)** - Robot Framework integration
+- **[Pytest](docs/frameworks/pytest.md)** - Pytest integration
+- **[Jest](docs/frameworks/jest.md)** - Jest integration
+- **[Java/Maven](docs/frameworks/java.md)** - Java testing frameworks
+- **[All Frameworks](docs/frameworks/README.md)** - Complete list
+
+---
 
 **📖 [Full Documentation Hub](docs/README.md)** - Complete documentation organized by pillar
 
