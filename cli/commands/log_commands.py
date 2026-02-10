@@ -369,7 +369,7 @@ class LogParser:
     def _display_robot_results(self, data: dict):
         """Display Robot Framework results."""
         console.print("━" * 41, style="green")
-        console.print("  Robot Framework Results", style="green bold")
+        console.print("           Robot Framework Results", style="green bold")
         console.print("━" * 41, style="green")
         console.print()
         
@@ -390,18 +390,19 @@ class LogParser:
         elapsed_ms = suite.get("elapsed_ms", 0)
         duration = self.format_duration(elapsed_ms // 1000)
         
-        table = Table(show_header=False, box=box.SIMPLE)
-        table.add_row("[blue]Total:[/blue]", str(total))
-        table.add_row("[blue]Passed:[/blue]", f"[green]{passed}[/green]")
-        table.add_row("[blue]Failed:[/blue]", f"[red]{failed}[/red]")
-        table.add_row("[blue]Duration:[/blue]", duration)
-        console.print(table)
+        console.print("[blue]Test Statistics:[/blue]")
+        console.print(f"  Total:    {total}")
+        console.print(f"  Passed:   [green]{passed}[/green]")
+        console.print(f"  Failed:   [red]{failed}[/red]")
+        console.print(f"  Duration: {duration}")
         console.print()
         
-        # Failed keywords
+        # Failed keywords - show top 5 with count
         failed_kw = data.get("failed_keywords", [])
         if failed_kw:
-            console.print(f"[red]Failed Keywords (showing {min(len(failed_kw), 5)}):[/red]")
+            total_failed = len(failed_kw)
+            display_count = min(total_failed, 5)
+            console.print(f"[red]Top Failed Keywords (showing {display_count} of {total_failed}):[/red]")
             for kw in failed_kw[:5]:
                 name = kw.get("name", "Unknown")
                 library = kw.get("library", "")
@@ -411,20 +412,37 @@ class LogParser:
                 if error:
                     console.print(f"     [dim]Error: {error}[/dim]")
             console.print()
+        
+        # Slowest tests
+        slowest_tests = data.get("slowest_tests", [])
+        if slowest_tests:
+            display_count = min(len(slowest_tests), 5)
+            console.print(f"[yellow]Slowest Tests (Top {display_count}):[/yellow]")
+            for test in slowest_tests[:5]:
+                test_name = test.get("name", "Unknown")
+                elapsed = test.get("elapsed_ms", 0)
+                test_duration = self.format_duration(elapsed // 1000)
+                
+                # Truncate long test names
+                if len(test_name) > 80:
+                    test_name = test_name[:77] + "..."
+                
+                # Right-align duration
+                console.print(f"  {test_name:<85} {test_duration:>10}")
+            console.print()
     
     def _display_cypress_results(self, data: dict):
         """Display Cypress results."""
         console.print("━" * 41, style="green")
-        console.print("  Cypress Test Results", style="green bold")
+        console.print("           Cypress Test Results", style="green bold")
         console.print("━" * 41, style="green")
         console.print()
         
         stats = data.get("statistics", {})
-        table = Table(show_header=False, box=box.SIMPLE)
-        table.add_row("[blue]Total:[/blue]", str(stats.get("total_tests", 0)))
-        table.add_row("[blue]Passed:[/blue]", f"[green]{stats.get('passed_tests', 0)}[/green]")
-        table.add_row("[blue]Failed:[/blue]", f"[red]{stats.get('failed_tests', 0)}[/red]")
-        console.print(table)
+        console.print("[blue]Test Statistics:[/blue]")
+        console.print(f"  Total:  {stats.get('total_tests', 0)}")
+        console.print(f"  Passed: [green]{stats.get('passed_tests', 0)}[/green]")
+        console.print(f"  Failed: [red]{stats.get('failed_tests', 0)}[/red]")
         console.print()
         
         failures = data.get("failures", [])
@@ -434,21 +452,21 @@ class LogParser:
                 title = failure.get("title", "Unknown")
                 error = failure.get("error_message", "")
                 console.print(f"  ❌ {title}: {error}")
+            console.print()
     
     def _display_playwright_results(self, data: dict):
         """Display Playwright results."""
         console.print("━" * 41, style="green")
-        console.print("  Playwright Trace Analysis", style="green bold")
+        console.print("          Playwright Trace Analysis", style="green bold")
         console.print("━" * 41, style="green")
         console.print()
         
         action_count = len(data.get("actions", []))
         network_count = len(data.get("network_calls", []))
         
-        table = Table(show_header=False, box=box.SIMPLE)
-        table.add_row("[blue]Actions:[/blue]", str(action_count))
-        table.add_row("[blue]Network Calls:[/blue]", str(network_count))
-        console.print(table)
+        console.print("[blue]Trace Summary:[/blue]")
+        console.print(f"  Actions:       {action_count}")
+        console.print(f"  Network Calls: {network_count}")
         console.print()
         
         if action_count > 0:
@@ -457,28 +475,29 @@ class LogParser:
                 action_type = action.get("action", "Unknown")
                 selector = action.get("selector", "N/A")
                 console.print(f"  • {action_type}: {selector}")
+            console.print()
     
     def _display_behave_results(self, data: dict):
         """Display Behave BDD results."""
         console.print("━" * 41, style="green")
-        console.print("  Behave BDD Results", style="green bold")
+        console.print("            Behave BDD Results", style="green bold")
         console.print("━" * 41, style="green")
         console.print()
         
         feature_count = len(data.get("features", []))
         stats = data.get("statistics", {})
         
-        table = Table(show_header=False, box=box.SIMPLE)
-        table.add_row("[blue]Features:[/blue]", str(feature_count))
-        table.add_row("[blue]Scenarios:[/blue]", str(stats.get("total_scenarios", 0)))
-        table.add_row("[blue]Passed:[/blue]", f"[green]{stats.get('passed_scenarios', 0)}[/green]")
-        table.add_row("[blue]Failed:[/blue]", f"[red]{stats.get('failed_scenarios', 0)}[/red]")
-        console.print(table)
+        console.print("[blue]BDD Statistics:[/blue]")
+        console.print(f"  Features:  {feature_count}")
+        console.print(f"  Scenarios: {stats.get('total_scenarios', 0)}")
+        console.print(f"  Passed:    [green]{stats.get('passed_scenarios', 0)}[/green]")
+        console.print(f"  Failed:    [red]{stats.get('failed_scenarios', 0)}[/red]")
+        console.print()
     
     def _display_java_results(self, data: dict):
         """Display Java Cucumber results."""
         console.print("━" * 41, style="green")
-        console.print("  Java Cucumber Step Definitions", style="green bold")
+        console.print("       Java Cucumber Step Definitions", style="green bold")
         console.print("━" * 41, style="green")
         console.print()
         
@@ -494,11 +513,11 @@ class LogParser:
             when = sum(1 for s in step_defs if s.get("step_type") == "When")
             then = sum(1 for s in step_defs if s.get("step_type") == "Then")
             
-            table = Table(show_header=False, box=box.SIMPLE)
-            table.add_row("[blue]Given:[/blue]", str(given))
-            table.add_row("[blue]When:[/blue]", str(when))
-            table.add_row("[blue]Then:[/blue]", str(then))
-            console.print(table)
+            console.print("[blue]By Type:[/blue]")
+            console.print(f"  Given: {given}")
+            console.print(f"  When:  {when}")
+            console.print(f"  Then:  {then}")
+            console.print()
     
     def _display_intelligence_summary(self, data: dict):
         """Display intelligence analysis summary."""
@@ -638,7 +657,7 @@ class LogParser:
         
         console.print()
         console.print("━" * 41, style="blue")
-        console.print("  AI Log Analysis Summary", style="blue bold")
+        console.print("      AI Log Analysis Summary", style="blue bold")
         console.print("━" * 41, style="blue")
         console.print()
         
@@ -647,13 +666,12 @@ class LogParser:
         total_tokens = ai_usage.get("total_tokens", 0)
         cost = ai_usage.get("cost", 0)
         
-        table = Table(show_header=False, box=box.SIMPLE)
-        table.add_row("[blue]Provider:[/blue]", provider.title())
-        table.add_row("[blue]Model:[/blue]", model)
-        table.add_row("[blue]Total Tokens:[/blue]", str(total_tokens))
+        console.print(f"  [blue]Provider:[/blue]       {provider.title()}")
+        console.print(f"  [blue]Model:[/blue]          {model}")
+        console.print(f"  [blue]Total Tokens:[/blue]   {total_tokens}")
         
         if provider not in ["selfhosted", "ollama"]:
-            table.add_row("[blue]Total Cost:[/blue]", f"${cost:.4f}")
+            console.print(f"  [blue]Total Cost:[/blue]     ${cost:.4f}")
         
         console.print(table)
 
