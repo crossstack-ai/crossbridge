@@ -22,19 +22,18 @@ from rich import box
 
 console = Console()
 
-# Create typer app without callback - main command will be default
+# Create a Typer instance - this will act as both group and default command
 log_app = typer.Typer(
-    name="log",
     help="Parse and analyze test execution logs",
-    no_args_is_help=True,
     invoke_without_command=True,
+    no_args_is_help=True
 )
 
 
-@log_app.callback(invoke_without_command=True)
-def main(
+@log_app.callback()
+def log_callback(
     ctx: typer.Context,
-    log_file: Optional[Path] = typer.Argument(None, help="Path to log file to parse", exists=True),
+    log_file: Optional[Path] = typer.Argument(None, help="Path to log file to parse"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to file"),
     enable_ai: bool = typer.Option(False, "--enable-ai", help="Enable AI-enhanced analysis"),
     app_logs: Optional[str] = typer.Option(None, "--app-logs", "-a", help="Application logs for correlation"),
@@ -57,7 +56,6 @@ def main(
     - Behave (behave-results.json)
     - Java Cucumber (*Steps.java)
     
-    \b
     Examples:
         crossbridge log output.xml
         crossbridge log output.xml --enable-ai
@@ -65,27 +63,33 @@ def main(
         crossbridge log output.xml --test-name "Login*"
         crossbridge log output.xml --status FAIL
     """
-    # If no log file provided, show help
-    if log_file is None:
-        console.print("[yellow]No log file specified![/yellow]")
-        ctx.get_help()
-        raise typer.Exit(0)
-    
-    # Run the log parsing
-    parse_log_file(
-        log_file=log_file,
-        output=output,
-        enable_ai=enable_ai,
-        app_logs=app_logs,
-        test_name=test_name,
-        test_id=test_id,
-        status=status,
-        error_code=error_code,
-        pattern=pattern,
-        time_from=time_from,
-        time_to=time_to,
-        no_analyze=no_analyze,
-    )
+    # Only run parsing if invoked without subcommand and log_file is provided
+    if ctx.invoked_subcommand is None:
+        if log_file is None:
+            console.print("[yellow]No log file specified![/yellow]\n")
+            console.print(ctx.get_help())
+            raise typer.Exit(0)
+        
+        # Validate file exists
+        if not log_file.exists():
+            console.print(f"[red]Error: File not found: {log_file}[/red]")
+            raise typer.Exit(1)
+        
+        # Run the log parsing
+        parse_log_file(
+            log_file=log_file,
+            output=output,
+            enable_ai=enable_ai,
+            app_logs=app_logs,
+            test_name=test_name,
+            test_id=test_id,
+            status=status,
+            error_code=error_code,
+            pattern=pattern,
+            time_from=time_from,
+            time_to=time_to,
+            no_analyze=no_analyze,
+        )
 
 
 class LogParser:
