@@ -18,8 +18,6 @@ from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.live import Live
-from rich.text import Text
 from rich import box
 
 from core.logging import get_logger
@@ -206,6 +204,7 @@ class LogParser:
         
         if enable_ai:
             self._show_ai_banner(framework)
+            console.print("[blue]🤖 Running AI-enhanced analysis... (this may take 30-120 minutes for large logs)[/blue]")
         else:
             console.print("[blue]Running intelligence analysis...[/blue]")
         
@@ -224,10 +223,9 @@ class LogParser:
             endpoint = "/analyze"
         
         try:
-            # Use Rich Live display for animated spinner
+            # Use raw stderr output like bash script for maximum compatibility
             response_holder = [None]
             error_holder = [None]
-            stop_spinner = [False]
             
             def make_request():
                 try:
@@ -238,26 +236,29 @@ class LogParser:
                     )
                 except Exception as e:
                     error_holder[0] = e
-                finally:
-                    stop_spinner[0] = True
             
-            # Spinner frames
-            spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+            # Spinner frames (same as bash)
+            spin_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
             message = "Processing test results and extracting failure patterns..."
             
             # Start request thread
             request_thread = threading.Thread(target=make_request, daemon=True)
             request_thread.start()
             
-            # Show animated spinner using Rich Live
-            with Live(console=console, refresh_per_second=10, transient=True) as live:
-                idx = 0
-                while not stop_spinner[0]:
-                    live.update(Text(f"{spinner_chars[idx]} {message}"))
-                    idx = (idx + 1) % len(spinner_chars)
-                    time.sleep(0.1)
+            # Show spinner using raw stderr (like bash script does)
+            spin_index = 0
+            while request_thread.is_alive():
+                # Write to stderr with carriage return (exact bash approach)
+                sys.stderr.write(f"\r  {message} [{spin_chars[spin_index]}]")
+                sys.stderr.flush()
+                spin_index = (spin_index + 1) % len(spin_chars)
+                time.sleep(0.15)
             
-            # Wait for request thread to fully complete
+            # Clear spinner line
+            sys.stderr.write("\r" + " " * 80 + "\r")
+            sys.stderr.flush()
+            
+            # Wait for thread to fully finish
             request_thread.join(timeout=1)
             
             # Check for errors
@@ -272,12 +273,15 @@ class LogParser:
                     console.print("[green]✓ AI analysis completed successfully[/green]")
                 else:
                     console.print("[green]✓ Analysis completed[/green]")
+                console.print()  # Blank line after completion
                 return result
             else:
                 console.print("[yellow]⚠ Analysis completed with warnings[/yellow]")
+                console.print()  # Blank line after completion
                 return data
         except Exception as e:
             console.print(f"[yellow]Note: Intelligence analysis failed - {e}[/yellow]")
+            console.print()  # Blank line after error
             return data
     
     def _show_ai_banner(self, framework: str):
