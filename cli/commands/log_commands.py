@@ -245,24 +245,34 @@ class LogParser:
             request_thread = threading.Thread(target=make_request, daemon=True)
             request_thread.start()
             
-            # ANSI escape codes for cursor control
-            CURSOR_UP_ONE = '\x1b[1A'
-            ERASE_LINE = '\x1b[2K'
-            
-            # Show spinner - keep going until we have a response or error
+            # Show spinner - simpler approach with dots for Windows compatibility
             spin_index = 0
-            # Print initial line
-            print(f"  {message} [{spin_chars[spin_index]}]", file=sys.stderr)
+            dots_shown = 0
+            max_dots = 50  # Max dots before resetting line
             
-            # Keep spinning until we have a response or error (not just thread alive)
+            # Print initial message
+            sys.stderr.write(f"  {message} ")
+            sys.stderr.flush()
+            
+            # Keep spinning until we have a response or error
             while response_holder[0] is None and error_holder[0] is None:
-                # Move cursor up, erase line, print new content
-                print(f"{CURSOR_UP_ONE}{ERASE_LINE}  {message} [{spin_chars[spin_index]}]", file=sys.stderr, flush=True)
+                # Show dots instead of spinner on Windows (more reliable)
+                if dots_shown >= max_dots:
+                    # Start new line
+                    sys.stderr.write(f"\n  ")
+                    sys.stderr.flush()
+                    dots_shown = 0
+                
+                # Alternate between spinner chars for visual variety
+                sys.stderr.write(spin_chars[spin_index])
+                sys.stderr.flush()
                 spin_index = (spin_index + 1) % len(spin_chars)
+                dots_shown += 1
                 time.sleep(0.15)
             
-            # Clear the spinner line
-            print(f"{CURSOR_UP_ONE}{ERASE_LINE}", file=sys.stderr, end='', flush=True)
+            # New line after spinner completes
+            sys.stderr.write("\n")
+            sys.stderr.flush()
             
             # Wait for thread to fully finish
             request_thread.join(timeout=1)
