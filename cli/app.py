@@ -70,9 +70,9 @@ except ImportError:
     pass
 # Add test runner and log parser commands
 from cli.commands.run_commands import run_app
-from cli.commands.log_commands import log_app
+from cli.commands.log_commands import log_command
 app.add_typer(run_app, name="run")
-app.add_typer(log_app, name="log")
+app.command(name="log")(log_command)
 
 # Install custom exception hook to suppress tracebacks in CLI
 def _custom_exception_hook(exc_type, exc_value, exc_traceback):

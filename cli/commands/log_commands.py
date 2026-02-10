@@ -20,20 +20,14 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich import box
 
+from core.logging import get_logger
+
 console = Console()
-
-# Create a Typer instance - this will act as both group and default command
-log_app = typer.Typer(
-    help="Parse and analyze test execution logs",
-    invoke_without_command=True,
-    no_args_is_help=True
-)
+logger = get_logger(__name__)
 
 
-@log_app.callback()
-def log_callback(
-    ctx: typer.Context,
-    log_file: Optional[Path] = typer.Argument(None, help="Path to log file to parse"),
+def log_command(
+    log_file: Path = typer.Argument(..., help="Path to log file to parse"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to file"),
     enable_ai: bool = typer.Option(False, "--enable-ai", help="Enable AI-enhanced analysis"),
     app_logs: Optional[str] = typer.Option(None, "--app-logs", "-a", help="Application logs for correlation"),
@@ -63,33 +57,20 @@ def log_callback(
         crossbridge log output.xml --test-name "Login*"
         crossbridge log output.xml --status FAIL
     """
-    # Only run parsing if invoked without subcommand and log_file is provided
-    if ctx.invoked_subcommand is None:
-        if log_file is None:
-            console.print("[yellow]No log file specified![/yellow]\n")
-            console.print(ctx.get_help())
-            raise typer.Exit(0)
-        
-        # Validate file exists
-        if not log_file.exists():
-            console.print(f"[red]Error: File not found: {log_file}[/red]")
-            raise typer.Exit(1)
-        
-        # Run the log parsing
-        parse_log_file(
-            log_file=log_file,
-            output=output,
-            enable_ai=enable_ai,
-            app_logs=app_logs,
-            test_name=test_name,
-            test_id=test_id,
-            status=status,
-            error_code=error_code,
-            pattern=pattern,
-            time_from=time_from,
-            time_to=time_to,
-            no_analyze=no_analyze,
-        )
+    parse_log_file(
+        log_file=log_file,
+        output=output,
+        enable_ai=enable_ai,
+        app_logs=app_logs,
+        test_name=test_name,
+        test_id=test_id,
+        status=status,
+        error_code=error_code,
+        pattern=pattern,
+        time_from=time_from,
+        time_to=time_to,
+        no_analyze=no_analyze,
+    )
 
 
 class LogParser:
@@ -560,10 +541,12 @@ def parse_log_file(
     no_analyze: bool = False,
 ):
     """Core log parsing logic."""
+    logger.info(f"Starting log parsing for: {log_file}")
     parser = LogParser()
     
     # Check sidecar
     if not parser.check_sidecar():
+        logger.error("Sidecar check failed")
         raise typer.Exit(1)
     
     # Detect framework
@@ -577,18 +560,24 @@ def parse_log_file(
         console.print("  - Playwright (playwright-trace.json)")
         console.print("  - Behave (behave-results.json)")
         console.print("  - Java Cucumber (*Steps.java)")
+        logger.error(f"Unknown log format: {log_file}")
         raise typer.Exit(1)
     
     console.print(f"[green]✓ Detected framework: {framework}[/green]")
+    logger.info(f"Detected framework: {framework}")
     
     # Parse log
     parsed_data = parser.parse_log(log_file, framework)
     
     if not parsed_data:
+        logger.error("Log parsing failed - empty result")
         raise typer.Exit(1)
+    
+    logger.info("Log parsing successful")
     
     # Enrich with intelligence if not disabled
     if not no_analyze:
+        logger.info(f"Starting intelligence analysis (AI enabled: {enable_ai})")
         start_time = time.time()
         enriched_data = parser.enrich_with_intelligence(
             parsed_data,
@@ -620,16 +609,19 @@ def parse_log_file(
     if output:
         output.write_text(json.dumps(filtered_data, indent=2))
         console.print(f"\n[blue]Results saved to: {output}[/blue]")
+        logger.info(f"Results saved to: {output}")
     else:
         # Save to default file
         default_output = log_file.with_suffix(f".parsed.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
         default_output.write_text(json.dumps(filtered_data, indent=2))
         console.print(f"\n[blue]Full results saved to: {default_output}[/blue]")
+        logger.info(f"Results saved to: {default_output}")
     
     console.print()
     console.print("━" * 41, style="green")
     console.print("[green]✓ Parsing complete![/green]")
+    logger.info("Log parsing completed successfully")
 
 
 if __name__ == "__main__":
-    log_app()
+    typer.run(log_command)

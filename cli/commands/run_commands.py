@@ -16,7 +16,10 @@ from typing import Optional, List
 from rich.console import Console
 from rich.panel import Panel
 
+from core.logging import get_logger
+
 console = Console()
+logger = get_logger(__name__)
 
 run_app = typer.Typer(
     name="run",
@@ -224,6 +227,7 @@ class CrossBridgeRunner:
         """Execute tests with CrossBridge monitoring."""
         if not command:
             console.print("[red]Error: No test command specified[/red]")
+            logger.error("No test command specified")
             return 1
         
         # Export configuration
@@ -236,6 +240,7 @@ class CrossBridgeRunner:
         
         if not self.enabled:
             console.print("[yellow]Running tests without CrossBridge monitoring[/yellow]")
+            logger.info("CrossBridge monitoring disabled - running tests directly")
             return subprocess.call(command)
         
         # Detect framework
@@ -244,9 +249,11 @@ class CrossBridgeRunner:
         if framework == "unknown":
             console.print(f"[yellow]Unknown test framework: {command[0]}[/yellow]")
             console.print("[yellow]Running tests without CrossBridge monitoring[/yellow]")
+            logger.warning(f"Unknown test framework: {command[0]} - running without monitoring")
             return subprocess.call(command)
         
         console.print(f"[green]Detected framework: {framework}[/green]")
+        logger.info(f"Detected framework: {framework}")
         
         # Setup framework-specific integration
         adapter_path = Path(self.adapter_dir) / framework
@@ -262,6 +269,8 @@ class CrossBridgeRunner:
             setup_config = self.setup_mocha(adapter_path, command[1:])
         elif framework == "junit":
             setup_config = self.setup_junit(adapter_path)
+        
+        logger.info(f"Framework setup complete: {framework}")
         
         # Build final command
         final_command = command.copy()
@@ -279,6 +288,7 @@ class CrossBridgeRunner:
         if "env" in setup_config:
             env.update(setup_config["env"])
         
+        logger.info(f"Executing command: {' '.join(final_command)}")
         # Execute tests
         return subprocess.call(final_command, env=env)
 
@@ -324,8 +334,10 @@ def run_callback(
         ))
         raise typer.Exit(0)
     
+    logger.info(f"Starting test execution: {' '.join(command)}")
     runner = CrossBridgeRunner()
     exit_code = runner.run_tests(command)
+    logger.info(f"Test execution completed with exit code: {exit_code}")
     raise typer.Exit(exit_code)
 
 
