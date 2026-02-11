@@ -95,6 +95,11 @@ def setup_logging(
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
     
+    # Suppress noisy third-party loggers (even in file logs)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    
     # Log startup
     root_logger.info(f"CrossBridge by CrossStack AI - Session started")
     root_logger.info(f"Log file: {log_file}")

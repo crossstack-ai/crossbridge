@@ -57,20 +57,25 @@ def log_command(
         crossbridge log output.xml --test-name "Login*"
         crossbridge log output.xml --status FAIL
     """
-    parse_log_file(
-        log_file=log_file,
-        output=output,
-        enable_ai=enable_ai,
-        app_logs=app_logs,
-        test_name=test_name,
-        test_id=test_id,
-        status=status,
-        error_code=error_code,
-        pattern=pattern,
-        time_from=time_from,
-        time_to=time_to,
-        no_analyze=no_analyze,
-    )
+    try:
+        parse_log_file(
+            log_file=log_file,
+            output=output,
+            enable_ai=enable_ai,
+            app_logs=app_logs,
+            test_name=test_name,
+            test_id=test_id,
+            status=status,
+            error_code=error_code,
+            pattern=pattern,
+            time_from=time_from,
+            time_to=time_to,
+            no_analyze=no_analyze,
+        )
+    except Exception as e:
+        console.print(f"\n[red]Error: {str(e)}[/red]")
+        logger.error(f"Command failed: {e}", exc_info=True)
+        raise typer.Exit(1)
 
 
 class LogParser:
@@ -702,7 +707,7 @@ class LogParser:
         if provider not in ["selfhosted", "ollama"]:
             console.print(f"  [blue]Total Cost:[/blue]     ${cost:.4f}")
         
-        console.print(table)
+        console.print()
 
 
 def parse_log_file(
