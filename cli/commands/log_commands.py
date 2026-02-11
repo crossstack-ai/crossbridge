@@ -245,10 +245,11 @@ class LogParser:
             request_thread = threading.Thread(target=make_request, daemon=True)
             request_thread.start()
             
-            # Show spinner - simpler approach with dots for Windows compatibility
+            # Use ASCII spinner chars that work in all terminals (Git Bash compatible)
+            spin_chars = ['|', '/', '-', '\\']  # Classic ASCII spinner
             spin_index = 0
             dots_shown = 0
-            max_dots = 50  # Max dots before resetting line
+            max_dots = 50  # Max chars before wrapping
             
             # Print initial message
             sys.stderr.write(f"  {message} ")
@@ -256,14 +257,13 @@ class LogParser:
             
             # Keep spinning until we have a response or error
             while response_holder[0] is None and error_holder[0] is None:
-                # Show dots instead of spinner on Windows (more reliable)
                 if dots_shown >= max_dots:
                     # Start new line
                     sys.stderr.write(f"\n  ")
                     sys.stderr.flush()
                     dots_shown = 0
                 
-                # Alternate between spinner chars for visual variety
+                # Show spinner char
                 sys.stderr.write(spin_chars[spin_index])
                 sys.stderr.flush()
                 spin_index = (spin_index + 1) % len(spin_chars)
