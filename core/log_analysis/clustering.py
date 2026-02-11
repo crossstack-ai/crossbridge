@@ -19,6 +19,11 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set
 from enum import Enum
 
+from core.logging import get_logger, LogCategory
+
+# Get logger with EXECUTION category for test result analysis
+logger = get_logger(__name__, category=LogCategory.EXECUTION)
+
 
 class FailureSeverity(str, Enum):
     """Failure severity levels for prioritization."""
@@ -472,8 +477,15 @@ def cluster_failures(
         >>> list(clusters.values())[0].failure_count
         2
     """
+    logger.debug(
+        f"Starting failure clustering: {len(failures)} failures, "
+        f"deduplicate={deduplicate}, min_cluster_size={min_cluster_size}"
+    )
+    
     clusters: Dict[str, FailureCluster] = {}
     seen_combinations: Set[tuple] = set()  # For deduplication
+    skipped_empty = 0
+    skipped_duplicate = 0
     
     for failure_data in failures:
         # Extract failure attributes
@@ -487,6 +499,7 @@ def cluster_failures(
         
         # Skip empty errors
         if not error_message.strip():
+            skipped_empty += 1
             continue
         
         # Create failure instance
@@ -512,6 +525,7 @@ def cluster_failures(
         if deduplicate:
             combination = (fingerprint, test_name, keyword_name)
             if combination in seen_combinations:
+                skipped_duplicate += 1
                 continue  # Skip duplicate within same test
             seen_combinations.add(combination)
         
@@ -545,12 +559,29 @@ def cluster_failures(
         cluster.suggested_fix = _suggest_fix(cluster)
     
     # Filter by minimum cluster size
+    pre_filter_count = len(clusters)
     if min_cluster_size > 1:
         clusters = {
             fp: cluster
             for fp, cluster in clusters.items()
             if cluster.failure_count >= min_cluster_size
         }
+        filtered_count = pre_filter_count - len(clusters)
+        if filtered_count > 0:
+            logger.debug(f"Filtered out {filtered_count} clusters below min_cluster_size={min_cluster_size}")
+    
+    # Log summary
+    total_clustered = sum(c.failure_count for c in clusters.values())
+    logger.info(
+        f"Clustering complete: {len(clusters)} unique issues from {total_clustered} failures "
+        f"(skipped {skipped_empty} empty, {skipped_duplicate} duplicates)"
+    )
+    
+    # Log severity distribution
+    severity_counts = {}
+    for cluster in clusters.values():
+        severity_counts[cluster.severity.value] = severity_counts.get(cluster.severity.value, 0) + 1
+    logger.debug(f"Severity distribution: {severity_counts}")
     
     return clusters
 
@@ -565,6 +596,8 @@ def get_cluster_summary(clusters: Dict[str, FailureCluster]) -> Dict:
     Returns:
         Summary dictionary with statistics, prioritized clusters, and systemic patterns
     """
+    logger.debug(f"Generating cluster summary for {len(clusters)} clusters")
+    
     total_failures = sum(c.failure_count for c in clusters.values())
     total_unique_issues = len(clusters)
     
