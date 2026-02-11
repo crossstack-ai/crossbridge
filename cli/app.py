@@ -88,8 +88,10 @@ except ImportError:
 # Add test runner and log parser commands
 from cli.commands.run_commands import run_app
 from cli.commands.log_commands import log_command
+from cli.commands.auth_commands import auth_app
 app.add_typer(run_app, name="run")
 app.command(name="log")(log_command)
+app.add_typer(auth_app, name="auth")
 
 # Install custom exception hook to suppress tracebacks in CLI
 def _custom_exception_hook(exc_type, exc_value, exc_traceback):
@@ -559,7 +561,7 @@ def version():
     typer.echo("Test Framework Migration Platform")
 
 
-@app.command("test-creds")
+@app.command("test-creds", deprecated=True, hidden=True)
 def test_credentials(
     action: Optional[str] = typer.Option(None, "--action", help="Action: cache, cache-ai, list, clear, or test"),
     platform: Optional[str] = typer.Option(None, "--platform", help="Platform: bitbucket, github, openai, or anthropic"),
@@ -568,24 +570,47 @@ def test_credentials(
     repo_url: Optional[str] = typer.Option(None, "--repo-url", help="Repository URL")
 ):
     """
-    Add & Verify Credentials - Manage repository and AI credentials caching.
+    [DEPRECATED] Use 'crossbridge auth' commands instead.
     
-    Cache credentials to avoid repeated entry during local testing.
-    Credentials are encrypted using AES-128 (Fernet) and stored securely.
-    
-    ⚠️  FOR TEST/DEVELOPMENT USE ONLY - NOT FOR PRODUCTION
-    
-    Supports:
-    - Repository credentials (BitBucket/GitHub)
-    - AI provider credentials (OpenAI/Anthropic)
-    
-    Examples:
-        crossbridge test-creds --action cache --platform bitbucket
-        crossbridge test-creds --action cache-ai --platform openai
-        crossbridge test-creds --action list
-        crossbridge test-creds --action clear --platform openai
-        crossbridge test-creds --action test --platform anthropic
+    This command is deprecated and will be removed in a future version.
+    Please use the following new commands:
+    - crossbridge auth add       (was: test-creds --action cache)
+    - crossbridge auth verify    (was: test-creds --action test)
+    - crossbridge auth list      (was: test-creds --action list)
+    - crossbridge auth remove    (was: test-creds --action clear)
     """
+    from rich.console import Console
+    console = Console()
+    
+    console.print("\n[bold yellow]⚠️  DEPRECATION WARNING[/bold yellow]")
+    console.print("[yellow]The 'test-creds' command is deprecated and will be removed in a future version.[/yellow]")
+    console.print("\n[cyan]Please use the new 'auth' commands instead:[/cyan]")
+    console.print("  • [green]crossbridge auth add[/green]       - Add credentials (was: --action cache)")
+    console.print("  • [green]crossbridge auth verify[/green]    - Verify credentials (was: --action test)")
+    console.print("  • [green]crossbridge auth list[/green]      - List credentials (was: --action list)")
+    console.print("  • [green]crossbridge auth remove[/green]    - Remove credentials (was: --action clear)\n")
+    
+    # Map old actions to new commands
+    if action == "cache" or action == "cache-ai":
+        ai_flag = "--ai" if action == "cache-ai" else ""
+        console.print(f"[dim]Redirecting to: crossbridge auth add {ai_flag}[/dim]\n")
+        from cli.commands.auth_commands import add_credentials
+        add_credentials(ai=(action == "cache-ai"), platform=platform, username=username, token=token, repo_url=repo_url)
+    elif action == "list":
+        console.print("[dim]Redirecting to: crossbridge auth list[/dim]\n")
+        from cli.commands.auth_commands import list_credentials
+        list_credentials()
+    elif action == "clear":
+        console.print("[dim]Redirecting to: crossbridge auth remove[/dim]\n")
+        from cli.commands.auth_commands import remove_credentials
+        remove_credentials(platform=platform, yes=False)
+    elif action == "test":
+        console.print("[dim]Redirecting to: crossbridge auth verify[/dim]\n")
+        from cli.commands.auth_commands import verify_credentials
+        verify_credentials(platform=platform)
+    else:
+        console.print("[red]Please specify an action or use the new 'crossbridge auth' commands.[/red]")
+        raise typer.Exit(1)
     from rich.console import Console
     from rich.prompt import Prompt, Confirm
     from core.repo.test_credentials import (
@@ -932,10 +957,12 @@ def test_credentials(
                 default="bitbucket"
             )
         
-        # Confirm deletion
-        if not Confirm.ask(f"\n[bold yellow]Clear cached {platform} credentials?[/bold yellow]", default=False):
-            console.print("[yellow]Cancelled[/yellow]")
-            raise typer.Exit(0)
+        # Confirm deletion (skip if environment variable is set)
+        skip_confirm = os.getenv('CROSSBRIDGE_AUTH_SKIP_CONFIRM', '').strip() == '1'
+        if not skip_confirm:
+            if not Confirm.ask(f"\n[bold yellow]Clear cached {platform} credentials?[/bold yellow]", default=False):
+                console.print("[yellow]Cancelled[/yellow]")
+                raise typer.Exit(0)
         
         try:
             if platform == "all":
