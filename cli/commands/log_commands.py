@@ -254,30 +254,17 @@ class LogParser:
             # Use ASCII spinner chars that work in all terminals (Git Bash compatible)
             spin_chars = ['|', '/', '-', '\\']  # Classic ASCII spinner
             spin_index = 0
-            dots_shown = 0
-            max_dots = 50  # Max chars before wrapping
-            
-            # Print initial message
-            sys.stderr.write(f"  {message} ")
-            sys.stderr.flush()
             
             # Keep spinning until we have a response or error
             while response_holder[0] is None and error_holder[0] is None:
-                if dots_shown >= max_dots:
-                    # Start new line
-                    sys.stderr.write(f"\n  ")
-                    sys.stderr.flush()
-                    dots_shown = 0
-                
-                # Show spinner char
-                sys.stderr.write(spin_chars[spin_index])
+                # Show message with current spinner char, use \r to overwrite
+                sys.stderr.write(f"\r  {message} {spin_chars[spin_index]}")
                 sys.stderr.flush()
                 spin_index = (spin_index + 1) % len(spin_chars)
-                dots_shown += 1
                 time.sleep(0.15)
             
-            # New line after spinner completes
-            sys.stderr.write("\n")
+            # Clear the spinner line and move to next line
+            sys.stderr.write("\r" + " " * (len(message) + 10) + "\r")
             sys.stderr.flush()
             
             # Wait for thread to fully finish
