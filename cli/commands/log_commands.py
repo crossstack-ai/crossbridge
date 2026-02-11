@@ -21,6 +21,7 @@ from rich.table import Table
 from rich import box
 
 from core.logging import get_logger
+from services.logging_service import setup_logging
 
 console = Console()
 logger = get_logger(__name__)
@@ -725,6 +726,9 @@ def parse_log_file(
     no_analyze: bool = False,
 ):
     """Core log parsing logic."""
+    # Initialize logging
+    setup_logging()
+    
     logger.info(f"Starting log parsing for: {log_file}")
     parser = LogParser()
     
