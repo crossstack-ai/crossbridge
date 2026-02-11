@@ -440,7 +440,7 @@ class LogParser:
             console.print(f"[red]Top Failed Keywords (showing {display_count} of {total_failed}):[/red]")
             
             # Create table for failed keywords
-            table = Table(show_header=True, header_style="bold red", box=box.SIMPLE, padding=(0, 1))
+            table = Table(show_header=True, header_style="bold red", box=box.ASCII, padding=(0, 1))
             table.add_column("Status", style="red", width=6)
             table.add_column("Keyword", style="white")
             table.add_column("Error", style="dim")
@@ -462,17 +462,24 @@ class LogParser:
         if slowest_tests:
             display_count = min(len(slowest_tests), 5)
             console.print(f"[yellow]Slowest Tests (Top {display_count}):[/yellow]")
+            
+            # Create table for slowest tests
+            table = Table(show_header=True, header_style="bold yellow", box=box.ASCII, padding=(0, 1))
+            table.add_column("Test Case", style="white", no_wrap=False)
+            table.add_column("Duration", style="yellow", justify="right", width=12)
+            
             for test in slowest_tests[:5]:
                 test_name = test.get("name", "Unknown")
                 elapsed = test.get("elapsed_ms", 0)
                 test_duration = self.format_duration(elapsed // 1000)
                 
-                # Truncate long test names
+                # Truncate long test names if needed
                 if len(test_name) > 80:
                     test_name = test_name[:77] + "..."
                 
-                # Right-align duration
-                console.print(f"  {test_name:<85} {test_duration:>10}")
+                table.add_row(test_name, test_duration)
+            
+            console.print(table)
             console.print()
     
     def _display_cypress_results(self, data: dict):
