@@ -6,6 +6,7 @@ Provides advanced analysis capabilities for test execution logs including:
 - Root cause analysis
 - Pattern detection
 - Severity impact scoring
+- Systemic pattern detection
 """
 
 from .clustering import (
@@ -15,6 +16,7 @@ from .clustering import (
     ClusteredFailure,
     FailureSeverity,
     get_cluster_summary,
+    detect_systemic_patterns,
     SEVERITY_RULES
 )
 
@@ -25,5 +27,6 @@ __all__ = [
     "ClusteredFailure",
     "FailureSeverity",
     "get_cluster_summary",
+    "detect_systemic_patterns",
     "SEVERITY_RULES"
 ]

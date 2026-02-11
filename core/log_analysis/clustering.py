@@ -563,7 +563,7 @@ def get_cluster_summary(clusters: Dict[str, FailureCluster]) -> Dict:
         clusters: Dictionary of failure clusters
         
     Returns:
-        Summary dictionary with statistics and prioritized clusters
+        Summary dictionary with statistics, prioritized clusters, and systemic patterns
     """
     total_failures = sum(c.failure_count for c in clusters.values())
     total_unique_issues = len(clusters)
@@ -583,10 +583,14 @@ def get_cluster_summary(clusters: Dict[str, FailureCluster]) -> Dict:
     for severity in by_severity:
         by_severity[severity].sort(key=lambda c: c.failure_count, reverse=True)
     
+    # Detect systemic patterns
+    systemic_patterns = detect_systemic_patterns(clusters)
+    
     return {
         "total_failures": total_failures,
         "unique_issues": total_unique_issues,
         "deduplication_ratio": round(total_failures / max(total_unique_issues, 1), 2),
+        "systemic_patterns": systemic_patterns,
         "by_severity": {
             "critical": len(by_severity[FailureSeverity.CRITICAL]),
             "high": len(by_severity[FailureSeverity.HIGH]),
@@ -622,3 +626,169 @@ def _cluster_to_dict(cluster: FailureCluster) -> Dict:
             for f in cluster.failures[:3]  # Show up to 3 examples
         ]
     }
+
+
+def detect_systemic_patterns(clusters: Dict[str, FailureCluster]) -> List[str]:
+    """
+    Detect cross-test failure patterns indicating systemic issues.
+    
+    Analyzes clusters to identify patterns like:
+    - Volume-based regressions (many unique failures)
+    - Cascade failures (tests failing after first failure)
+    - Environment-specific issues (all ESXi, all Instant VM, etc.)
+    - Common keyword/library patterns
+    - Feature-specific failures
+    
+    Args:
+        clusters: Dictionary of failure clusters from cluster_failures()
+        
+    Returns:
+        List of pattern warning strings describing systemic issues
+        
+    Examples:
+        >>> clusters = cluster_failures([...])
+        >>> patterns = detect_systemic_patterns(clusters)
+        >>> print(patterns[0])
+        "⚠️  6+ unique failure types suggests possible systemic regression"
+    """
+    if not clusters:
+        return []
+    
+    patterns = []
+    
+    # Get all failures across all clusters
+    all_failures = []
+    for cluster in clusters.values():
+        all_failures.extend(cluster.failures)
+    
+    # 1. Volume-based pattern: Many unique failure types
+    unique_count = len(clusters)
+    total_failures = len(all_failures)
+    
+    if unique_count >= 6:
+        patterns.append(
+            f"⚠️  {unique_count} unique failure types suggests possible systemic regression"
+        )
+    
+    # 2. Cascade failure pattern: Multiple tests failing after first failure
+    timestamped_failures = [f for f in all_failures if f.timestamp]
+    if len(timestamped_failures) >= 3:
+        # Sort by timestamp
+        try:
+            sorted_failures = sorted(
+                timestamped_failures,
+                key=lambda f: f.timestamp
+            )
+            # Check if multiple tests failed after the first one
+            unique_tests_after_first = len(set(
+                f.test_name for f in sorted_failures[1:]
+            ))
+            if unique_tests_after_first >= 2:
+                patterns.append(
+                    f"⚠️  {unique_tests_after_first + 1} tests failed after first failure occurred"
+                )
+        except (ValueError, TypeError):
+            # Skip if timestamp parsing fails
+            pass
+    
+    # 3. Common keyword pattern: Most failures involve same keyword
+    all_keywords = []
+    for cluster in clusters.values():
+        all_keywords.extend(cluster.keywords)
+    
+    if all_keywords:
+        keyword_counts = defaultdict(int)
+        for keyword in all_keywords:
+            keyword_counts[keyword] += 1
+        
+        # Find most common keyword
+        most_common_keyword = max(keyword_counts.items(), key=lambda x: x[1])
+        keyword_name, keyword_count = most_common_keyword
+        
+        # If >70% of clusters involve same keyword, it's a pattern
+        if keyword_count >= len(clusters) * 0.7 and len(clusters) >= 3:
+            patterns.append(
+                f"⚠️  {keyword_count} clusters involve '{keyword_name}' keyword"
+            )
+    
+    # 4. Common library pattern: Most failures from same library
+    libraries = []
+    for cluster in clusters.values():
+        for failure in cluster.failures:
+            if failure.library:
+                libraries.append(failure.library)
+    
+    if libraries:
+        library_counts = defaultdict(int)
+        for library in libraries:
+            library_counts[library] += 1
+        
+        most_common_library = max(library_counts.items(), key=lambda x: x[1])
+        library_name, library_count = most_common_library
+        
+        # If >70% of failures from same library, it's a pattern
+        if library_count >= total_failures * 0.7 and total_failures >= 3:
+            patterns.append(
+                f"⚠️  {library_count}/{total_failures} failures involve {library_name}"
+            )
+    
+    # 5. Test name pattern extraction: Find common features
+    test_names = set()
+    for cluster in clusters.values():
+        test_names.update(cluster.tests)
+    
+    if len(test_names) >= 3:
+        # Extract common words (ignoring common test words)
+        common_test_words = {'test', 'check', 'verify', 'validate', 'should', 'can'}
+        word_counts = defaultdict(int)
+        
+        for test_name in test_names:
+            # Split by common delimiters and filter out noise
+            words = re.findall(r'\b[A-Z][a-z]+|\b[a-z]+', test_name.replace('_', ' '))
+            for word in words:
+                word_lower = word.lower()
+                if word_lower not in common_test_words and len(word) > 2:
+                    word_counts[word] += 1
+        
+        # Find features mentioned in >60% of test names
+        threshold = len(test_names) * 0.6
+        common_features = [
+            word for word, count in word_counts.items()
+            if count >= threshold
+        ]
+        
+        # Report top 2 common features
+        if common_features:
+            sorted_features = sorted(
+                common_features,
+                key=lambda w: word_counts[w],
+                reverse=True
+            )[:2]
+            
+            for feature in sorted_features:
+                count = word_counts[feature]
+                patterns.append(
+                    f"⚠️  {count}/{len(test_names)} failures involve {feature} feature"
+                )
+    
+    # 6. Environment pattern: Check for environment-specific words
+    environment_keywords = {
+        'esxi', 'vmware', 'azure', 'aws', 'kubernetes', 'k8s',
+        'docker', 'windows', 'linux', 'production', 'staging'
+    }
+    
+    env_counts = defaultdict(int)
+    for test_name in test_names:
+        test_lower = test_name.lower()
+        for env in environment_keywords:
+            if env in test_lower:
+                env_counts[env] += 1
+    
+    for env, count in env_counts.items():
+        # If >70% of tests mention same environment
+        if count >= len(test_names) * 0.7 and len(test_names) >= 3:
+            patterns.append(
+                f"⚠️  {count}/{len(test_names)} failures involve {env.upper()} environment"
+            )
+    
+    return patterns

@@ -454,6 +454,14 @@ class LogParser:
             else:
                 console.print(f"[red]Failed Keywords ({total_failed} unique failures):[/red]")
             
+            # Display systemic patterns if detected
+            systemic_patterns = cluster_summary.get("systemic_patterns", [])
+            if systemic_patterns:
+                console.print()
+                console.print("[yellow bold]⚠️  Systemic Patterns Detected:[/yellow bold]")
+                for pattern in systemic_patterns:
+                    console.print(f"   {pattern}")
+            
             console.print()
             
             # Display clustered failures by severity

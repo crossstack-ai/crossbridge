@@ -101,9 +101,39 @@ crossbridge log output.xml
 # Parse with AI enhancement
 crossbridge log output.xml --enable-ai
 
-# Filter failed tests
+# Filter failed tests with intelligent clustering
 crossbridge log output.xml --status FAIL
 ```
+
+**✨ NEW: Intelligent Failure Clustering (v0.2.1+)**
+
+CrossBridge now automatically deduplicates and clusters failures by root cause:
+
+```bash
+# Example output with clustering:
+Root Cause Analysis: 2 unique issues (deduplicated from 8 failures)
+Deduplication saved 6 duplicate entries (75% reduction)
+
+┌────────┬──────────────────────────────────┬───────┬──────────────────┐
+│Severity│Root Cause                        │Count  │Affected          │
+├────────┼──────────────────────────────────┼───────┼──────────────────┤
+│HIGH    │ElementNotFound: Could not find..│   5   │Click Button, +2..│
+│MEDIUM  │TimeoutException: timed out after│   3   │Wait For Element  │
+└────────┴──────────────────────────────────┴───────┴──────────────────┘
+
+[i] Suggested Fix for Top Issue:
+Check if element locators are correct and elements are visible.
+Consider adding explicit waits or updating selectors if page structure changed.
+```
+
+**Benefits:**
+- 🎯 **Reduces Noise** - Shows "8 failures → 2 root issues"
+- ⚡ **Faster Triage** - Prioritized by severity (Critical/High/Medium/Low)
+- 🔍 **Pattern Detection** - Identifies common error patterns automatically
+- 💡 **Smart Fixes** - Suggests solutions based on error type
+- 📊 **Deduplication Stats** - Shows reduction percentage
+
+No configuration needed - clustering works automatically on all log parsing operations!
 
 **That's it!** No listener files, no configuration changes, no repository modifications.
 

@@ -9,6 +9,7 @@ from core.log_analysis.clustering import (
     fingerprint_error,
     cluster_failures,
     get_cluster_summary,
+    detect_systemic_patterns,
     FailureSeverity,
     FailureCluster,
     ClusteredFailure
@@ -907,3 +908,194 @@ class TestSeverityScoring:
         assert summary["by_severity"]["high"] == 1
         assert summary["by_severity"]["medium"] == 1
 
+
+class TestSystemicPatterns:
+    """Test cross-test failure pattern detection."""
+    
+    def test_empty_clusters(self):
+        """Test with no clusters."""
+        from core.log_analysis.clustering import detect_systemic_patterns
+        
+        patterns = detect_systemic_patterns({})
+        assert patterns == []
+    
+    def test_volume_based_regression(self):
+        """Test detection of many unique failure types."""
+        failures = [
+            {"name": "Test1", "error": "Error A"},
+            {"name": "Test2", "error": "Error B"},
+            {"name": "Test3", "error": "Error C"},
+            {"name": "Test4", "error": "Error D"},
+            {"name": "Test5", "error": "Error E"},
+            {"name": "Test6", "error": "Error F"},
+            {"name": "Test7", "error": "Error G"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect volume-based regression
+        assert len(patterns) >= 1
+        assert any("unique failure types" in p for p in patterns)
+        assert any("systemic regression" in p for p in patterns)
+    
+    def test_common_keyword_pattern(self):
+        """Test detection of common keyword across failures."""
+        failures = [
+            {"name": "Test1", "error": "Error A", "keyword_name": "Click Button"},
+            {"name": "Test2", "error": "Error B", "keyword_name": "Click Button"},
+            {"name": "Test3", "error": "Error C", "keyword_name": "Click Button"},
+            {"name": "Test4", "error": "Error D", "keyword_name": "Click Button"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect common keyword
+        assert any("Click Button" in p for p in patterns)
+        assert any("keyword" in p.lower() for p in patterns)
+    
+    def test_common_library_pattern(self):
+        """Test detection of common library across failures."""
+        failures = [
+            {"name": "Test1", "error": "Error A", "library": "SeleniumLibrary"},
+            {"name": "Test2", "error": "Error B", "library": "SeleniumLibrary"},
+            {"name": "Test3", "error": "Error C", "library": "SeleniumLibrary"},
+            {"name": "Test4", "error": "Error D", "library": "SeleniumLibrary"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect common library
+        assert any("SeleniumLibrary" in p for p in patterns)
+    
+    def test_feature_pattern_detection(self):
+        """Test detection of common feature in test names."""
+        failures = [
+            {"name": "Test Instant VM Creation", "error": "Error A"},
+            {"name": "Test Instant VM Deletion", "error": "Error B"},
+            {"name": "Verify Instant VM Status", "error": "Error C"},
+            {"name": "Check Instant VM Config", "error": "Error D"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect Instant feature (VM is too short and filtered out)
+        assert any("Instant" in p for p in patterns)
+    
+    def test_environment_pattern_detection(self):
+        """Test detection of environment-specific failures."""
+        failures = [
+            {"name": "Test ESXi Network Config", "error": "Error A"},
+            {"name": "Test ESXi Storage Setup", "error": "Error B"},
+            {"name": "Verify ESXi Cluster Status", "error": "Error C"},
+            {"name": "Check ESXi Performance", "error": "Error D"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect ESXi environment
+        assert any("ESXI" in p for p in patterns)
+        assert any("environment" in p.lower() for p in patterns)
+    
+    def test_cascade_failure_pattern(self):
+        """Test detection of cascade failures with timestamps."""
+        failures = [
+            {"name": "Test1", "error": "Error A", "timestamp": "2024-01-15 10:00:00"},
+            {"name": "Test2", "error": "Error B", "timestamp": "2024-01-15 10:00:05"},
+            {"name": "Test3", "error": "Error C", "timestamp": "2024-01-15 10:00:10"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect cascade pattern
+        assert any("after first failure" in p for p in patterns)
+    
+    def test_multiple_patterns_combined(self):
+        """Test detection of multiple systemic patterns."""
+        failures = [
+            {"name": "Test ESXi Instant VM Creation", "error": "Error A", "keyword_name": "Click Button"},
+            {"name": "Test ESXi Instant VM Deletion", "error": "Error B", "keyword_name": "Click Button"},
+            {"name": "Test ESXi Instant VM Status", "error": "Error C", "keyword_name": "Click Button"},
+            {"name": "Verify ESXi Instant VM Config", "error": "Error D", "keyword_name": "Click Button"},
+            {"name": "Check ESXi Instant VM Network", "error": "Error E", "keyword_name": "Click Button"},
+            {"name": "Test ESXi Instant VM Storage", "error": "Error F", "keyword_name": "Click Button"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect multiple patterns
+        assert len(patterns) >= 3  # Volume + keyword + feature/environment
+        assert any("unique failure types" in p for p in patterns)
+        assert any("Click Button" in p for p in patterns)
+        # Should detect either Instant, VM, or ESXI
+        feature_detected = any(
+            word in p for p in patterns
+            for word in ["Instant", "VM", "ESXI"]
+        )
+        assert feature_detected
+    
+    def test_no_patterns_with_few_failures(self):
+        """Test with too few failures to establish patterns."""
+        failures = [
+            {"name": "Test1", "error": "Error A"},
+            {"name": "Test2", "error": "Error B"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should not detect volume-based pattern with only 2 failures
+        assert not any("systemic regression" in p for p in patterns)
+    
+    def test_patterns_included_in_summary(self):
+        """Test that systemic patterns are included in cluster summary."""
+        failures = [
+            {"name": "Test1", "error": "Error A"},
+            {"name": "Test2", "error": "Error B"},
+            {"name": "Test3", "error": "Error C"},
+            {"name": "Test4", "error": "Error D"},
+            {"name": "Test5", "error": "Error E"},
+            {"name": "Test6", "error": "Error F"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        summary = get_cluster_summary(clusters)
+        
+        # Summary should include systemic_patterns key
+        assert "systemic_patterns" in summary
+        assert isinstance(summary["systemic_patterns"], list)
+        assert len(summary["systemic_patterns"]) >= 1
+    
+    def test_azure_environment_pattern(self):
+        """Test detection of Azure environment pattern."""
+        failures = [
+            {"name": "Test Azure VM Creation", "error": "Error A"},
+            {"name": "Test Azure Storage Setup", "error": "Error B"},
+            {"name": "Verify Azure Network Config", "error": "Error C"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect AZURE environment
+        assert any("AZURE" in p for p in patterns)
+    
+    def test_kubernetes_environment_pattern(self):
+        """Test detection of Kubernetes environment pattern."""
+        failures = [
+            {"name": "Test k8s pod creation", "error": "Error A"},
+            {"name": "Test k8s service config", "error": "Error B"},
+            {"name": "Verify k8s deployment", "error": "Error C"},
+        ]
+        
+        clusters = cluster_failures(failures)
+        patterns = detect_systemic_patterns(clusters)
+        
+        # Should detect K8S environment
+        assert any("K8S" in p for p in patterns)
