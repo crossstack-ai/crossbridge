@@ -108,9 +108,9 @@ class LogParser:
             pass
         
         # Show detailed error message
-        console.print("\n" + "━" * 60, style="red")
+        console.print("\n" + "=" * 60, style="red")
         console.print("  ❌ CROSSBRIDGE SIDECAR API NOT REACHABLE", style="red bold")
-        console.print("━" * 60, style="red")
+        console.print("=" * 60, style="red")
         console.print(f"\nAttempting to reach: [yellow]{self.sidecar_url}[/yellow]")
         console.print("\n[yellow]🔧 Troubleshooting Steps:[/yellow]")
         console.print("\n[blue]1. Check if Sidecar is Running:[/blue]")
@@ -120,8 +120,8 @@ class LogParser:
         console.print("\n[blue]3. For local development:[/blue]")
         console.print("   python -m services.sidecar_api")
         console.print(f"\n[blue]4. Current configuration:[/blue]")
-        console.print(f"   • CROSSBRIDGE_SIDECAR_HOST = {self.sidecar_host}")
-        console.print(f"   • CROSSBRIDGE_SIDECAR_PORT = {self.sidecar_port}\n")
+        console.print(f"   - CROSSBRIDGE_SIDECAR_HOST = {self.sidecar_host}")
+        console.print(f"   - CROSSBRIDGE_SIDECAR_PORT = {self.sidecar_port}\n")
         
         return False
     
@@ -317,9 +317,9 @@ class LogParser:
                 
                 if provider == "selfhosted":
                     console.print()
-                    console.print("━" * 41, style="green")
+                    console.print("=" * 41, style="green")
                     console.print("🤖  AI-ENHANCED ANALYSIS ENABLED", style="green bold")
-                    console.print("━" * 41, style="green")
+                    console.print("=" * 41, style="green")
                     console.print(f"[green]Provider: Self-hosted ({model})[/green]")
                     console.print("[green]Cost: No additional costs (local inference)[/green]")
                     console.print()
@@ -328,18 +328,18 @@ class LogParser:
                     typical_cost = info.get("typical_run_cost", "$0.01-$0.10")
                     
                     console.print()
-                    console.print("━" * 41, style="yellow")
-                    console.print("⚠️  AI-ENHANCED ANALYSIS ENABLED", style="yellow bold")
-                    console.print("━" * 41, style="yellow")
+                    console.print("=" * 41, style="yellow")
+                    console.print("[!]  AI-ENHANCED ANALYSIS ENABLED", style="yellow bold")
+                    console.print("=" * 41, style="yellow")
                     console.print(f"[yellow]Provider: {provider.title()} ({model})[/yellow]")
                     console.print(f"[yellow]Cost: ~${cost_per_1k} per 1000 tokens[/yellow]")
                     console.print(f"[yellow]Typical analysis: {typical_cost}[/yellow]")
                     console.print()
         except Exception:
             console.print()
-            console.print("━" * 41, style="yellow")
-            console.print("⚠️  AI-ENHANCED ANALYSIS ENABLED", style="yellow bold")
-            console.print("━" * 41, style="yellow")
+            console.print("=" * 41, style="yellow")
+            console.print("[!]  AI-ENHANCED ANALYSIS ENABLED", style="yellow bold")
+            console.print("=" * 41, style="yellow")
             console.print()
     
     def apply_filters(self, data: dict, filters: dict) -> dict:
@@ -403,9 +403,9 @@ class LogParser:
     
     def _display_robot_results(self, data: dict):
         """Display Robot Framework results."""
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print("           Robot Framework Results", style="green bold")
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print()
         
         suite = data.get("suite", {})
@@ -438,14 +438,23 @@ class LogParser:
             total_failed = len(failed_kw)
             display_count = min(total_failed, 5)
             console.print(f"[red]Top Failed Keywords (showing {display_count} of {total_failed}):[/red]")
+            
+            # Create table for failed keywords
+            table = Table(show_header=True, header_style="bold red", box=box.SIMPLE, padding=(0, 1))
+            table.add_column("Status", style="red", width=6)
+            table.add_column("Keyword", style="white")
+            table.add_column("Error", style="dim")
+            
             for kw in failed_kw[:5]:
                 name = kw.get("name", "Unknown")
                 library = kw.get("library", "")
                 error = kw.get("error", "")
                 lib_str = f" [{library}]" if library else ""
-                console.print(f"  ❌ {name}{lib_str}")
-                if error:
-                    console.print(f"     [dim]Error: {error}[/dim]")
+                keyword_name = f"{name}{lib_str}"
+                
+                table.add_row("[X]", keyword_name, error)
+            
+            console.print(table)
             console.print()
         
         # Slowest tests
@@ -468,9 +477,9 @@ class LogParser:
     
     def _display_cypress_results(self, data: dict):
         """Display Cypress results."""
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print("           Cypress Test Results", style="green bold")
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print()
         
         stats = data.get("statistics", {})
@@ -486,14 +495,14 @@ class LogParser:
             for failure in failures:
                 title = failure.get("title", "Unknown")
                 error = failure.get("error_message", "")
-                console.print(f"  ❌ {title}: {error}")
+                console.print(f"  [X] {title}: {error}")
             console.print()
     
     def _display_playwright_results(self, data: dict):
         """Display Playwright results."""
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print("          Playwright Trace Analysis", style="green bold")
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print()
         
         action_count = len(data.get("actions", []))
@@ -509,14 +518,14 @@ class LogParser:
             for action in data.get("actions", [])[:10]:
                 action_type = action.get("action", "Unknown")
                 selector = action.get("selector", "N/A")
-                console.print(f"  • {action_type}: {selector}")
+                console.print(f"  - {action_type}: {selector}")
             console.print()
     
     def _display_behave_results(self, data: dict):
         """Display Behave BDD results."""
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print("            Behave BDD Results", style="green bold")
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print()
         
         feature_count = len(data.get("features", []))
@@ -531,9 +540,9 @@ class LogParser:
     
     def _display_java_results(self, data: dict):
         """Display Java Cucumber results."""
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print("       Java Cucumber Step Definitions", style="green bold")
-        console.print("━" * 41, style="green")
+        console.print("=" * 41, style="green")
         console.print()
         
         step_defs = data.get("step_definitions", [])
@@ -559,9 +568,9 @@ class LogParser:
         summary = data.get("intelligence_summary", {})
         
         console.print()
-        console.print("━" * 41, style="blue")
+        console.print("=" * 41, style="blue")
         console.print("  Intelligence Analysis Summary", style="blue bold")
-        console.print("━" * 41, style="blue")
+        console.print("=" * 41, style="blue")
         console.print()
         
         # Classifications
@@ -569,7 +578,7 @@ class LogParser:
         if classifications:
             console.print("[yellow]Failure Classifications:[/yellow]")
             for key, value in classifications.items():
-                console.print(f"  • {key}: {value}")
+                console.print(f"  - {key}: {value}")
             console.print()
         
         # Signals
@@ -577,7 +586,7 @@ class LogParser:
         if signals:
             console.print("[yellow]Detected Signals:[/yellow]")
             for key, value in signals.items():
-                console.print(f"  • {key}: {value}")
+                console.print(f"  - {key}: {value}")
             console.print()
     
     def _display_ai_failure_analysis(self, data: dict):
@@ -588,9 +597,9 @@ class LogParser:
             return
         
         console.print()
-        console.print("━" * 41, style="cyan")
+        console.print("=" * 41, style="cyan")
         console.print("  🤖 AI Failure Analysis", style="cyan bold")
-        console.print("━" * 41, style="cyan")
+        console.print("=" * 41, style="cyan")
         console.print()
         
         # Get failure analyses
@@ -677,7 +686,7 @@ class LogParser:
                     for rule in top_rules:
                         rule_name = rule.get("rule_name", "")
                         rule_explanation = rule.get("explanation", "")
-                        matched = "✓" if rule.get("matched", False) else "○"
+                        matched = "[OK]" if rule.get("matched", False) else "[ ]" 
                         console.print(f"    {matched} {rule_name}: {rule_explanation}")
                     console.print()
             
@@ -691,9 +700,9 @@ class LogParser:
         ai_usage = data.get("ai_usage", {})
         
         console.print()
-        console.print("━" * 41, style="blue")
+        console.print("=" * 41, style="blue")
         console.print("      AI Log Analysis Summary", style="blue bold")
-        console.print("━" * 41, style="blue")
+        console.print("=" * 41, style="blue")
         console.print()
         
         provider = ai_usage.get("provider", "unknown")
@@ -751,7 +760,7 @@ def parse_log_file(
         logger.error(f"Unknown log format: {log_file}")
         raise typer.Exit(1)
     
-    console.print(f"[green]✓[/green] Detected framework: [blue]{framework}[/blue]")
+    console.print(f"[green][OK][/green] Detected framework: [blue]{framework}[/blue]")
     logger.info(f"Detected framework: {framework}")
     
     # Parse log
@@ -806,8 +815,8 @@ def parse_log_file(
         logger.info(f"Results saved to: {default_output}")
     
     console.print()
-    console.print("━" * 41, style="green")
-    console.print("[green]✓ Parsing complete![/green]")
+    console.print("=" * 41, style="green")
+    console.print("[green][OK] Parsing complete![/green]")
     logger.info("Log parsing completed successfully")
 
 
