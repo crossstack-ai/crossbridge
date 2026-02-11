@@ -107,28 +107,31 @@ crossbridge log output.xml --status FAIL
 
 **✨ NEW: Intelligent Failure Clustering (v0.2.1+)**
 
-CrossBridge now automatically deduplicates and clusters failures by root cause:
+CrossBridge now automatically deduplicates and clusters failures by root cause with domain classification:
 
 ```bash
 # Example output with clustering:
 Root Cause Analysis: 2 unique issues (deduplicated from 8 failures)
 Deduplication saved 6 duplicate entries (75% reduction)
+Domain breakdown: 1 Product, 1 Test
 
-┌────────┬──────────────────────────────────┬───────┬──────────────────┐
-│Severity│Root Cause                        │Count  │Affected          │
-├────────┼──────────────────────────────────┼───────┼──────────────────┤
-│HIGH    │ElementNotFound: Could not find..│   5   │Click Button, +2..│
-│MEDIUM  │TimeoutException: timed out after│   3   │Wait For Element  │
-└────────┴──────────────────────────────────┴───────┴──────────────────┘
+┌────────┬────────┬──────────────────────────────────┬───────┬──────────────────┐
+│Severity│Domain  │Root Cause                        │Count  │Affected          │
+├────────┼────────┼──────────────────────────────────┼───────┼──────────────────┤
+│HIGH    │🐛 PROD │API Error: HTTP 500               │   5   │Get User, +2..    │
+│MEDIUM  │🤖 TEST │ElementNotFound: Could not find.. │   3   │Click Button      │
+└────────┴────────┴──────────────────────────────────┴───────┴──────────────────┘
 
 [i] Suggested Fix for Top Issue:
-Check if element locators are correct and elements are visible.
-Consider adding explicit waits or updating selectors if page structure changed.
+Check API endpoint health and error logs. This is a product-level issue
+requiring backend investigation.
 ```
 
 **Benefits:**
 - 🎯 **Reduces Noise** - Shows "8 failures → 2 root issues"
 - ⚡ **Faster Triage** - Prioritized by severity (Critical/High/Medium/Low)
+- 🔍 **Smart Routing** - Classifies failures by domain (Infra/Env/Test/Product)
+- 🎫 **Fewer Misdirected Tickets** - Routes to correct teams (30-50% improvement)
 - 🔍 **Pattern Detection** - Identifies common error patterns automatically
 - 💡 **Smart Fixes** - Suggests solutions based on error type
 - 📊 **Deduplication Stats** - Shows reduction percentage

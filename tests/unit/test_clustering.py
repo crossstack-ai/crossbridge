@@ -10,7 +10,9 @@ from core.log_analysis.clustering import (
     cluster_failures,
     get_cluster_summary,
     detect_systemic_patterns,
+    _classify_failure_domain,
     FailureSeverity,
+    FailureDomain,
     FailureCluster,
     ClusteredFailure
 )
@@ -1099,3 +1101,302 @@ class TestSystemicPatterns:
         
         # Should detect K8S environment
         assert any("K8S" in p for p in patterns)
+
+
+class TestDomainClassification:
+    """Test failure domain classification functionality."""
+    
+    # INFRA Domain Tests
+    def test_classify_ssh_failure_as_infra(self):
+        """Test SSH connection failures are classified as INFRA."""
+        error = "SSH connection refused to host 192.168.1.100"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.INFRA
+    
+    def test_classify_vm_not_found_as_infra(self):
+        """Test VM not found errors are classified as INFRA."""
+        error = "Virtual machine not found: vm-instance-001"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.INFRA
+    
+    def test_classify_connection_refused_as_infra(self):
+        """Test connection refused errors are classified as INFRA."""
+        error = "Connection refused on port 8080"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.INFRA
+    
+    def test_classify_network_unreachable_as_infra(self):
+        """Test network unreachable errors are classified as INFRA."""
+        error = "Network unreachable: no route to host"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.INFRA
+    
+    def test_classify_dns_error_as_infra(self):
+        """Test DNS resolution errors are classified as INFRA."""
+        error = "DNS resolution failed for api.example.com"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.INFRA
+    
+    def test_classify_host_not_found_as_infra(self):
+        """Test host not found errors are classified as INFRA."""
+        error = "Host not found: server.example.com"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.INFRA
+    
+    # ENVIRONMENT Domain Tests
+    def test_classify_config_missing_as_environment(self):
+        """Test configuration missing errors are classified as ENVIRONMENT."""
+        error = "Configuration file not found: /etc/app/config.yaml"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.ENVIRONMENT
+    
+    def test_classify_env_var_missing_as_environment(self):
+        """Test environment variable errors are classified as ENVIRONMENT."""
+        error = "Environment variable not set: DATABASE_URL"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.ENVIRONMENT
+    
+    def test_classify_module_not_found_as_environment(self):
+        """Test module not found errors are classified as ENVIRONMENT."""
+        error = "ModuleNotFoundError: No module named 'requests'"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.ENVIRONMENT
+    
+    def test_classify_import_error_as_environment(self):
+        """Test import errors are classified as ENVIRONMENT."""
+        error = "ImportError: cannot import name 'foo' from 'bar'"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.ENVIRONMENT
+    
+    def test_classify_file_not_found_as_environment(self):
+        """Test file not found errors are classified as ENVIRONMENT."""
+        error = "FileNotFoundError: [Errno 2] No such file or directory: 'data.csv'"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.ENVIRONMENT
+    
+    def test_classify_credentials_not_found_as_environment(self):
+        """Test credential errors are classified as ENVIRONMENT."""
+        error = "Credentials not found: API key missing"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.ENVIRONMENT
+    
+    def test_classify_property_not_set_as_environment(self):
+        """Test property not set errors are classified as ENVIRONMENT."""
+        error = "System property not set: java.home"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.ENVIRONMENT
+    
+    # TEST_AUTOMATION Domain Tests
+    def test_classify_index_error_as_test_automation(self):
+        """Test IndexError is classified as TEST_AUTOMATION."""
+        error = "IndexError: list index out of range"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_key_error_as_test_automation(self):
+        """Test KeyError is classified as TEST_AUTOMATION."""
+        error = "KeyError: 'user_id' not found in dictionary"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_attribute_error_as_test_automation(self):
+        """Test AttributeError is classified as TEST_AUTOMATION."""
+        error = "AttributeError: 'NoneType' object has no attribute 'click'"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_null_pointer_as_test_automation(self):
+        """Test NullPointerException is classified as TEST_AUTOMATION."""
+        error = "NullPointerException at line 42"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_element_not_found_as_test_automation(self):
+        """Test element not found errors are classified as TEST_AUTOMATION."""
+        error = "ElementNotFound: Unable to locate element with id 'submit-button'"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_stale_element_as_test_automation(self):
+        """Test stale element errors are classified as TEST_AUTOMATION."""
+        error = "StaleElementReferenceException: Element is no longer attached to DOM"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_webdriver_exception_as_test_automation(self):
+        """Test WebDriver exceptions are classified as TEST_AUTOMATION."""
+        error = "WebDriverException: chrome not reachable"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_test_code_stack_as_test_automation(self):
+        """Test errors with test code in stack trace are TEST_AUTOMATION."""
+        error = "Assertion failed"
+        stack = "File '/tests/test_user.py', line 32, in test_login"
+        domain = _classify_failure_domain(error, stack_trace=stack)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_classify_fixture_error_as_test_automation(self):
+        """Test fixture errors are classified as TEST_AUTOMATION."""
+        error = "FixtureError: setup failed for test_user_creation"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    # PRODUCT Domain Tests
+    def test_classify_http_500_as_product(self):
+        """Test HTTP 500 errors are classified as PRODUCT."""
+        error = "HTTP 500 Internal Server Error from /api/users"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    def test_classify_http_404_as_product(self):
+        """Test HTTP 404 errors are classified as PRODUCT."""
+        error = "HTTP 404 Not Found: /api/products/12345"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    def test_classify_api_error_as_product(self):
+        """Test API errors are classified as PRODUCT."""
+        error = "API error: Invalid request parameters"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    def test_classify_validation_failure_as_product(self):
+        """Test validation failures are classified as PRODUCT."""
+        error = "Validation failed: Email format is invalid"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    def test_classify_business_rule_violation_as_product(self):
+        """Test business rule violations are classified as PRODUCT."""
+        error = "Business rule violation: Cannot delete active user"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    def test_classify_database_error_as_product(self):
+        """Test database errors are classified as PRODUCT."""
+        error = "SQLException: Duplicate key constraint violation"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    def test_classify_authentication_fail_as_product(self):
+        """Test authentication failures are classified as PRODUCT."""
+        error = "Authentication failed: Invalid credentials"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    def test_classify_operation_timeout_as_product(self):
+        """Test product operation timeouts are classified as PRODUCT."""
+        error = "Operation timeout: User update took too long"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.PRODUCT
+    
+    # Edge Cases and Priority Tests
+    def test_test_automation_takes_priority_over_product(self):
+        """Test that TEST_AUTOMATION patterns take priority over PRODUCT."""
+        # IndexError is test automation, but mentions HTTP 500
+        error = "IndexError while processing HTTP 500 response"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_infra_takes_priority_over_environment(self):
+        """Test that INFRA patterns take priority over ENVIRONMENT."""
+        # SSH failure even if config mentioned
+        error = "SSH connection refused - check config file"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.INFRA
+    
+    def test_unknown_domain_for_generic_error(self):
+        """Test that generic errors are classified as UNKNOWN."""
+        error = "Something went wrong"
+        domain = _classify_failure_domain(error)
+        assert domain == FailureDomain.UNKNOWN
+    
+    def test_empty_error_classified_as_unknown(self):
+        """Test that empty errors are classified as UNKNOWN."""
+        domain = _classify_failure_domain("")
+        assert domain == FailureDomain.UNKNOWN
+    
+    # Integration Tests
+    def test_domain_included_in_clustered_failure(self):
+        """Test that domain is included in ClusteredFailure."""
+        failures = [
+            {"name": "Test1", "error": "SSH connection refused"}
+        ]
+        clusters = cluster_failures(failures)
+        
+        cluster = list(clusters.values())[0]
+        failure = cluster.failures[0]
+        
+        assert hasattr(failure, 'domain')
+        assert failure.domain == FailureDomain.INFRA
+    
+    def test_domain_included_in_cluster(self):
+        """Test that domain is included in FailureCluster."""
+        failures = [
+            {"name": "Test1", "error": "HTTP 500 Internal Server Error"}
+        ]
+        clusters = cluster_failures(failures)
+        
+        cluster = list(clusters.values())[0]
+        
+        assert hasattr(cluster, 'domain')
+        assert cluster.domain == FailureDomain.PRODUCT
+    
+    def test_domain_consistency_in_cluster(self):
+        """Test that all failures in a cluster have same domain."""
+        # Same error type should cluster together with same domain
+        failures = [
+            {"name": "Test1", "error": "IndexError: list index out of range at line 10"},
+            {"name": "Test2", "error": "IndexError: list index out of range at line 25"},
+        ]
+        clusters = cluster_failures(failures)
+        
+        cluster = list(clusters.values())[0]
+        
+        # All failures should have TEST_AUTOMATION domain
+        for failure in cluster.failures:
+            assert failure.domain == FailureDomain.TEST_AUTOMATION
+        
+        # Cluster should also have TEST_AUTOMATION domain
+        assert cluster.domain == FailureDomain.TEST_AUTOMATION
+    
+    def test_domain_in_cluster_summary(self):
+        """Test that domain distribution is included in cluster summary."""
+        failures = [
+            {"name": "Test1", "error": "SSH connection refused"},
+            {"name": "Test2", "error": "HTTP 500 error"},
+            {"name": "Test3", "error": "Config file not found"},
+        ]
+        clusters = cluster_failures(failures)
+        summary = get_cluster_summary(clusters)
+        
+        assert "by_domain" in summary
+        assert "infrastructure" in summary["by_domain"]
+        assert "environment" in summary["by_domain"]
+        assert "test_automation" in summary["by_domain"]
+        assert "product" in summary["by_domain"]
+        assert "unknown" in summary["by_domain"]
+        
+        # Should have 1 infra, 1 product, 1 environment
+        assert summary["by_domain"]["infrastructure"] == 1
+        assert summary["by_domain"]["product"] == 1
+        assert summary["by_domain"]["environment"] == 1
+    
+    def test_mixed_domain_clustering(self):
+        """Test clustering with mixed domains."""
+        failures = [
+            {"name": "Test1", "error": "SSH connection failed"},
+            {"name": "Test2", "error": "SSH timeout"},
+            {"name": "Test3", "error": "HTTP 500 error"},
+            {"name": "Test4", "error": "API failure"},
+            {"name": "Test5", "error": "IndexError in test"},
+        ]
+        clusters = cluster_failures(failures)
+        
+        # Should have clusters from different domains
+        domains_found = {cluster.domain for cluster in clusters.values()}
+        
+        # Should find at least INFRA and PRODUCT domains
+        assert FailureDomain.INFRA in domains_found
+        assert FailureDomain.PRODUCT in domains_found

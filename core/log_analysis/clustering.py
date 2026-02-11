@@ -33,6 +33,15 @@ class FailureSeverity(str, Enum):
     LOW = "low"                # Warnings, deprecations
 
 
+class FailureDomain(str, Enum):
+    """Failure domain classification for root cause analysis."""
+    INFRA = "infrastructure"           # SSH failures, connection refused, VM issues
+    ENVIRONMENT = "environment"         # Config missing, env vars, setup issues
+    TEST_AUTOMATION = "test_automation" # Test code bugs, IndexError, framework issues
+    PRODUCT = "product"                # API errors, application bugs, business logic
+    UNKNOWN = "unknown"                # Cannot be classified
+
+
 @dataclass
 class ClusteredFailure:
     """
@@ -46,6 +55,7 @@ class ClusteredFailure:
         library: Library/module name if applicable
         http_status: HTTP status code if network-related
         timestamp: Failure timestamp if available
+        domain: Failure domain classification (INFRA/ENVIRONMENT/TEST_AUTOMATION/PRODUCT)
     """
     test_name: str
     keyword_name: Optional[str] = None
@@ -54,6 +64,7 @@ class ClusteredFailure:
     library: Optional[str] = None
     http_status: Optional[int] = None
     timestamp: Optional[str] = None
+    domain: FailureDomain = FailureDomain.UNKNOWN
     metadata: Dict = field(default_factory=dict)
 
 
@@ -66,6 +77,7 @@ class FailureCluster:
         fingerprint: Unique hash identifying this cluster
         root_cause: Normalized error message representing the root cause
         severity: Severity level of this cluster
+        domain: Failure domain classification
         failure_count: Number of failures in this cluster
         failures: List of individual failure instances
         keywords: Set of affected keywords
@@ -76,6 +88,7 @@ class FailureCluster:
     fingerprint: str
     root_cause: str
     severity: FailureSeverity
+    domain: FailureDomain = FailureDomain.UNKNOWN
     failure_count: int = 0
     failures: List[ClusteredFailure] = field(default_factory=list)
     keywords: Set[str] = field(default_factory=set)
@@ -357,6 +370,171 @@ SEVERITY_RULES = {
 }
 
 
+def _classify_failure_domain(
+    error_message: str,
+    stack_trace: Optional[str] = None,
+    library: Optional[str] = None
+) -> FailureDomain:
+    """
+    Classify the failure domain based on error patterns.
+    
+    Categorizes failures into infrastructure, environment, test automation,
+    or product domains to help route issues to the right teams.
+    
+    Args:
+        error_message: The error message text
+        stack_trace: Optional stack trace for additional context
+        library: Optional library name that raised the error
+        
+    Returns:
+        FailureDomain classification
+        
+    Examples:
+        >>> _classify_failure_domain("SSH connection refused")
+        FailureDomain.INFRA
+        
+        >>> _classify_failure_domain("IndexError: list index out of range")
+        FailureDomain.TEST_AUTOMATION
+        
+        >>> _classify_failure_domain("HTTP 500 Internal Server Error")
+        FailureDomain.PRODUCT
+    """
+    error_lower = error_message.lower()
+    stack_lower = stack_trace.lower() if stack_trace else ""
+    combined = f"{error_lower} {stack_lower}"
+    
+    # Early check for test framework fixtures (before environment checks)
+    if re.search(r'fixture', combined):
+        logger.debug(f"Classified as TEST_AUTOMATION: fixture detected")
+        return FailureDomain.TEST_AUTOMATION
+    
+    # INFRA: SSH failures, connection refused, VM issues, network infrastructure
+    infra_patterns = [
+        # SSH and remote access
+        r'\bssh\b', r'ssh.*fail', r'ssh.*connection', r'ssh.*timeout',
+        # VM and infrastructure
+        r'\bvm\b.*not.*found', r'virtual.*machine.*not.*found',
+        r'instance.*not.*found', r'host.*not.*found', r'host.*unreachable',
+        # Network infrastructure
+        r'connection.*refused', r'connection.*reset', r'connection.*timed.*out',
+        r'network.*unreachable', r'no.*route.*to.*host',
+        # DNS and routing
+        r'dns.*resolution.*fail', r'dns.*error', r'name.*resolution.*fail',
+        # Port and socket issues
+        r'port.*\d+.*closed', r'socket.*connection.*refused',
+        r'unable.*to.*reach.*port', r'connection.*actively.*refused',
+        # Cloud infrastructure
+        r'cloud.*resource.*not.*found', r'ec2.*instance', r'azure.*vm'
+    ]
+    for pattern in infra_patterns:
+        if re.search(pattern, combined):
+            logger.debug(f"Classified as INFRA: matched pattern '{pattern}'")
+            return FailureDomain.INFRA
+    
+    # ENVIRONMENT: Config missing, environment variables, setup issues
+    environment_patterns = [
+        # Configuration
+        r'config.*not.*found', r'configuration.*missing', r'config.*error',
+        r'missing.*configuration', r'invalid.*configuration',
+        # Environment variables
+        r'environment.*variable.*not.*set', r'env.*var.*missing',
+        r'\$\{.*\}.*not.*found', r'environment.*not.*configured',
+        # File/path issues
+        r'file.*not.*found', r'path.*does.*not.*exist', r'directory.*not.*found',
+        r'no.*such.*file.*or.*directory', r'\.env.*not.*found',
+        # Dependencies and setup
+        r'module.*not.*found', r'package.*not.*installed', r'dependency.*missing',
+        r'import.*error', r'cannot.*import', r'no.*module.*named',
+        # Properties and setup
+        r'property.*not.*set', r'system.*property.*missing',
+        r'setup.*fail', r'initialization.*error', r'bootstrap.*fail',
+        # Credentials and secrets
+        r'credentials.*not.*found', r'api.*key.*missing', r'secret.*not.*configured',
+        r'authentication.*credentials.*not.*found'
+    ]
+    for pattern in environment_patterns:
+        if re.search(pattern, combined):
+            logger.debug(f"Classified as ENVIRONMENT: matched pattern '{pattern}'")
+            return FailureDomain.ENVIRONMENT
+    
+    # TEST_AUTOMATION: Test code bugs, framework issues, automation errors
+    test_automation_patterns = [
+        # Python test errors
+        r'\bindexerror\b', r'list.*index.*out.*of.*range', r'index.*out.*of.*bounds',
+        r'\bkeyerror\b', r'key.*not.*found.*in.*dict', r'dictionary.*key.*error',
+        r'\battributeerror\b', r'has.*no.*attribute', r'object.*has.*no.*attribute',
+        r'\btypeerror\b', r'type.*error', r'unexpected.*type',
+        r'\bnameerror\b', r'name.*is.*not.*defined',
+        # Java test errors
+        r'nullpointerexception', r'null.*pointer', r'arrayindexoutofboundsexception',
+        # Element locator issues (test automation specific)
+        r'element.*not.*found', r'locator.*not.*found', r'unable.*to.*locate.*element',
+        r'no.*such.*element', r'stale.*element.*reference', r'element.*not.*visible',
+        r'element.*not.*interactable', r'element.*click.*intercepted',
+        # Test framework errors
+        r'test.*setup.*fail', r'test.*teardown.*fail', r'fixture.*error',
+        r'before.*hook.*fail', r'after.*hook.*fail',
+        # Selenium/WebDriver specific
+        r'webdriver.*exception', r'selenium.*exception', r'driver.*not.*found',
+        r'browser.*not.*found', r'driver.*executable.*not.*found',
+        # Assertion in test code (not product assertions)
+        r'assert.*fail.*in.*test', r'test.*assertion.*fail',
+        # Page object issues
+        r'page.*object.*error', r'locator.*strategy.*fail',
+        # Wait/sync issues in automation
+        r'implicit.*wait', r'explicit.*wait.*fail', r'element.*wait.*timeout'
+    ]
+    
+    # Check if error originates from test code (stack trace analysis)
+    test_code_indicators = [
+        r'test_.*\.py', r'.*_test\.py', r'tests?/', r'spec\.js',
+        r'\.spec\.', r'\.test\.', r'test.*suite', r'conftest\.py'
+    ]
+    
+    has_test_pattern = any(re.search(pattern, combined) for pattern in test_automation_patterns)
+    has_test_code = any(re.search(indicator, stack_lower) for indicator in test_code_indicators)
+    
+    if has_test_pattern or has_test_code:
+        logger.debug(f"Classified as TEST_AUTOMATION: automation error detected")
+        return FailureDomain.TEST_AUTOMATION
+    
+    # PRODUCT: API errors, application bugs, business logic failures
+    product_patterns = [
+        # HTTP errors from product APIs
+        r'http.*40[0-9]', r'http.*50[0-9]', r'status.*code.*[45]\d{2}',
+        r'bad.*request', r'unauthorized', r'forbidden', r'not.*found.*404',
+        r'internal.*server.*error', r'service.*unavailable',
+        # API and service errors
+        r'api.*error', r'api.*fail', r'rest.*api.*error', r'graphql.*error',
+        r'endpoint.*error', r'service.*error', r'microservice.*fail',
+        # Business logic
+        r'business.*rule.*violation', r'business.*logic.*error',
+        r'validation.*fail', r'invalid.*input', r'constraint.*violation',
+        # Database errors (product-level)
+        r'database.*error', r'sql.*exception', r'query.*fail',
+        r'deadlock.*detected', r'duplicate.*key', r'foreign.*key.*constraint',
+        # Application-level errors
+        r'application.*error', r'runtime.*error', r'execution.*error',
+        r'operation.*fail', r'transaction.*fail', r'rollback.*fail',
+        # Product-specific
+        r'authentication.*fail', r'authorization.*fail', r'access.*denied',
+        r'insufficient.*permissions', r'user.*not.*found', r'session.*expired',
+        # Timeout in product operations (not infrastructure)
+        r'operation.*timeout', r'request.*timeout', r'response.*timeout'
+    ]
+    
+    # Exclude if it's clearly a test automation issue
+    if not has_test_pattern and not has_test_code:
+        for pattern in product_patterns:
+            if re.search(pattern, combined):
+                logger.debug(f"Classified as PRODUCT: matched pattern '{pattern}'")
+                return FailureDomain.PRODUCT
+    
+    # Default to UNKNOWN if no clear classification
+    logger.debug(f"Classified as UNKNOWN: no matching pattern found")
+    return FailureDomain.UNKNOWN
+
+
 def _extract_patterns(error_messages: List[str]) -> List[str]:
     """
     Extract common patterns from a list of error messages.
@@ -502,6 +680,13 @@ def cluster_failures(
             skipped_empty += 1
             continue
         
+        # Classify failure domain
+        domain = _classify_failure_domain(
+            error_message=error_message,
+            stack_trace=stack_trace,
+            library=library
+        )
+        
         # Create failure instance
         failure = ClusteredFailure(
             test_name=test_name,
@@ -511,6 +696,7 @@ def cluster_failures(
             library=library,
             http_status=http_status,
             timestamp=timestamp,
+            domain=domain,
             metadata=failure_data
         )
         
@@ -539,11 +725,19 @@ def cluster_failures(
             # Detect severity (uses error message, keyword, and HTTP status)
             severity = _detect_severity(error_message, keyword_name, http_status)
             
+            # Classify domain (uses error message, stack trace, and library)
+            domain = _classify_failure_domain(
+                error_message=error_message,
+                stack_trace=stack_trace,
+                library=library
+            )
+            
             # Create new cluster
             clusters[fingerprint] = FailureCluster(
                 fingerprint=fingerprint,
                 root_cause=root_cause,
-                severity=severity
+                severity=severity,
+                domain=domain
             )
         
         # Add failure to cluster
@@ -583,6 +777,12 @@ def cluster_failures(
         severity_counts[cluster.severity.value] = severity_counts.get(cluster.severity.value, 0) + 1
     logger.debug(f"Severity distribution: {severity_counts}")
     
+    # Log domain distribution
+    domain_counts = {}
+    for cluster in clusters.values():
+        domain_counts[cluster.domain.value] = domain_counts.get(cluster.domain.value, 0) + 1
+    logger.debug(f"Domain distribution: {domain_counts}")
+    
     return clusters
 
 
@@ -616,6 +816,18 @@ def get_cluster_summary(clusters: Dict[str, FailureCluster]) -> Dict:
     for severity in by_severity:
         by_severity[severity].sort(key=lambda c: c.failure_count, reverse=True)
     
+    # Group by domain
+    by_domain = {
+        FailureDomain.INFRA: [],
+        FailureDomain.ENVIRONMENT: [],
+        FailureDomain.TEST_AUTOMATION: [],
+        FailureDomain.PRODUCT: [],
+        FailureDomain.UNKNOWN: []
+    }
+    
+    for cluster in clusters.values():
+        by_domain[cluster.domain].append(cluster)
+    
     # Detect systemic patterns
     systemic_patterns = detect_systemic_patterns(clusters)
     
@@ -629,6 +841,13 @@ def get_cluster_summary(clusters: Dict[str, FailureCluster]) -> Dict:
             "high": len(by_severity[FailureSeverity.HIGH]),
             "medium": len(by_severity[FailureSeverity.MEDIUM]),
             "low": len(by_severity[FailureSeverity.LOW])
+        },
+        "by_domain": {
+            "infrastructure": len(by_domain[FailureDomain.INFRA]),
+            "environment": len(by_domain[FailureDomain.ENVIRONMENT]),
+            "test_automation": len(by_domain[FailureDomain.TEST_AUTOMATION]),
+            "product": len(by_domain[FailureDomain.PRODUCT]),
+            "unknown": len(by_domain[FailureDomain.UNKNOWN])
         },
         "clusters_by_severity": {
             "critical": [_cluster_to_dict(c) for c in by_severity[FailureSeverity.CRITICAL][:5]],
@@ -645,6 +864,7 @@ def _cluster_to_dict(cluster: FailureCluster) -> Dict:
         "fingerprint": cluster.fingerprint,
         "root_cause": cluster.root_cause,
         "severity": cluster.severity.value,
+        "domain": cluster.domain.value,
         "failure_count": cluster.failure_count,
         "affected_tests": list(cluster.tests),
         "affected_keywords": list(cluster.keywords),

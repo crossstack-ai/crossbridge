@@ -454,6 +454,24 @@ class LogParser:
             else:
                 console.print(f"[red]Failed Keywords ({total_failed} unique failures):[/red]")
             
+            # Show domain distribution
+            domain_stats = cluster_summary.get("by_domain", {})
+            if any(domain_stats.values()):
+                domain_parts = []
+                if domain_stats.get("product", 0) > 0:
+                    domain_parts.append(f"[red]{domain_stats['product']} Product[/red]")
+                if domain_stats.get("infrastructure", 0) > 0:
+                    domain_parts.append(f"[magenta]{domain_stats['infrastructure']} Infra[/magenta]")
+                if domain_stats.get("environment", 0) > 0:
+                    domain_parts.append(f"[cyan]{domain_stats['environment']} Env[/cyan]")
+                if domain_stats.get("test_automation", 0) > 0:
+                    domain_parts.append(f"[blue]{domain_stats['test_automation']} Test[/blue]")
+                if domain_stats.get("unknown", 0) > 0:
+                    domain_parts.append(f"[dim]{domain_stats['unknown']} Unknown[/dim]")
+                
+                if domain_parts:
+                    console.print(f"[dim]Domain breakdown: {', '.join(domain_parts)}[/dim]")
+            
             # Display systemic patterns if detected
             systemic_patterns = cluster_summary.get("systemic_patterns", [])
             if systemic_patterns:
@@ -472,6 +490,15 @@ class LogParser:
                 "low": ("dim yellow", "ℹ️  LOW")
             }
             
+            # Domain display mapping for failure classification
+            domain_display = {
+                "infrastructure": ("magenta", "🔧 INFRA"),
+                "environment": ("cyan", "⚙️  ENV"),
+                "test_automation": ("blue", "🤖 TEST"),
+                "product": ("red", "🐛 PROD"),
+                "unknown": ("dim white", "❓ UNK")
+            }
+            
             # Create table for clustered failures
             table = Table(
                 show_header=True, 
@@ -481,9 +508,10 @@ class LogParser:
                 show_lines=False
             )
             table.add_column("Severity", style="white", width=14, no_wrap=True)
-            table.add_column("Root Cause", style="white", no_wrap=False, max_width=70)
+            table.add_column("Domain", style="white", width=10, no_wrap=True)
+            table.add_column("Root Cause", style="white", no_wrap=False, max_width=60)
             table.add_column("Count", style="cyan bold", justify="right", width=7)
-            table.add_column("Affected Tests/Keywords", style="dim white", no_wrap=False, max_width=40)
+            table.add_column("Affected Tests/Keywords", style="dim white", no_wrap=False, max_width=35)
             
             rows_added = 0
             max_rows = 10
@@ -503,10 +531,15 @@ class LogParser:
                     ("red", "⚠️  HIGH")
                 )
                 
-                # Truncate root cause if too long (increased limit)
+                domain_style, domain_label = domain_display.get(
+                    cluster.domain.value,
+                    ("dim white", "❓ UNK")
+                )
+                
+                # Truncate root cause if too long (adjusted for domain column)
                 root_cause = cluster.root_cause
-                if len(root_cause) > 70:
-                    root_cause = root_cause[:67] + "..."
+                if len(root_cause) > 60:
+                    root_cause = root_cause[:57] + "..."
                 
                 # Show affected tests/keywords (more descriptive)
                 affected_items = list(cluster.keywords) if cluster.keywords else list(cluster.tests)
@@ -527,6 +560,7 @@ class LogParser:
                 
                 table.add_row(
                     f"[{severity_style}]{severity_label}[/{severity_style}]",
+                    f"[{domain_style}]{domain_label}[/{domain_style}]",
                     root_cause,
                     str(cluster.failure_count),
                     affected
