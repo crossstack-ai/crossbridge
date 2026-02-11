@@ -419,29 +419,111 @@ class LogParser:
         console.print(f"  Duration: {duration}")
         console.print()
         
-        # Failed keywords - show top 5 with count
+        # Failed keywords - apply clustering for deduplication
         failed_kw = data.get("failed_keywords", [])
         if failed_kw:
+            # Import clustering module
+            from core.log_analysis.clustering import cluster_failures, get_cluster_summary
+            
+            # Convert failed keywords to clustering format
+            failures_for_clustering = []
+            for kw in failed_kw:
+                failures_for_clustering.append({
+                    "name": kw.get("name", "Unknown"),
+                    "keyword_name": kw.get("name"),
+                    "error": kw.get("error", ""),
+                    "library": kw.get("library", ""),
+                })
+            
+            # Cluster failures
+            clusters = cluster_failures(failures_for_clustering, deduplicate=True)
+            cluster_summary = get_cluster_summary(clusters)
+            
             total_failed = len(failed_kw)
-            display_count = min(total_failed, 5)
-            console.print(f"[red]Top Failed Keywords (showing {display_count} of {total_failed}):[/red]")
+            unique_issues = cluster_summary["unique_issues"]
+            dedup_ratio = cluster_summary["deduplication_ratio"]
             
-            # Create table for failed keywords
+            # Show summary with deduplication stats
+            if unique_issues < total_failed:
+                console.print(
+                    f"[red]Root Cause Analysis: {unique_issues} unique issues "
+                    f"(deduplicated from {total_failed} failures)[/red]"
+                )
+                console.print(f"[dim]Deduplication saved {total_failed - unique_issues} duplicate entries "
+                             f"({int((1 - unique_issues/total_failed) * 100)}% reduction)[/dim]")
+            else:
+                console.print(f"[red]Failed Keywords ({total_failed} unique failures):[/red]")
+            
+            console.print()
+            
+            # Display clustered failures by severity
+            severity_display = {
+                "critical": ("[red bold]", "CRITICAL"),
+                "high": ("[red]", "HIGH"),
+                "medium": ("[yellow]", "MEDIUM"),
+                "low": ("[dim yellow]", "LOW")
+            }
+            
+            # Create table for clustered failures
             table = Table(show_header=True, header_style="bold red", box=box.ASCII, padding=(0, 1))
-            table.add_column("Status", style="red", width=6)
-            table.add_column("Keyword", style="white")
-            table.add_column("Error", style="dim")
+            table.add_column("Severity", style="white", width=10)
+            table.add_column("Root Cause", style="white", no_wrap=False)
+            table.add_column("Count", style="yellow", justify="right", width=7)
+            table.add_column("Affected", style="dim", width=20)
             
-            for kw in failed_kw[:5]:
-                name = kw.get("name", "Unknown")
-                library = kw.get("library", "")
-                error = kw.get("error", "")
-                lib_str = f" [{library}]" if library else ""
-                keyword_name = f"{name}{lib_str}"
+            rows_added = 0
+            max_rows = 10
+            
+            # Sort clusters by severity and count
+            sorted_clusters = sorted(
+                clusters.values(),
+                key=lambda c: (
+                    {"critical": 0, "high": 1, "medium": 2, "low": 3}[c.severity.value],
+                    -c.failure_count
+                )
+            )
+            
+            for cluster in sorted_clusters[:max_rows]:
+                severity_style, severity_label = severity_display.get(
+                    cluster.severity.value,
+                    ("[red]", "HIGH")
+                )
                 
-                table.add_row("[X]", keyword_name, error)
+                # Truncate root cause if too long
+                root_cause = cluster.root_cause
+                if len(root_cause) > 60:
+                    root_cause = root_cause[:57] + "..."
+                
+                # Show affected tests/keywords
+                affected_items = list(cluster.keywords) if cluster.keywords else list(cluster.tests)
+                if len(affected_items) > 2:
+                    affected = f"{affected_items[0]}, +{len(affected_items)-1} more"
+                elif affected_items:
+                    affected = ", ".join(affected_items[:2])
+                else:
+                    affected = "Multiple"
+                
+                if len(affected) > 20:
+                    affected = affected[:17] + "..."
+                
+                table.add_row(
+                    f"{severity_style}{severity_label}[/{severity_style}]",
+                    root_cause,
+                    str(cluster.failure_count),
+                    affected
+                )
+                rows_added += 1
             
             console.print(table)
+            
+            # Show fix suggestions for top issues
+            if sorted_clusters:
+                top_cluster = sorted_clusters[0]
+                if top_cluster.suggested_fix:
+                    console.print()
+                    console.print("[cyan][i] Suggested Fix for Top Issue:[/cyan]")
+                    console.print(f"[dim]{top_cluster.suggested_fix}[/dim]")
+            
             console.print()
         
         # Slowest tests
