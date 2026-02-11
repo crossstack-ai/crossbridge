@@ -98,7 +98,7 @@ class LogParser:
     
     def check_sidecar(self) -> bool:
         """Check if sidecar is reachable."""
-        console.print("[blue]🔍 Checking CrossBridge Sidecar API...[/blue]")
+        console.print("[blue][i] Checking CrossBridge Sidecar API...[/blue]")
         
         try:
             response = requests.get(f"{self.sidecar_url}/health", timeout=2)
@@ -109,10 +109,10 @@ class LogParser:
         
         # Show detailed error message
         console.print("\n" + "=" * 60, style="red")
-        console.print("  ❌ CROSSBRIDGE SIDECAR API NOT REACHABLE", style="red bold")
+        console.print("  [X] CROSSBRIDGE SIDECAR API NOT REACHABLE", style="red bold")
         console.print("=" * 60, style="red")
         console.print(f"\nAttempting to reach: [yellow]{self.sidecar_url}[/yellow]")
-        console.print("\n[yellow]🔧 Troubleshooting Steps:[/yellow]")
+        console.print("\n[yellow][*] Troubleshooting Steps:[/yellow]")
         console.print("\n[blue]1. Check if Sidecar is Running:[/blue]")
         console.print("   docker ps | grep crossbridge-sidecar")
         console.print("\n[blue]2. Start Sidecar:[/blue]")
@@ -210,7 +210,7 @@ class LogParser:
         
         if enable_ai:
             self._show_ai_banner(framework)
-            console.print("[blue]🤖 Running AI-enhanced analysis... (this may take 30-120 minutes for large logs)[/blue]")
+            console.print("[blue][AI] Running AI-enhanced analysis... (this may take 30-120 minutes for large logs)[/blue]")
         else:
             console.print("[blue]Running intelligence analysis...[/blue]")
         
@@ -244,7 +244,7 @@ class LogParser:
                     error_holder[0] = e
             
             # Spinner frames
-            spin_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+            spin_chars = ['|', '/', '-', '\\']
             message = "Processing test results and extracting failure patterns..."
             
             # Start request thread
@@ -292,13 +292,13 @@ class LogParser:
             if response.status_code == 200:
                 result = response.json()
                 if enable_ai:
-                    console.print("[green]✓ AI analysis completed successfully[/green]")
+                    console.print("[green][OK] AI analysis completed successfully[/green]")
                 else:
-                    console.print("[green]✓ Analysis completed[/green]")
+                    console.print("[green][OK] Analysis completed[/green]")
                 console.print()  # Blank line after completion
                 return result
             else:
-                console.print("[yellow]⚠ Analysis completed with warnings[/yellow]")
+                console.print("[yellow][!] Analysis completed with warnings[/yellow]")
                 console.print()  # Blank line after completion
                 return data
         except Exception as e:
@@ -318,7 +318,7 @@ class LogParser:
                 if provider == "selfhosted":
                     console.print()
                     console.print("=" * 41, style="green")
-                    console.print("🤖  AI-ENHANCED ANALYSIS ENABLED", style="green bold")
+                    console.print("[AI]  AI-ENHANCED ANALYSIS ENABLED", style="green bold")
                     console.print("=" * 41, style="green")
                     console.print(f"[green]Provider: Self-hosted ({model})[/green]")
                     console.print("[green]Cost: No additional costs (local inference)[/green]")
@@ -598,7 +598,7 @@ class LogParser:
         
         console.print()
         console.print("=" * 41, style="cyan")
-        console.print("  🤖 AI Failure Analysis", style="cyan bold")
+        console.print("  [AI] AI Failure Analysis", style="cyan bold")
         console.print("=" * 41, style="cyan")
         console.print()
         
@@ -657,7 +657,7 @@ class LogParser:
                     line_num = ref.get("line", "")
                     context = ref.get("context", "")
                     if file_path:
-                        console.print(f"    📄 {file_path}:{line_num}")
+                        console.print(f"    [>] {file_path}:{line_num}")
                         if context:
                             console.print(f"       [dim]{context}[/dim]")
                 console.print()
@@ -692,7 +692,7 @@ class LogParser:
             
             # Separator between failures
             if idx < len(failure_analyses):
-                console.print("[dim]" + "─" * 41 + "[/dim]")
+                console.print("[dim]" + "-" * 41 + "[/dim]")
                 console.print()
     
     def _display_ai_usage(self, data: dict):
