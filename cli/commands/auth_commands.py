@@ -33,9 +33,9 @@ def add_credentials(
         crossbridge auth add --ai --platform openai
     """
     # Reuse existing implementation from cli.app
-    from cli.app import test_credentials
+    from cli.app import _handle_credential_action
     action = "cache-ai" if ai else "cache"
-    test_credentials(action=action, platform=platform, username=username, token=token, repo_url=repo_url)
+    _handle_credential_action(action=action, platform=platform, username=username, token=token, repo_url=repo_url)
 
 
 @auth_app.command("list")
@@ -48,8 +48,8 @@ def list_credentials():
     Example:
         crossbridge auth list
     """
-    from cli.app import test_credentials
-    test_credentials(action="list", platform=None, username=None, token=None, repo_url=None)
+    from cli.app import _handle_credential_action
+    _handle_credential_action(action="list", platform=None, username=None, token=None, repo_url=None)
 
 
 @auth_app.command("remove")
@@ -65,14 +65,14 @@ def remove_credentials(
         crossbridge auth remove --platform openai
         crossbridge auth remove --platform all --yes
     """
-    from cli.app import test_credentials
+    from cli.app import _handle_credential_action
     
     # Set environment variable to skip confirmation if --yes flag is used
     if yes:
         import os
         os.environ['CROSSBRIDGE_AUTH_SKIP_CONFIRM'] = '1'
     
-    test_credentials(action="clear", platform=platform, username=None, token=None, repo_url=None)
+    _handle_credential_action(action="clear", platform=platform, username=None, token=None, repo_url=None)
 
 
 @auth_app.command("verify")
@@ -87,5 +87,5 @@ def verify_credentials(
         crossbridge auth verify --platform bitbucket
         crossbridge auth verify --platform openai
     """
-    from cli.app import test_credentials
-    test_credentials(action="test", platform=platform, username=None, token=None, repo_url=None)
+    from cli.app import _handle_credential_action
+    _handle_credential_action(action="test", platform=platform, username=None, token=None, repo_url=None)

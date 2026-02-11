@@ -561,56 +561,19 @@ def version():
     typer.echo("Test Framework Migration Platform")
 
 
-@app.command("test-creds", deprecated=True, hidden=True)
-def test_credentials(
-    action: Optional[str] = typer.Option(None, "--action", help="Action: cache, cache-ai, list, clear, or test"),
-    platform: Optional[str] = typer.Option(None, "--platform", help="Platform: bitbucket, github, openai, or anthropic"),
-    username: Optional[str] = typer.Option(None, "--username", help="Username/email"),
-    token: Optional[str] = typer.Option(None, "--token", help="Access token/password"),
-    repo_url: Optional[str] = typer.Option(None, "--repo-url", help="Repository URL")
+def _handle_credential_action(
+    action: Optional[str],
+    platform: Optional[str],
+    username: Optional[str],
+    token: Optional[str],
+    repo_url: Optional[str]
 ):
+    """Private function to handle credential actions (cache, list, clear, test).
+    
+    This function contains the actual implementation shared by both:
+    - Deprecated test-creds command
+    - New auth commands (add, verify, list, remove)
     """
-    [DEPRECATED] Use 'crossbridge auth' commands instead.
-    
-    This command is deprecated and will be removed in a future version.
-    Please use the following new commands:
-    - crossbridge auth add       (was: test-creds --action cache)
-    - crossbridge auth verify    (was: test-creds --action test)
-    - crossbridge auth list      (was: test-creds --action list)
-    - crossbridge auth remove    (was: test-creds --action clear)
-    """
-    from rich.console import Console
-    console = Console()
-    
-    console.print("\n[bold yellow]⚠️  DEPRECATION WARNING[/bold yellow]")
-    console.print("[yellow]The 'test-creds' command is deprecated and will be removed in a future version.[/yellow]")
-    console.print("\n[cyan]Please use the new 'auth' commands instead:[/cyan]")
-    console.print("  • [green]crossbridge auth add[/green]       - Add credentials (was: --action cache)")
-    console.print("  • [green]crossbridge auth verify[/green]    - Verify credentials (was: --action test)")
-    console.print("  • [green]crossbridge auth list[/green]      - List credentials (was: --action list)")
-    console.print("  • [green]crossbridge auth remove[/green]    - Remove credentials (was: --action clear)\n")
-    
-    # Map old actions to new commands
-    if action == "cache" or action == "cache-ai":
-        ai_flag = "--ai" if action == "cache-ai" else ""
-        console.print(f"[dim]Redirecting to: crossbridge auth add {ai_flag}[/dim]\n")
-        from cli.commands.auth_commands import add_credentials
-        add_credentials(ai=(action == "cache-ai"), platform=platform, username=username, token=token, repo_url=repo_url)
-    elif action == "list":
-        console.print("[dim]Redirecting to: crossbridge auth list[/dim]\n")
-        from cli.commands.auth_commands import list_credentials
-        list_credentials()
-    elif action == "clear":
-        console.print("[dim]Redirecting to: crossbridge auth remove[/dim]\n")
-        from cli.commands.auth_commands import remove_credentials
-        remove_credentials(platform=platform, yes=False)
-    elif action == "test":
-        console.print("[dim]Redirecting to: crossbridge auth verify[/dim]\n")
-        from cli.commands.auth_commands import verify_credentials
-        verify_credentials(platform=platform)
-    else:
-        console.print("[red]Please specify an action or use the new 'crossbridge auth' commands.[/red]")
-        raise typer.Exit(1)
     from rich.console import Console
     from rich.prompt import Prompt, Confirm
     from core.repo.test_credentials import (
@@ -1081,6 +1044,39 @@ def test_credentials(
         console.print(f"[bold red]✗ Invalid action:[/bold red] {action}")
         console.print("[dim]Valid actions: cache, cache-ai, list, clear, test[/dim]")
         raise typer.Exit(1)
+
+
+@app.command("test-creds", deprecated=True, hidden=True)
+def test_credentials(
+    action: Optional[str] = typer.Option(None, "--action", help="Action: cache, cache-ai, list, clear, or test"),
+    platform: Optional[str] = typer.Option(None, "--platform", help="Platform: bitbucket, github, openai, or anthropic"),
+    username: Optional[str] = typer.Option(None, "--username", help="Username/email"),
+    token: Optional[str] = typer.Option(None, "--token", help="Access token/password"),
+    repo_url: Optional[str] = typer.Option(None, "--repo-url", help="Repository URL")
+):
+    """
+    [DEPRECATED] Use 'crossbridge auth' commands instead.
+    
+    This command is deprecated and will be removed in a future version.
+    Please use the following new commands:
+    - crossbridge auth add       (was: test-creds --action cache)
+    - crossbridge auth verify    (was: test-creds --action test)
+    - crossbridge auth list      (was: test-creds --action list)
+    - crossbridge auth remove    (was: test-creds --action clear)
+    """
+    from rich.console import Console
+    console = Console()
+    
+    console.print("\n[bold yellow]⚠️  DEPRECATION WARNING[/bold yellow]")
+    console.print("[yellow]The 'test-creds' command is deprecated and will be removed in a future version.[/yellow]")
+    console.print("\n[cyan]Please use the new 'auth' commands instead:[/cyan]")
+    console.print("  • [green]crossbridge auth add[/green]       - Add credentials (was: --action cache)")
+    console.print("  • [green]crossbridge auth verify[/green]    - Verify credentials (was: --action test)")
+    console.print("  • [green]crossbridge auth list[/green]      - List credentials (was: --action list)")
+    console.print("  • [green]crossbridge auth remove[/green]    - Remove credentials (was: --action clear)\n")
+    
+    # Call the actual implementation
+    _handle_credential_action(action=action, platform=platform, username=username, token=token, repo_url=repo_url)
 
 
 def _get_error_suggestion(error_code: Optional[str]) -> Optional[str]:
