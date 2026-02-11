@@ -111,17 +111,41 @@ Advanced clustering algorithm that eliminates duplicate failures and identifies 
 Root Cause Analysis: 3 unique issues (deduplicated from 12 failures)
 Deduplication saved 9 duplicate entries (75% reduction)
 
-╒════════════╤═══════════════════════════════════════╤═══════╤════════════════════╕
-│ Severity   │ Root Cause                             │ Count │ Affected           │
-╞════════════╪═══════════════════════════════════════╪═══════╪════════════════════╡
-│ HIGH       │ ElementNotFound: element missing       │     8 │ Test Login, +3 ... │
-│ MEDIUM     │ TimeoutException: operation timed out  │     3 │ Test Checkout, ... │
-│ HIGH       │ AssertionError: expected 5 but was 3   │     1 │ Test Validation    │
-╘════════════╧═══════════════════════════════════════╧═══════╧════════════════════╛
+╭──────────────┬──────────────────────────────────────────────┬─────────┬────────────────────────────╮
+│ Severity     │ Root Cause                                    │   Count │ Affected Tests/Keywords    │
+├──────────────┼──────────────────────────────────────────────┼─────────┼────────────────────────────┤
+│ ⚠️  HIGH     │ ElementNotFound: element missing              │       8 │ Click Button, Wait Until   │
+│ ⚡ MEDIUM    │ TimeoutException: operation timed out         │       3 │ Check Status, +2 more      │
+│ ⚠️  HIGH     │ AssertionError: expected 5 but was 3          │       1 │ Validate Response          │
+╰──────────────┴──────────────────────────────────────────────┴─────────┴────────────────────────────╯
 
-[i] Suggested Fix for Top Issue:
-Check if element locators are correct and elements are visible.
-Consider adding explicit waits or updating selectors if page structure changed.
+━━━ Detailed Failure Analysis ━━━
+
+1. ⚠️  HIGH - ElementNotFound: element missing
+   Occurrences: 8
+   Affected Keywords:
+      • Click Button
+      • Click Link
+      • Wait Until Element Is Visible
+   Affected Tests:
+      • Test Login Flow
+      • Test Registration
+      • Test User Profile
+   Patterns: Element Not Found
+   💡 Suggested Fix:
+      Check if element locators are correct and elements are visible.
+      Consider adding explicit waits or updating selectors if page structure changed.
+
+2. ⚡ MEDIUM - TimeoutException: operation timed out
+   Occurrences: 3
+   Affected Tests:
+      • Check Status
+      • Verify Cloud Resources
+      • Validate Network Config
+   Patterns: Timeout
+   💡 Suggested Fix:
+      Increase timeout values or investigate performance bottlenecks.
+      Check if external services are responding slowly.
 ```
 
 **Real-World Example:**
@@ -135,8 +159,24 @@ Before Clustering:
 
 After Clustering:
 Root Cause Analysis: 2 unique issues (deduplicated from 5 failures)
-  HIGH: Element not found (3 occurrences) → Instant VM Job Status
-  HIGH: Connection timeout (2 occurrences) → Cloud Resources, Network Config
+Deduplication saved 3 duplicate entries (60% reduction)
+
+╭──────────────┬──────────────────────────────────────────────┬─────────┬────────────────────────────╮
+│ Severity     │ Root Cause                                    │   Count │ Affected Tests/Keywords    │
+├──────────────┼──────────────────────────────────────────────┼─────────┼────────────────────────────┤
+│ ⚠️  HIGH     │ start_instant_vm job ended with status: fail  │       3 │ Checking Instant VM Job... │
+│ ⚡ MEDIUM    │ Connection timeout after 30s                  │       2 │ Verifying Cloud Resources, │
+│              │                                               │         │ Validating Network Config  │
+╰──────────────┴──────────────────────────────────────────────┴─────────┴────────────────────────────╯
+
+━━━ Detailed Failure Analysis ━━━
+
+1. ⚠️  HIGH - start_instant_vm job ended with status: failed
+   Occurrences: 3
+   Affected Tests:
+      • Checking Instant VM Job Status
+   💡 Suggested Fix:
+      Review application code for bugs. Update application logic or fix the defect.
 ```
 
 **Value Delivered:**
@@ -144,6 +184,7 @@ Root Cause Analysis: 2 unique issues (deduplicated from 5 failures)
 - 🎯 **Focused Analysis** - "23 failures → 5 root issues"
 - 📊 **Impact Visibility** - See which issue affects most tests
 - 🔍 **Pattern Recognition** - Identify systemic vs. isolated failures
+- 📋 **Detailed Breakdown** - See all affected tests and actionable fixes
 
 #### **Enhanced Signal Extraction**
 Detects 20+ signal types across all categories:

@@ -458,18 +458,24 @@ class LogParser:
             
             # Display clustered failures by severity
             severity_display = {
-                "critical": ("[red bold]", "CRITICAL"),
-                "high": ("[red]", "HIGH"),
-                "medium": ("[yellow]", "MEDIUM"),
-                "low": ("[dim yellow]", "LOW")
+                "critical": ("red bold", "🔴 CRITICAL"),
+                "high": ("red", "⚠️  HIGH"),
+                "medium": ("yellow", "⚡ MEDIUM"),
+                "low": ("dim yellow", "ℹ️  LOW")
             }
             
             # Create table for clustered failures
-            table = Table(show_header=True, header_style="bold red", box=box.ASCII, padding=(0, 1))
-            table.add_column("Severity", style="white", width=10)
-            table.add_column("Root Cause", style="white", no_wrap=False)
-            table.add_column("Count", style="yellow", justify="right", width=7)
-            table.add_column("Affected", style="dim", width=20)
+            table = Table(
+                show_header=True, 
+                header_style="bold cyan", 
+                box=box.ROUNDED,
+                padding=(0, 1),
+                show_lines=False
+            )
+            table.add_column("Severity", style="white", width=14, no_wrap=True)
+            table.add_column("Root Cause", style="white", no_wrap=False, max_width=70)
+            table.add_column("Count", style="cyan bold", justify="right", width=7)
+            table.add_column("Affected Tests/Keywords", style="dim white", no_wrap=False, max_width=40)
             
             rows_added = 0
             max_rows = 10
@@ -486,28 +492,33 @@ class LogParser:
             for cluster in sorted_clusters[:max_rows]:
                 severity_style, severity_label = severity_display.get(
                     cluster.severity.value,
-                    ("[red]", "HIGH")
+                    ("red", "⚠️  HIGH")
                 )
                 
-                # Truncate root cause if too long
+                # Truncate root cause if too long (increased limit)
                 root_cause = cluster.root_cause
-                if len(root_cause) > 60:
-                    root_cause = root_cause[:57] + "..."
+                if len(root_cause) > 70:
+                    root_cause = root_cause[:67] + "..."
                 
-                # Show affected tests/keywords
+                # Show affected tests/keywords (more descriptive)
                 affected_items = list(cluster.keywords) if cluster.keywords else list(cluster.tests)
-                if len(affected_items) > 2:
+                if len(affected_items) > 3:
+                    # Show first item and count
                     affected = f"{affected_items[0]}, +{len(affected_items)-1} more"
+                elif len(affected_items) > 1:
+                    # Show first 2 items
+                    affected = f"{affected_items[0]}, {affected_items[1]}"
+                    if len(affected_items) > 2:
+                        affected += f", +{len(affected_items)-2} more"
                 elif affected_items:
-                    affected = ", ".join(affected_items[:2])
+                    affected = affected_items[0]
                 else:
-                    affected = "Multiple"
+                    affected = "Multiple tests"
                 
-                if len(affected) > 20:
-                    affected = affected[:17] + "..."
+                # Don't truncate affected column - let it wrap naturally
                 
                 table.add_row(
-                    f"{severity_style}{severity_label}[/{severity_style}]",
+                    f"[{severity_style}]{severity_label}[/{severity_style}]",
                     root_cause,
                     str(cluster.failure_count),
                     affected
@@ -516,35 +527,72 @@ class LogParser:
             
             console.print(table)
             
-            # Show fix suggestions for top issues
-            if sorted_clusters:
-                top_cluster = sorted_clusters[0]
-                if top_cluster.suggested_fix:
-                    console.print()
-                    console.print("[cyan][i] Suggested Fix for Top Issue:[/cyan]")
-                    console.print(f"[dim]{top_cluster.suggested_fix}[/dim]")
-            
+            # Show detailed breakdown of top clusters
             console.print()
+            console.print("[cyan bold]━━━ Detailed Failure Analysis ━━━[/cyan bold]")
+            console.print()
+            
+            for idx, cluster in enumerate(sorted_clusters[:3], 1):  # Show top 3 in detail
+                severity_style, severity_label = severity_display.get(
+                    cluster.severity.value,
+                    ("red", "⚠️  HIGH")
+                )
+                
+                console.print(f"[{severity_style} bold]{idx}. {severity_label}[/] - {cluster.root_cause}")
+                console.print(f"   [dim]Occurrences:[/dim] {cluster.failure_count}")
+                
+                # Show all affected tests/keywords
+                if cluster.keywords:
+                    console.print(f"   [dim]Affected Keywords:[/dim]")
+                    for kw in sorted(cluster.keywords)[:10]:  # Limit to 10
+                        console.print(f"      • {kw}")
+                    if len(cluster.keywords) > 10:
+                        console.print(f"      [dim]... and {len(cluster.keywords) - 10} more[/dim]")
+                
+                if cluster.tests:
+                    console.print(f"   [dim]Affected Tests:[/dim]")
+                    for test in sorted(cluster.tests)[:10]:  # Limit to 10
+                        console.print(f"      • {test}")
+                    if len(cluster.tests) > 10:
+                        console.print(f"      [dim]... and {len(cluster.tests) - 10} more[/dim]")
+                
+                # Show error patterns
+                if cluster.error_patterns:
+                    console.print(f"   [dim]Patterns:[/dim] {', '.join(cluster.error_patterns)}")
+                
+                # Show fix suggestion
+                if cluster.suggested_fix:
+                    console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
+                    console.print(f"      [dim]{cluster.suggested_fix}[/dim]")
+                
+                console.print()  # Blank line between clusters
+            
+            # Show summary for remaining clusters if any
+            if len(sorted_clusters) > 3:
+                console.print(f"[dim]... and {len(sorted_clusters) - 3} additional unique issues[/dim]")
+                console.print()
         
         # Slowest tests
         slowest_tests = data.get("slowest_tests", [])
         if slowest_tests:
             display_count = min(len(slowest_tests), 5)
-            console.print(f"[yellow]Slowest Tests (Top {display_count}):[/yellow]")
+            console.print(f"[yellow]⏱️  Slowest Tests (Top {display_count}):[/yellow]")
             
             # Create table for slowest tests
-            table = Table(show_header=True, header_style="bold yellow", box=box.ASCII, padding=(0, 1))
-            table.add_column("Test Case", style="white", no_wrap=False)
-            table.add_column("Duration", style="yellow", justify="right", width=12)
+            table = Table(
+                show_header=True, 
+                header_style="bold yellow", 
+                box=box.ROUNDED, 
+                padding=(0, 1),
+                show_lines=False
+            )
+            table.add_column("Test Case", style="white", no_wrap=False, max_width=80)
+            table.add_column("Duration", style="yellow bold", justify="right", width=12)
             
             for test in slowest_tests[:5]:
                 test_name = test.get("name", "Unknown")
                 elapsed = test.get("elapsed_ms", 0)
                 test_duration = self.format_duration(elapsed // 1000)
-                
-                # Truncate long test names if needed
-                if len(test_name) > 80:
-                    test_name = test_name[:77] + "..."
                 
                 table.add_row(test_name, test_duration)
             
