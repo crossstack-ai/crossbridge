@@ -182,50 +182,174 @@ def fingerprint_error(
     return hashlib.md5(signature.encode('utf-8')).hexdigest()
 
 
-def _detect_severity(error_message: str, keyword_name: Optional[str] = None) -> FailureSeverity:
+def _detect_severity(
+    error_message: str, 
+    keyword_name: Optional[str] = None,
+    http_status: Optional[int] = None
+) -> FailureSeverity:
     """
     Detect the severity level of a failure based on error characteristics.
+    
+    Uses a comprehensive rule-based scoring system to determine failure impact:
+    - HTTP status codes (if available)
+    - Error message patterns
+    - Exception types
+    - Keyword context
     
     Args:
         error_message: The error message
         keyword_name: Optional keyword name for context
+        http_status: Optional HTTP status code
         
     Returns:
-        Detected severity level
+        Detected severity level (CRITICAL, HIGH, MEDIUM, or LOW)
     """
     error_lower = error_message.lower()
     
-    # Critical: System crashes, data corruption, security issues
+    # HTTP Status Code Priority (most reliable indicator)
+    if http_status:
+        # CRITICAL: Server errors that indicate system failure
+        if http_status in [500, 501, 507, 508, 511]:  # 500 Internal Server Error, etc.
+            return FailureSeverity.CRITICAL
+        
+        # HIGH: Server errors and client errors indicating functional issues
+        if http_status in [502, 503, 504]:  # Bad Gateway, Service Unavailable, Gateway Timeout
+            return FailureSeverity.HIGH
+        if http_status in [400, 401, 403, 404, 409, 422]:  # Client errors
+            return FailureSeverity.HIGH
+        
+        # MEDIUM: Temporary/retryable issues
+        if http_status in [408, 429]:  # Request Timeout, Too Many Requests
+            return FailureSeverity.MEDIUM
+        
+        # LOW: Informational or successful with warnings
+        if http_status in [300, 301, 302, 303, 304, 307, 308]:  # Redirects
+            return FailureSeverity.LOW
+    
+    # CRITICAL: System crashes, data corruption, security issues
     critical_patterns = [
-        'crash', 'core dump', 'segmentation fault', 'fatal',
-        'data corruption', 'unauthorized', 'permission denied',
-        'database.*corrupt', 'cannot.*start', 'system.*down'
+        # System failures
+        r'\bcrash\b', r'core dump', r'segmentation fault', r'\bfatal\b',
+        r'out\s*of\s*memory', r'memory leak', r'stack overflow',
+        # Data integrity
+        r'data corruption', r'corrupt.*database', r'integrity.*violation',
+        # Security
+        r'\bunauthorized\b', r'permission denied', r'access denied',
+        r'authentication.*fail', r'security.*violation', r'security.*exception',
+        r'access.*violation',
+        # Service failures
+        r'cannot.*start', r'system.*down', r'service.*unavailable.*critical',
+        r'database.*down', r'server.*crash',
+        # API critical errors
+        r'http\s*500', r'internal\s*server\s*error', r'500\s*error'
     ]
     for pattern in critical_patterns:
         if re.search(pattern, error_lower):
             return FailureSeverity.CRITICAL
     
-    # High: Test failures, assertion errors, functional failures
+    # HIGH: Test failures, assertion errors, functional failures
     high_patterns = [
-        'assertion.*fail', 'expected.*but.*was', 'should.*equal',
-        'element.*not.*found', 'unable to.*perform', 'operation.*failed',
-        'test.*fail', 'verification.*fail'
+        # Test/Assertion failures
+        r'assertion.*fail', r'expected.*but.*was', r'should.*equal',
+        r'test.*fail', r'verification.*fail', r'validation.*fail',
+        # Element/UI issues
+        r'element.*not.*found', r'no such element', r'locator.*fail',
+        r'unable to.*locate', r'selector.*not.*found',
+        # Operation failures
+        r'unable to.*perform', r'operation.*failed', r'command.*failed',
+        r'execution.*failed', r'process.*failed',
+        # API/HTTP errors
+        r'http\s*40[0-4]', r'not found.*404', r'forbidden.*403',
+        r'bad request.*400', r'unauthorized.*401',
+        # Database errors (must come before connection patterns in MEDIUM)
+        r'sql.*error', r'sqlexception', r'query.*failed', r'deadlock',
+        r'constraint.*violation', r'duplicate\s*key',
+        # Business logic
+        r'business.*rule.*violation', r'invalid.*state', r'precondition.*failed'
     ]
     for pattern in high_patterns:
         if re.search(pattern, error_lower):
             return FailureSeverity.HIGH
     
-    # Medium: Timeouts, network issues, retryable errors
+    # MEDIUM: Timeouts, network issues, retryable errors
     medium_patterns = [
-        'timeout', 'timed out', 'connection.*refused', 'cannot.*connect',
-        'network.*error', 'service.*unavailable', '503', '502', '504'
+        # Timeouts
+        r'\btimeout\b', r'timed out', r'time.*out.*exception',
+        r'operation.*timeout', r'request.*timeout',
+        # Network issues (after database patterns to avoid conflicts)
+        r'connection.*refused', r'cannot.*connect', r'connection.*failed',
+        r'connection.*closed',
+        r'network.*error', r'socket.*error', r'connection.*reset',
+        r'dns.*error', r'host.*not.*found',
+        # Service temporarily unavailable
+        r'service.*unavailable', r'temporarily.*unavailable',
+        r'http\s*50[2-4]', r'bad gateway', r'gateway.*timeout',
+        # Retryable errors
+        r'retry.*exceeded', r'max.*retries', r'too many.*requests',
+        r'rate.*limit', r'throttled'
     ]
     for pattern in medium_patterns:
         if re.search(pattern, error_lower):
             return FailureSeverity.MEDIUM
     
+    # LOW: Warnings, deprecations, non-critical issues
+    low_patterns = [
+        # Warnings
+        r'\bwarning\b', r'\bwarn\b', r'deprecation.*warning',
+        # Non-critical
+        r'skipped', r'ignored', r'optional.*fail',
+        r'informational', r'notice',
+        # Redirects
+        r'redirect', r'moved.*permanently', r'http.*30[0-8]'
+    ]
+    for pattern in low_patterns:
+        if re.search(pattern, error_lower):
+            return FailureSeverity.LOW
+    
     # Default to HIGH for unclassified failures
     return FailureSeverity.HIGH
+
+
+# Severity scoring rules for export/documentation
+SEVERITY_RULES = {
+    "CRITICAL": {
+        "description": "System crashes, data corruption, security violations",
+        "http_codes": [500, 501, 507, 508, 511],
+        "patterns": [
+            "crash", "fatal", "out of memory", "data corruption",
+            "unauthorized", "permission denied", "system down",
+            "http 500", "internal server error"
+        ],
+        "impact": "Immediate attention required - system or data integrity at risk"
+    },
+    "HIGH": {
+        "description": "Test failures, functional defects, assertion errors",
+        "http_codes": [400, 401, 403, 404, 409, 422, 502, 503, 504],
+        "patterns": [
+            "assertion fail", "expected but was", "element not found",
+            "test fail", "operation failed", "http 404", "http 403",
+            "sql error", "validation fail"
+        ],
+        "impact": "Functional issue - requires investigation and fix"
+    },
+    "MEDIUM": {
+        "description": "Timeouts, network issues, retryable errors",
+        "http_codes": [408, 429],
+        "patterns": [
+            "timeout", "connection refused", "network error",
+            "service unavailable", "retry exceeded", "rate limit"
+        ],
+        "impact": "Temporary or environmental issue - may resolve with retry"
+    },
+    "LOW": {
+        "description": "Warnings, deprecations, non-critical issues",
+        "http_codes": [300, 301, 302, 303, 304, 307, 308],
+        "patterns": [
+            "warning", "deprecation", "skipped", "redirect"
+        ],
+        "impact": "Informational - no immediate action required"
+    }
+}
 
 
 def _extract_patterns(error_messages: List[str]) -> List[str]:
@@ -398,8 +522,8 @@ def cluster_failures(
             if len(root_cause) > 150:
                 root_cause = root_cause[:147] + "..."
             
-            # Detect severity
-            severity = _detect_severity(error_message, keyword_name)
+            # Detect severity (uses error message, keyword, and HTTP status)
+            severity = _detect_severity(error_message, keyword_name, http_status)
             
             # Create new cluster
             clusters[fingerprint] = FailureCluster(

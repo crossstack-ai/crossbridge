@@ -189,7 +189,12 @@ Reduce maintenance costs with intelligent insights and automated failure analysi
 - 🎯 **Smart Fingerprinting** - MD5 hash of normalized error signatures
 - 🧹 **Noise Reduction** - "23 failures → 5 unique root issues" (75-90% reduction)
 - 🔄 **Normalization Engine** - Removes timestamps, IDs, URLs, line numbers
-- 📊 **Severity-Based Prioritization** - CRITICAL/HIGH/MEDIUM/LOW classification
+- 📊 **Impact Severity Scoring** - Deterministic prioritization (HTTP status + 60+ patterns)
+  - 🔴 CRITICAL: System crashes, memory errors, security violations, HTTP 500
+  - 🟠 HIGH: Assertion failures, element not found, API 40x errors, SQL errors
+  - 🟡 MEDIUM: Timeouts, network issues, service unavailable, rate limiting  
+  - ⚪ LOW: Warnings, redirects, non-critical issues
+  - ⚡ **Instant prioritization** without AI dependency
 - 🚀 **Massive Triage Speedup** - Eliminate duplicate failure analysis
 - 📋 **Visual Summary Tables** - Clustered view with affected test counts
 - 💡 **Fix Suggestions** - Actionable recommendations per cluster

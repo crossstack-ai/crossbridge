@@ -109,32 +109,108 @@ print(f"Unique issues: {summary['unique_issues']}")  # 2
 print(f"Dedup ratio: {summary['deduplication_ratio']}")  # 1.5x
 ```
 
-### 4. Severity Detection
+### 4. Failure Impact Severity Scoring
 
-Each cluster is automatically assigned a severity level:
+Each cluster is automatically assigned a severity level using **deterministic pattern matching** for instant prioritization without AI dependency.
 
-**CRITICAL:**
-- System crashes, core dumps
-- Data corruption
-- Security violations
-- Service unavailability
+#### Severity Levels
 
-**HIGH:**
-- Assertion failures
-- Element not found
-- Test failures
-- Functional defects
+**🔴 CRITICAL** - System failures requiring immediate attention
+- **System failures:** crashes, core dumps, segmentation faults, fatal errors
+- **Memory issues:** out of memory, memory leaks, stack overflow
+- **Data integrity:** corruption, database integrity violations
+- **Security:** unauthorized access, permission denied, authentication failures
+- **Service failures:** cannot start, system down, database/server crashes
+- **HTTP status:** 500 Internal Server Error, 501, 507 errors
 
-**MEDIUM:**
-- Timeouts
-- Network errors
-- Connection refused
-- Performance issues
+**🟠 HIGH** - Functional failures blocking testing
+- **Test failures:** assertion failures, test/verification/validation failures
+- **Element/UI issues:** element not found, locator failures, selector issues
+- **Operation failures:** unable to perform, command/operation/execution failed
+- **HTTP status:** 400-404 errors (Bad Request, Not Found, Forbidden, etc.)
+- **Database errors:** SQL errors, query failures, deadlocks, constraint violations
+- **Business logic:** business rule violations, invalid state, precondition failures
 
-**LOW:**
-- Warnings
-- Deprecations
-- Non-critical issues
+**🟡 MEDIUM** - Retryable issues and transient errors
+- **Timeouts:** operation timeouts, request timeouts, time-out exceptions
+- **Network issues:** connection refused, cannot connect, connection failed/closed
+- **Socket errors:** network errors, socket errors, connection reset, DNS errors
+- **Service issues:** temporarily unavailable, service unavailable  
+- **HTTP status:** 502-504 (Bad Gateway, Service Unavailable, Gateway Timeout), 408
+- **Rate limiting:** retry exceeded, max retries, too many requests, throttled
+
+**⚪ LOW** - Non-blocking issues
+- **Warnings:** deprecation warnings, informational messages
+- **Redirects:** HTTP 301, 302, 307 redirects
+- **Non-critical:** minor configuration issues, optional feature failures
+
+#### Priority Rules
+
+Severity is determined using a **priority-based hierarchy**:
+
+1. **HTTP Status Code** (highest priority)
+   - Takes precedence over text patterns
+   - Example: HTTP 500 → CRITICAL (even if error text says "assertion")
+
+2. **Text Pattern Matching** (fallback)
+   - CRITICAL patterns checked first
+   - Then HIGH, MEDIUM, LOW in order
+   - First match wins
+
+3. **Default Severity** (no match)
+   - Returns LOW severity if no patterns match
+
+#### Example Detection
+
+```python
+from core.log_analysis.clustering import cluster_failures, FailureSeverity
+
+failures = [
+    # CRITICAL - HTTP status wins
+    {"name": "Test1", "error": "Server error", "http_status": 500},
+    
+    # CRITICAL - memory pattern
+    {"name": "Test2", "error": "OutOfMemoryError: heap space"},
+    
+    # HIGH - assertion pattern
+    {"name": "Test3", "error": "AssertionError: expected 5 but was 3"},
+    
+    # MEDIUM - timeout pattern
+    {"name": "Test4", "error": "TimeoutException: operation timed out"},
+]
+
+clusters = cluster_failures(failures)
+
+# Each cluster has assigned severity
+for cluster in clusters.values():
+    print(f"{cluster.severity.name}: {cluster.root_cause}")
+    # CRITICAL: Server error
+    # CRITICAL: OutOfMemoryError
+    # HIGH: AssertionError
+    # MEDIUM: TimeoutException
+```
+
+#### Accessing Severity Rules
+
+All severity patterns are exported for inspection:
+
+```python
+from core.log_analysis import SEVERITY_RULES
+
+# View all rules
+print(SEVERITY_RULES["CRITICAL"])  # List of critical patterns
+print(SEVERITY_RULES["HIGH"])      # List of high severity patterns
+
+# Example output:
+# {
+#   "CRITICAL": [
+#     r'\bcrash\b', r'out\s*of\s*memory', 
+#     r'\bunauthorized\b', ...
+#   ],
+#   "HIGH": [...],
+#   ...
+# }
+```
 
 ### 5. Fix Suggestions
 

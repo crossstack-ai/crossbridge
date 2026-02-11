@@ -83,7 +83,15 @@ Advanced clustering algorithm that eliminates duplicate failures and identifies 
 - ✅ **Smart Normalization** - Removes variable elements (timestamps, IDs, URLs, line numbers)
 - ✅ **Stack Trace Analysis** - Incorporates call stack patterns for precision
 - ✅ **HTTP Status Clustering** - Groups by HTTP error codes (4xx, 5xx)
-- ✅ **Severity Detection** - Automatically assigns priority levels (Critical/High/Medium/Low)
+- ✅ **Impact Severity Scoring** - Deterministic prioritization using:
+  - **HTTP Status Priority** - 500 errors = CRITICAL, 40x = HIGH, 408/429 = MEDIUM, 301 = LOW
+  - **60+ Pattern Rules** - System crashes, memory errors, assertions, timeouts, etc.
+  - **No AI Needed** - Instant classification for immediate triage
+  - **Severity Levels:** 
+    - 🔴 CRITICAL: System/security failures, data corruption, HTTP 500
+    - 🟠 HIGH: Test failures, element not found, API 40x errors, SQL errors
+    - 🟡 MEDIUM: Timeouts, network issues, service unavailable
+    - ⚪ LOW: Warnings, redirects, non-critical issues
 
 **Normalization Patterns:**
 ```python

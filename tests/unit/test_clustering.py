@@ -683,5 +683,227 @@ class TestIntegrationScenarios:
         
         # Find the 500 cluster
         cluster_500 = next(c for c in clusters.values() if c.failure_count == 2)
-        assert cluster_500.severity == FailureSeverity.HIGH  # Assertion failures
+        assert cluster_500.severity == FailureSeverity.CRITICAL  # HTTP 500 errors
         assert len(cluster_500.tests) == 2
+
+
+class TestSeverityScoring:
+    """Test comprehensive severity impact scoring."""
+    
+    def test_http_status_critical(self):
+        """Test HTTP 500 errors are marked as CRITICAL."""
+        failures = [
+            {"name": "Test1", "error": "Server error occurred", "http_status": 500},
+            {"name": "Test2", "error": "Internal error", "http_status": 501},
+            {"name": "Test3", "error": "Insufficient storage", "http_status": 507}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.CRITICAL
+    
+    def test_http_status_high(self):
+        """Test client/server errors are marked as HIGH."""
+        failures = [
+            {"name": "Test1", "error": "Bad gateway", "http_status": 502},
+            {"name": "Test2", "error": "Service unavailable", "http_status": 503},
+            {"name": "Test3", "error": "Not found", "http_status": 404},
+            {"name": "Test4", "error": "Forbidden", "http_status": 403}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.HIGH
+    
+    def test_http_status_medium(self):
+        """Test timeout errors are marked as MEDIUM."""
+        failures = [
+            {"name": "Test1", "error": "Request timeout", "http_status": 408},
+            {"name": "Test2", "error": "Too many requests", "http_status": 429}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.MEDIUM
+    
+    def test_http_status_low(self):
+        """Test redirects are marked as LOW."""
+        failures = [
+            {"name": "Test1", "error": "Moved permanently", "http_status": 301},
+            {"name": "Test2", "error": "Temporary redirect", "http_status": 307}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.LOW
+    
+    def test_critical_patterns(self):
+        """Test critical error patterns."""
+        failures = [
+            {"name": "Test1", "error": "FATAL: System crash detected"},
+            {"name": "Test2", "error": "Segmentation fault (core dumped)"},
+            {"name": "Test3", "error": "OutOfMemoryError: Java heap space"},
+            {"name": "Test4", "error": "Data corruption detected in database"},
+            {"name": "Test5", "error": "Unauthorized access attempt"},
+            {"name": "Test6", "error": "HTTP 500 Internal Server Error"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.CRITICAL
+    
+    def test_high_patterns(self):
+        """Test high severity error patterns."""
+        failures = [
+            {"name": "Test1", "error": "AssertionError: expected 5 but was 3"},
+            {"name": "Test2", "error": "ElementNotFoundException: element not found"},
+            {"name": "Test3", "error": "Test failed: validation error"},
+            {"name": "Test4", "error": "HTTP 404 Not Found"},
+            {"name": "Test5", "error": "SQLException: query failed"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.HIGH
+    
+    def test_medium_patterns(self):
+        """Test medium severity error patterns."""
+        failures = [
+            {"name": "Test1", "error": "TimeoutException: operation timed out"},
+            {"name": "Test2", "error": "ConnectionRefusedError: cannot connect"},
+            {"name": "Test3", "error": "NetworkError: host unreachable"},
+            {"name": "Test4", "error": "Service unavailable, please retry"},
+            {"name": "Test5", "error": "Max retries exceeded"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.MEDIUM
+    
+    def test_low_patterns(self):
+        """Test low severity patterns."""
+        failures = [
+            {"name": "Test1", "error": "Warning: deprecated method used"},
+            {"name": "Test2", "error": "Test skipped due to condition"},
+            {"name": "Test3", "error": "Redirect to new location"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.LOW
+    
+    def test_http_status_priority_over_pattern(self):
+        """Test that HTTP status takes priority over error patterns."""
+        failures = [
+            # Has "timeout" keyword (MEDIUM) but HTTP 500 (CRITICAL)
+            {"name": "Test1", "error": "Gateway timeout", "http_status": 500}
+        ]
+        
+        clusters = cluster_failures(failures)
+        cluster = list(clusters.values())[0]
+        
+        # HTTP status should take priority
+        assert cluster.severity == FailureSeverity.CRITICAL
+    
+    def test_default_severity(self):
+        """Test that unclassified errors default to HIGH."""
+        failures = [
+            {"name": "Test1", "error": "Some unknown error occurred"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        cluster = list(clusters.values())[0]
+        
+        assert cluster.severity == FailureSeverity.HIGH
+    
+    def test_mixed_severity_prioritization(self):
+        """Test that clusters are properly sorted by severity."""
+        failures = [
+            {"name": "Test1", "error": "Warning: minor issue"},  # LOW
+            {"name": "Test2", "error": "TimeoutException"},      # MEDIUM
+            {"name": "Test3", "error": "AssertionError"},        # HIGH
+            {"name": "Test4", "error": "FATAL: crash"}           # CRITICAL
+        ]
+        
+        clusters = cluster_failures(failures)
+        summary = get_cluster_summary(clusters)
+        
+        # Verify all severity levels are present
+        assert summary["by_severity"]["critical"] == 1
+        assert summary["by_severity"]["high"] == 1
+        assert summary["by_severity"]["medium"] == 1
+        assert summary["by_severity"]["low"] == 1
+    
+    def test_api_error_severity(self):
+        """Test API-specific error severity detection."""
+        failures = [
+            {"name": "Test1", "error": "API returned 500", "http_status": 500},
+            {"name": "Test2", "error": "Invalid request: 400 Bad Request", "http_status": 400},
+            {"name": "Test3", "error": "Rate limited: 429 Too Many Requests", "http_status": 429}
+        ]
+        
+        clusters = cluster_failures(failures)
+        clusters_list = list(clusters.values())
+        
+        # Find each cluster and verify severity
+        critical_cluster = next(c for c in clusters_list if "500" in c.root_cause)
+        high_cluster = next(c for c in clusters_list if "400" in c.root_cause)
+        medium_cluster = next(c for c in clusters_list if "429" in c.root_cause)
+        
+        assert critical_cluster.severity == FailureSeverity.CRITICAL
+        assert high_cluster.severity == FailureSeverity.HIGH
+        assert medium_cluster.severity == FailureSeverity.MEDIUM
+    
+    def test_security_error_severity(self):
+        """Test security-related errors are CRITICAL."""
+        failures = [
+            {"name": "Test1", "error": "Unauthorized: authentication failed"},
+            {"name": "Test2", "error": "Permission denied: access violation"},
+            {"name": "Test3", "error": "Security exception: invalid token"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.CRITICAL
+    
+    def test_database_error_severity(self):
+        """Test database errors are HIGH."""
+        failures = [
+            {"name": "Test1", "error": "SQLException: connection failed"},
+            {"name": "Test2", "error": "Deadlock detected"},
+            {"name": "Test3", "error": "Constraint violation: duplicate key"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        
+        for cluster in clusters.values():
+            assert cluster.severity == FailureSeverity.HIGH
+    
+    def test_severity_in_summary(self):
+        """Test that severity is properly reflected in summary."""
+        failures = [
+            {"name": "Test1", "error": "FATAL: crash", "http_status": 500},
+            {"name": "Test2", "error": "FATAL: crash", "http_status": 500},
+            {"name": "Test3", "error": "AssertionError: failed"},
+            {"name": "Test4", "error": "TimeoutException"}
+        ]
+        
+        clusters = cluster_failures(failures)
+        summary = get_cluster_summary(clusters)
+        
+        # Verify breakdown
+        assert summary["total_failures"] == 4
+        assert summary["unique_issues"] == 3
+        assert summary["by_severity"]["critical"] == 1  # 2 FATAL crashes (same cluster)
+        assert summary["by_severity"]["high"] == 1
+        assert summary["by_severity"]["medium"] == 1
+
