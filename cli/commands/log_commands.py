@@ -110,6 +110,9 @@ def log_command(
             max_ai_clusters=max_ai_clusters,
             ai_summary_only=ai_summary_only,
         )
+    except typer.Exit:
+        # Re-raise exit without logging - this is an intentional exit with user-friendly message already shown
+        raise
     except Exception as e:
         console.print(f"\n[red]Error: {str(e)}[/red]")
         logger.error(f"Command failed: {e}", exc_info=True)
