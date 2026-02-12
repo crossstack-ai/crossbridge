@@ -45,6 +45,7 @@ from core.execution.intelligence.models import FailureType
 from core.ai.license import LicenseValidator, get_cost_estimate, format_cost_summary
 from core.ai.providers import OpenAIProvider, AnthropicProvider, OllamaProvider
 from core.ai.models import AIMessage, ModelConfig, AIExecutionContext, TokenUsage
+from services.ai_dashboard_service import get_dashboard_service
 
 logger = get_logger(__name__, category=LogCategory.ORCHESTRATION)
 
@@ -152,9 +153,13 @@ class SidecarAPIServer:
                 content={"detail": exc.errors(), "body": str(await request.body())}
             )
         
+        # Initialize AI dashboard service
+        self.dashboard_service = get_dashboard_service()
+        
         # Register routes
         self._setup_routes()
         self._setup_log_storage_routes()
+        self._setup_dashboard_routes()
     
     def _setup_routes(self):
         """Setup API routes"""
@@ -2061,6 +2066,200 @@ Now summarize the recommendations below following these rules exactly."""
             "original_count": len(recommendations),
             "summarized_count": len(summarized)
         }
+    
+    def _setup_dashboard_routes(self):
+        """Setup AI dashboard metrics routes"""
+        
+        @self.app.get("/ai-metrics/summary")
+        async def get_ai_metrics_summary(hours: int = 24):
+            """
+            Get AI metrics summary for dashboard display.
+            
+            Query Parameters:
+                hours: Number of hours to include (default: 24)
+                
+            Returns:
+                JSON with aggregated AI metrics summary
+            """
+            try:
+                summary = self.dashboard_service.get_summary(hours=hours)
+                return summary
+            except Exception as e:
+                logger.error(f"Failed to get AI metrics summary: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/ai-metrics/prometheus")
+        async def get_prometheus_metrics():
+            """
+            Get Prometheus-formatted metrics for scraping.
+            
+            Returns:
+                Prometheus text exposition format
+            """
+            try:
+                metrics_text = self.dashboard_service.get_prometheus_metrics()
+                return JSONResponse(
+                    content=metrics_text,
+                    media_type="text/plain; version=0.0.4"
+                )
+            except Exception as e:
+                logger.error(f"Failed to export Prometheus metrics: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/ai-metrics/grafana")
+        async def get_grafana_data(hours: int = 168):
+            """
+            Get Grafana-optimized dashboard data.
+            
+            Query Parameters:
+                hours: Number of hours to include (default: 168 = 1 week)
+                
+            Returns:
+                JSON with Grafana-compatible data structures
+            """
+            try:
+                grafana_data = self.dashboard_service.get_grafana_data(hours=hours)
+                return grafana_data
+            except Exception as e:
+                logger.error(f"Failed to get Grafana data: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/ai-metrics/trends")
+        async def get_trends(granularity: str = "day", hours: int = 168):
+            """
+            Get time-series trend data.
+            
+            Query Parameters:
+                granularity: Time granularity (hour, day, week, month)
+                hours: Number of hours to include (default: 168 = 1 week)
+                
+            Returns:
+                JSON array with aggregated metrics by time period
+            """
+            try:
+                if granularity.lower() not in ["hour", "day", "week", "month"]:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="granularity must be one of: hour, day, week, month"
+                    )
+                
+                trends = self.dashboard_service.get_trends(
+                    granularity=granularity,
+                    hours=hours
+                )
+                return trends
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Failed to get trends: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.get("/ai-metrics/framework/{framework}")
+        async def get_framework_metrics(framework: str, hours: int = 168):
+            """
+            Get metrics for a specific test framework.
+            
+            Path Parameters:
+                framework: Test framework name (robot, cypress, etc.)
+                
+            Query Parameters:
+                hours: Number of hours to include (default: 168 = 1 week)
+                
+            Returns:
+                JSON with framework-specific metrics
+            """
+            try:
+                metrics = self.dashboard_service.get_framework_metrics(
+                    framework=framework,
+                    hours=hours
+                )
+                return metrics
+            except Exception as e:
+                logger.error(f"Failed to get framework metrics: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.post("/ai-metrics/record")
+        async def record_ai_metrics(request: Request):
+            """
+            Record metrics for an AI-enhanced analysis run.
+            
+            Request Body (JSON):
+            {
+                "run_id": "unique-run-identifier",
+                "framework": "robot",
+                "total_failures": 25,
+                "ai_clusters_analyzed": 5,
+                "confidence_scores": [0.85, 0.92, 0.78],
+                "tokens_used": 1500,
+                "cost": 0.045,
+                "response_time_ms": 3200,
+                "model": "gpt-4",
+                "provider": "openai",
+                "error_count": 0,
+                "cache_hits": 2,
+                "suggestions_provided": 5
+            }
+            
+            Returns:
+                Success message
+            """
+            try:
+                data = await request.json()
+                
+                # Required fields
+                required_fields = ["run_id", "framework", "total_failures"]
+                missing = [f for f in required_fields if f not in data]
+                if missing:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Missing required fields: {', '.join(missing)}"
+                    )
+                
+                # Record metrics
+                self.dashboard_service.record_analysis(
+                    run_id=data["run_id"],
+                    framework=data["framework"],
+                    total_failures=data["total_failures"],
+                    ai_clusters_analyzed=data.get("ai_clusters_analyzed", 0),
+                    confidence_scores=data.get("confidence_scores", []),
+                    tokens_used=data.get("tokens_used", 0),
+                    cost=data.get("cost", 0.0),
+                    response_time_ms=data.get("response_time_ms", 0),
+                    model=data.get("model"),
+                    provider=data.get("provider"),
+                    error_count=data.get("error_count", 0),
+                    cache_hits=data.get("cache_hits", 0),
+                    suggestions_provided=data.get("suggestions_provided", 0)
+                )
+                
+                logger.info(f"Recorded AI metrics for run {data['run_id']}")
+                return {"status": "success", "run_id": data["run_id"]}
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Failed to record AI metrics: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.post("/ai-metrics/cleanup")
+        async def cleanup_old_metrics(days: int = 30):
+            """
+            Clean up metrics older than specified days.
+            
+            Query Parameters:
+                days: Number of days to retain (default: 30)
+                
+            Returns:
+                Number of metrics removed
+            """
+            try:
+                removed = self.dashboard_service.cleanup_old_metrics(days=days)
+                return {"status": "success", "removed_count": removed}
+            except Exception as e:
+                logger.error(f"Failed to cleanup metrics: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        logger.info("AI dashboard routes registered")
     
     async def start(self):
         """Start the API server"""

@@ -241,6 +241,124 @@ Cluster: Element Not Found → Score: 0.45 (Medium confidence)
 
 No configuration needed - enterprise features work seamlessly with existing workflows!
 
+**✨ NEW: AI Dashboard Metrics & Observability (v0.3.0+)**
+
+CrossBridge now provides comprehensive dashboard metrics for AI-enhanced analysis:
+
+```bash
+# Available dashboard endpoints via sidecar API (http://localhost:8765)
+
+# Get AI metrics summary (last 24 hours)
+curl http://localhost:8765/ai-metrics/summary?hours=24
+
+# Get Prometheus-compatible metrics for scraping
+curl http://localhost:8765/ai-metrics/prometheus
+
+# Get Grafana-optimized dashboard data
+curl http://localhost:8765/ai-metrics/grafana?hours=168
+
+# Get time-series trend data
+curl http://localhost:8765/ai-metrics/trends?granularity=day&hours=168
+
+# Get framework-specific metrics
+curl http://localhost:8765/ai-metrics/framework/robot?hours=168
+```
+
+**Dashboard Features:**
+
+**1. 📊 AI Performance Metrics**
+- **Confidence Score Trends** - Track AI analysis confidence over time
+- **Distribution Analysis** - Confidence score buckets (Very Low → Very High)
+- **Response Time Tracking** - Monitor AI API latency and performance
+- **Error Rate Monitoring** - Track AI request failures and retry rates
+
+**2. 💰 Cost & Token Usage Tracking**
+- **Real-time Cost Tracking** - Monitor AI usage costs per analysis
+- **Token Consumption** - Track input/output tokens across providers
+- **Cost by Model** - Breakdown of expenses by AI model (GPT-4, Claude, etc.)
+- **Budget Alerts** - Thresholds for cost control and optimization
+
+**3. 📈 Time-Series Aggregation**
+- **Multiple Granularities** - Hourly, daily, weekly, monthly views
+- **Trend Visualization** - Confidence scores, costs, and analysis counts over time
+- **Framework Breakdown** - Per-framework metrics (Robot, Cypress, etc.)
+- **Historical Analysis** - 30-day retention with configurable cleanup
+
+**4. 🎯 Prometheus/Grafana Integration**
+- **Prometheus Metrics Export** - Standard /metrics endpoint format
+- **Grafana-Ready Data** - Pre-formatted for dashboard panels
+- **Custom Labels** - Framework, model, provider tags for filtering
+- **Alerting Support** - Threshold-based alerts on error rates and costs
+
+**5. 🔍 Quality Metrics**
+- **Cache Hit Rates** - Track AI response caching effectiveness
+- **Suggestions Quality** - Monitor fix recommendation acceptance
+- **Model Comparison** - Compare performance across AI providers
+- **A/B Testing Support** - Evaluate different AI configurations
+
+**Example Grafana Dashboard Panels:**
+
+```json
+{
+  "single_stats": {
+    "total_analyses": {
+      "value": 156,
+      "unit": "analyses",
+      "description": "Total AI Analyses"
+    },
+    "avg_confidence": {
+      "value": 0.87,
+      "unit": "percent",
+      "thresholds": {"green": 0.8, "yellow": 0.6, "red": 0.4}
+    },
+    "total_cost": {
+      "value": 12.45,
+      "unit": "USD"
+    }
+  },
+  "time_series": {
+    "confidence_trend": [
+      {"time": "2026-02-11T00:00:00", "value": 0.85},
+      {"time": "2026-02-12T00:00:00", "value": 0.87}
+    ]
+  }
+}
+```
+
+**Prometheus Metrics Exposed:**
+
+- `crossbridge_ai_confidence_score` - Average confidence score (gauge)
+- `crossbridge_ai_tokens_used_total` - Total tokens consumed (counter)
+- `crossbridge_ai_cost_usd_total` - Total cost in USD (counter)
+- `crossbridge_ai_response_time_ms` - AI response time (gauge)
+- `crossbridge_ai_errors_total` - Total AI errors (counter)
+- `crossbridge_ai_cache_hits_total` - Total cache hits (counter)
+- `crossbridge_ai_clusters_analyzed_total` - Total clusters analyzed (counter)
+
+**Benefits:**
+- 📊 **Real-Time Visibility** - Monitor AI performance and costs in real-time
+- 💰 **Cost Optimization** - Identify expensive operations and optimize usage
+- 🔍 **Quality Assurance** - Track confidence scores and error rates
+- 📈 **Trend Analysis** - Identify patterns and anomalies over time
+- 🎯 **Grafana Integration** - Pre-built dashboards for immediate insights
+- ⚡ **Performance Monitoring** - Detect AI API slowdowns and bottlenecks
+
+**Automated Metric Collection:**
+
+Metrics are automatically recorded during AI-enhanced log parsing:
+- Runs in background via sidecar API
+- No performance impact on test execution
+- 30-day retention with automatic cleanup
+- File-based persistence (`data/ai_metrics.json`)
+- In-memory cache for fast access (last 1000 analyses)
+
+**Integration with Existing Tools:**
+- ✅ Compatible with Prometheus/Grafana stack
+- ✅ Works with existing CrossBridge intelligence features
+- ✅ Integrates with enterprise analysis (regression, confidence scoring)
+- ✅ Zero configuration - works out of the box
+- ✅ RESTful API for custom integrations
+
 **That's it!** No listener files, no configuration changes, no repository modifications.
 
 ### Legacy Script Support
