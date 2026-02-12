@@ -959,12 +959,10 @@ def parse_log_file(
     # Initialize root logger with timestamped file
     setup_logging()
     
-    logger.info(f"Starting log parsing for: {log_file}")
     parser = LogParser()
     
     # Check sidecar
     if not parser.check_sidecar():
-        logger.error("Sidecar check failed")
         raise typer.Exit(1)
     
     # Detect framework
@@ -986,7 +984,6 @@ def parse_log_file(
             console.print(f"  $ crossbridge log [cyan]{output_xml_path}[/cyan] --enable-ai")
         else:
             console.print("  $ crossbridge log [cyan]output.xml[/cyan] --enable-ai")
-        logger.error(f"Robot Framework HTML file not supported: {log_file}")
         raise typer.Exit(1)
     
     if framework == "unknown":
@@ -998,11 +995,10 @@ def parse_log_file(
         console.print("  - Playwright (playwright-trace.json)")
         console.print("  - Behave (behave-results.json)")
         console.print("  - Java Cucumber (*Steps.java)")
-        logger.error(f"Unknown log format: {log_file}")
         raise typer.Exit(1)
     
     console.print(f"[green][OK][/green] Detected framework: [blue]{framework}[/blue]")
-    logger.info(f"Detected framework: {framework}")
+    logger.info(f"Starting log parsing for: {log_file} (framework: {framework})")
     
     # Parse log
     parsed_data = parser.parse_log(log_file, framework)
