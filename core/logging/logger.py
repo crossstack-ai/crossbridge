@@ -94,7 +94,9 @@ class CrossBridgeLogger:
         self.category = category
         self._logger = logging.getLogger(f"crossbridge.{name}")
         self._logger.setLevel(level.value)
-        self._logger.propagate = False
+        # Enable propagation by default so logs reach root logger's handlers
+        # This allows centralized file logging while maintaining custom formatting
+        self._logger.propagate = True
         
         # Context for rich logging
         self._context: Dict[str, Any] = {
@@ -267,30 +269,68 @@ _file_enabled: bool = False
 
 
 def configure_logging(
-    level: LogLevel = LogLevel.INFO,
+    level: Optional[LogLevel] = None,
     log_dir: Optional[Path] = None,
-    enable_console: bool = True,
-    enable_file: bool = True,
+    enable_console: Optional[bool] = None,
+    enable_file: Optional[bool] = None,
+    use_config_file: bool = True,
 ) -> None:
     """
     Configure global logging settings.
     
+    Reads configuration from crossbridge.yml and environment variables if use_config_file=True.
+    Explicit parameters override config file settings.
+    
+    Environment variables (highest priority):
+    - CROSSBRIDGE_LOG_LEVEL: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - CROSSBRIDGE_LOG_TO_FILE: Enable file logging (true/false)
+    - CROSSBRIDGE_LOG_TO_CONSOLE: Enable console logging (true/false)
+    - CROSSBRIDGE_LOG_DIR: Log directory path
+    
     Args:
-        level: Global log level
-        log_dir: Directory for log files
-        enable_console: Enable console output
-        enable_file: Enable file output
+        level: Global log level (overrides config)
+        log_dir: Directory for log files (overrides config)
+        enable_console: Enable console output (overrides config)
+        enable_file: Enable file output (overrides config)
+        use_config_file: Whether to read from crossbridge.yml (default: True)
     """
     global _global_level, _log_dir, _console_enabled, _file_enabled
     
-    _global_level = level
-    _log_dir = Path(log_dir) if log_dir else None
-    _console_enabled = enable_console
-    _file_enabled = enable_file
+    # Read from config file if enabled
+    if use_config_file:
+        from .config_reader import read_logging_config
+        config = read_logging_config()
+        
+        # Apply config values if not explicitly overridden
+        if level is None:
+            _global_level = config['level']
+        else:
+            _global_level = level
+            
+        if log_dir is None and config.get('log_file_path'):
+            _log_dir = Path(config['log_file_path']).parent
+        elif log_dir is not None:
+            _log_dir = Path(log_dir)
+            
+        if enable_console is None:
+            _console_enabled = config.get('log_to_console', True)
+        else:
+            _console_enabled = enable_console
+            
+        if enable_file is None:
+            _file_enabled = config.get('log_to_file', True)
+        else:
+            _file_enabled = enable_file
+    else:
+        # Use provided values or defaults
+        _global_level = level or LogLevel.INFO
+        _log_dir = Path(log_dir) if log_dir else None
+        _console_enabled = enable_console if enable_console is not None else True
+        _file_enabled = enable_file if enable_file is not None else True
     
     # Update existing loggers
     for logger in _loggers.values():
-        logger.set_level(level)
+        logger.set_level(_global_level)
 
 
 def set_global_log_level(level: LogLevel) -> None:

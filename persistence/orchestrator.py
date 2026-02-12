@@ -9,8 +9,8 @@ import uuid
 import subprocess
 from typing import List, Optional
 from pathlib import Path
-import logging
 
+from core.logging import get_logger, LogCategory
 from persistence.db import DatabaseConfig, create_session
 from persistence.repositories import (
     discovery_repo,
@@ -20,7 +20,7 @@ from persistence.repositories import (
 )
 from persistence.models import from_test_metadata, from_page_object_reference
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERSISTENCE)
 
 
 def get_git_commit() -> Optional[str]:

@@ -8,11 +8,11 @@ import uuid
 from typing import Optional, List
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-import logging
 
+from core.logging import get_logger, LogCategory
 from ..models import TestPageMapping
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERSISTENCE)
 
 
 def insert_mapping(

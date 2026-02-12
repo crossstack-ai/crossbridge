@@ -20,7 +20,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from core.logging import get_logger
+from core.logging import get_logger, configure_logging
 from services.logging_service import setup_logging
 from core.log_analysis.regression import (
     compare_with_previous,
@@ -945,7 +945,14 @@ def parse_log_file(
     ai_summary_only: bool = False,
 ):
     """Core log parsing logic."""
-    # Initialize logging
+    # Configure CrossBridge loggers to use propagation only (no custom handlers)
+    # This ensures all logs go to the root logger's handlers (file + console)
+    configure_logging(
+        enable_console=False,  # Disable custom console handlers (use root logger's)
+        enable_file=False      # Disable file handlers (use root logger's)
+    )
+    
+    # Initialize root logger with timestamped file
     setup_logging()
     
     logger.info(f"Starting log parsing for: {log_file}")

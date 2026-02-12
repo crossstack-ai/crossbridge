@@ -10,30 +10,39 @@ Logs stored at: ~/.crossbridge/logs/run-<timestamp>.log
 
 import logging
 import sys
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
 
 def setup_logging(
-    log_level: str = "WARNING",
+    log_level: Optional[str] = None,
     log_dir: Optional[Path] = None
 ) -> Path:
     """
     Setup logging for CrossBridge.
     
+    Reads configuration from crossbridge.yml and environment variables.
+    Environment variables take precedence:
+    - CROSSBRIDGE_LOG_LEVEL: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - CROSSBRIDGE_LOG_DIR: Log directory path
+    - CROSSBRIDGE_LOG_TO_FILE: Enable file logging (true/false)
+    - CROSSBRIDGE_LOG_TO_CONSOLE: Enable console logging (true/false)
+    
     Args:
-        log_level: Console log level (DEBUG, INFO, WARNING, ERROR). Default: WARNING
-                  Set CROSSBRIDGE_LOG_LEVEL=INFO for verbose console output
-        log_dir: Optional custom log directory
+        log_level: Override console log level (optional)
+        log_dir: Override log directory (optional)
     
     Returns:
         Path to log file
     """
+    # Get log level from args > env > default
+    if log_level is None:
+        log_level = os.getenv('CROSSBRIDGE_LOG_LEVEL', 'WARNING').upper()
     # Determine log directory
     if log_dir is None:
         # Check environment variable first (for Docker/CI)
-        import os
         log_dir_env = os.getenv("CROSSBRIDGE_LOG_DIR")
         if log_dir_env:
             log_dir = Path(log_dir_env)

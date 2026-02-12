@@ -20,8 +20,8 @@ import json
 import sys
 from pathlib import Path
 from typing import Optional, List
-import logging
 
+from core.logging import get_logger, LogCategory
 from core.execution.intelligence.config_loader import load_config_or_default, create_default_config
 from core.execution.intelligence.log_source_builder import build_log_sources
 from core.execution.intelligence.log_router import route_log_collection
@@ -29,7 +29,7 @@ from core.execution.intelligence.analyzer import ExecutionIntelligenceAnalyzer
 from cli.branding import print_header
 from cli.errors import CrossbridgeError
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.CLI)
 
 
 @click.command(name='analyze-logs')

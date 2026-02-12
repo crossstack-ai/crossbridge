@@ -15,8 +15,14 @@ services:
       - CROSSBRIDGE_ENV=${CROSSBRIDGE_ENV:-local}
       - CROSSBRIDGE_API_HOST=0.0.0.0
       - CROSSBRIDGE_API_PORT=8765
-      - CROSSBRIDGE_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Logging Configuration
+      # Overrides crossbridge.yml logging section
+      # Levels: TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL
+      - CROSSBRIDGE_LOG_LEVEL=${CROSSBRIDGE_LOG_LEVEL:-INFO}
       - CROSSBRIDGE_LOG_DIR=/data/logs
+      - CROSSBRIDGE_LOG_TO_FILE=${CROSSBRIDGE_LOG_TO_FILE:-true}
+      - CROSSBRIDGE_LOG_TO_CONSOLE=${CROSSBRIDGE_LOG_TO_CONSOLE:-true}
       
       # Database Configuration (PostgreSQL + pgvector)
       - CROSSBRIDGE_DB_HOST=${CROSSBRIDGE_DB_HOST:-postgres}

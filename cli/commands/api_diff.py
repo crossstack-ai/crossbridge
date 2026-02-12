@@ -5,10 +5,11 @@ Commands for API Change Intelligence
 """
 
 import click
-import logging
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from core.logging import get_logger, LogCategory
+
+logger = get_logger(__name__, category=LogCategory.CLI)
 
 
 @click.group(name="api-diff")

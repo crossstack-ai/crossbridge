@@ -14,12 +14,13 @@ Requirements:
 """
 
 import sys
-import logging
 from pathlib import Path
 from typing import Optional
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from core.logging import get_logger, LogCategory
 
 try:
     import psycopg2
@@ -29,8 +30,9 @@ except ImportError:
     HAS_PSYCOPG2 = False
 
 from core.config.settings import load_config
+from core.logging import get_logger, LogCategory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.MIGRATION)
 
 
 class MigrationRunner:

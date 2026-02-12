@@ -9,11 +9,11 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from datetime import datetime
-import logging
 
+from core.logging import get_logger, LogCategory
 from ..models import DiscoveryRun
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.PERSISTENCE)
 
 
 def create_discovery_run(

@@ -10,9 +10,10 @@ from typing import Optional
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import NullPool
-import logging
 
-logger = logging.getLogger(__name__)
+from core.logging import get_logger, LogCategory
+
+logger = get_logger(__name__, category=LogCategory.PERSISTENCE)
 
 
 class DatabaseConfig:

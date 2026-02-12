@@ -18,10 +18,11 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.syntax import Syntax
 
+from core.logging import get_logger, LogCategory
 from core.intelligence.adapters import AdapterFactory
 from core.intelligence.models import UnifiedTestMemory
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.CLI)
 console = Console()
 
 app = typer.Typer(

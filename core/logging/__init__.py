@@ -31,6 +31,7 @@ from .filters import (
     LevelFilter,
     AIOperationFilter,
 )
+from .config_reader import read_logging_config
 
 __all__ = [
     # Core logger
@@ -58,6 +59,9 @@ __all__ = [
     'CategoryFilter',
     'LevelFilter',
     'AIOperationFilter',
+    
+    # Config reader
+    'read_logging_config',
 ]
 
 # Version and branding

@@ -15,6 +15,8 @@ import os
 from typing import Optional
 
 # Configure root logger BEFORE any CrossBridge imports to prevent INFO logs from observability modules
+# Read from environment or config file
+import os
 _log_level = os.getenv("CROSSBRIDGE_LOG_LEVEL", "WARNING").upper()
 _root_logger = logging.getLogger()
 _root_logger.setLevel(getattr(logging, _log_level, logging.WARNING))
@@ -108,14 +110,16 @@ def _custom_exception_hook(exc_type, exc_value, exc_traceback):
 
 sys.excepthook = _custom_exception_hook
 
+# Get CrossBridge logger for app.py
+from core.logging import get_logger as _get_cb_logger, LogCategory
+_app_logger = _get_cb_logger('cli.app', category=LogCategory.CLI)
+
 
 @app.callback(invoke_without_command=True)
 def main_menu(ctx: typer.Context):
     """CrossBridge Main Menu - Interactive CLI for test framework operations."""
-    # Setup logging for all commands
-    import os
-    log_level = os.getenv("CROSSBRIDGE_LOG_LEVEL", "WARNING")
-    setup_logging(log_level=log_level)
+    # Setup logging for all commands (reads from crossbridge.yml or environment)
+    setup_logging()
     
     # If a subcommand was invoked, don't show the menu
     if ctx.invoked_subcommand is not None:

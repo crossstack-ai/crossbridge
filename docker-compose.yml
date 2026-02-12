@@ -45,9 +45,13 @@ services:
       # Environment
       - CROSSBRIDGE_ENV=${CROSSBRIDGE_ENV:-local}
       
-      # Logging
-      - CROSSBRIDGE_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Logging Configuration
+      # Overrides crossbridge.yml logging section
+      # Levels: TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL
+      - CROSSBRIDGE_LOG_LEVEL=${CROSSBRIDGE_LOG_LEVEL:-INFO}
       - CROSSBRIDGE_LOG_DIR=/data/logs
+      - CROSSBRIDGE_LOG_TO_FILE=${CROSSBRIDGE_LOG_TO_FILE:-true}
+      - CROSSBRIDGE_LOG_TO_CONSOLE=${CROSSBRIDGE_LOG_TO_CONSOLE:-true}
       
       # Framework detection
       - CROSSBRIDGE_FRAMEWORK=robot

@@ -10,7 +10,8 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Optional
-import logging
+
+from core.logging import get_logger, LogCategory
 
 # Import adapters
 from adapters.pytest.adapter import PytestAdapter
@@ -39,7 +40,7 @@ from cli.commands.api_diff import register_commands as register_api_diff_command
 from cli.commands.semantic import semantic_group
 from cli.commands.drift_commands import add_drift_commands, execute_drift_command
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, category=LogCategory.CLI)
 
 
 class AdapterRegistry:

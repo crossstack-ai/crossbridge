@@ -24,7 +24,11 @@ import io
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.logging import get_logger, LogCategory
+from core.logging import get_logger, LogCategory, configure_logging
+
+# Configure logging from crossbridge.yml or environment variables
+# This reads CROSSBRIDGE_LOG_LEVEL, CROSSBRIDGE_LOG_TO_FILE, etc.
+configure_logging()
 
 logger = get_logger(__name__, category=LogCategory.OBSERVER)
 

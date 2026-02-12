@@ -9,9 +9,10 @@ User-friendly error messages with:
 """
 
 from typing import Optional, Dict
-import logging
 
-logger = logging.getLogger(__name__)
+from core.logging import get_logger, LogCategory
+
+logger = get_logger(__name__, category=LogCategory.CLI)
 
 
 class CrossBridgeError(Exception):
