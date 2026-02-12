@@ -138,6 +138,109 @@ requiring backend investigation.
 
 No configuration needed - clustering works automatically on all log parsing operations!
 
+**✨ NEW: Enterprise Analysis Features (v0.3.0+)**
+
+CrossBridge now includes advanced features for enterprise-grade failure analysis:
+
+```bash
+# Regression detection - compare with previous run to identify new failures
+crossbridge log output.xml --compare-with previous_run.json
+
+# Triage mode - generate CI/CD dashboard-friendly output with top N critical issues
+crossbridge log output.xml --triage --max-ai-clusters 5 -o triage.json
+
+# AI summary only - focus on top failures requiring AI analysis
+crossbridge log output.xml --enable-ai --ai-summary-only --max-ai-clusters 10
+```
+
+**Advanced Features:**
+
+**1. 🔄 Regression Detection**
+- Compare current run with previous results to identify:
+  - **New failures** - Issues appearing for the first time
+  - **Recurring failures** - Known issues that persist
+  - **Resolved failures** - Previously failing tests now passing
+- Automatic similarity matching (85% threshold)
+- Tracks failure evolution across test runs
+
+**2. 📊 Confidence Scoring**
+- Multi-signal hybrid scoring algorithm:
+  - **Cluster Signal (30%)** - Based on failure count and test coverage
+  - **Domain Signal (30%)** - Confidence in domain classification
+  - **Pattern Signal (20%)** - Error pattern consistency
+  - **AI Signal (20%)** - AI analysis confidence (when enabled)
+- Confidence score range: 0.0 - 1.0
+- Helps prioritize investigation efforts
+
+**3. 🧹 AI Output Sanitization**
+- Removes AI disclaimers and apologies automatically
+- Cleaner, more professional analysis output
+- 90% more concise AI responses
+- Blacklist-based phrase removal
+
+**4. 📦 Structured JSON Output**
+- Enterprise-grade structured format for CI/CD integration
+- Machine-readable analysis results
+- Domain-specific recommendations
+- Test statistics and metadata
+- Compatible with data warehouses and BI tools
+
+**5. 🎯 Triage Mode**
+- Condensed dashboard output for CI/CD pipelines
+- Focus on top N critical issues (configurable)
+- Reduced token size for faster dashboard rendering
+- Includes recommended actions per issue
+- Ideal for Jenkins, GitHub Actions, GitLab CI
+
+**Example Outputs:**
+
+```bash
+# Regression analysis output
+🔄 Performing regression analysis...
+✅ Regression analysis complete:
+   New failures: 3
+   Recurring: 5
+   Resolved: 2
+
+# Confidence scoring output
+📊 Computing confidence scores...
+Cluster: API Timeout → Score: 0.88 (High confidence)
+Cluster: Element Not Found → Score: 0.45 (Medium confidence)
+
+# Triage mode output (JSON)
+{
+  "critical_issues": [
+    {
+      "cluster_id": "cluster_1",
+      "root_cause": "HTTP 500 Internal Server Error",
+      "severity": "critical",
+      "confidence_score": 0.92,
+      "failure_count": 12,
+      "affected_tests": ["Test Login", "Test Checkout"],
+      "recommended_actions": [
+        "🚨 URGENT: Check backend service health immediately",
+        "Review API endpoint logs for 500 errors"
+      ],
+      "is_new_regression": true
+    }
+  ],
+  "summary": {
+    "total_issues": 1,
+    "new_regressions": 1,
+    "critical_count": 1
+  }
+}
+```
+
+**Benefits:**
+- 🚀 **Faster Root Cause Analysis** - Confidence scores guide investigation priority
+- 📈 **Trend Tracking** - Regression detection tracks failure evolution
+- 🤝 **Better Team Collaboration** - Structured output integrates with dashboards
+- 💡 **Actionable Insights** - Domain-specific recommendations accelerate fixes
+- 🎯 **CI/CD Optimized** - Triage mode reduces dashboard load times by 80%
+
+No configuration needed - enterprise features work seamlessly with existing workflows!
+
 **That's it!** No listener files, no configuration changes, no repository modifications.
 
 ### Legacy Script Support

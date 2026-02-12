@@ -22,6 +22,15 @@ from rich import box
 
 from core.logging import get_logger
 from services.logging_service import setup_logging
+from core.log_analysis.regression import (
+    compare_with_previous,
+    compute_confidence_score,
+    sanitize_ai_output,
+)
+from core.log_analysis.structured_output import (
+    create_structured_output,
+    create_triage_output,
+)
 
 console = Console()
 logger = get_logger(__name__)
@@ -29,7 +38,7 @@ logger = get_logger(__name__)
 
 def log_command(
     log_file: Path = typer.Argument(..., help="Path to log file to parse"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to file"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to file (JSON format)"),
     enable_ai: bool = typer.Option(False, "--enable-ai", help="Enable AI-enhanced analysis"),
     app_logs: Optional[str] = typer.Option(None, "--app-logs", "-a", help="Application logs for correlation"),
     test_name: Optional[str] = typer.Option(None, "--test-name", "-t", help="Filter by test name pattern"),
@@ -40,9 +49,13 @@ def log_command(
     time_from: Optional[str] = typer.Option(None, "--time-from", help="Filter tests after datetime"),
     time_to: Optional[str] = typer.Option(None, "--time-to", help="Filter tests before datetime"),
     no_analyze: bool = typer.Option(False, "--no-analyze", help="Disable intelligence analysis"),
+    compare_with: Optional[Path] = typer.Option(None, "--compare-with", help="Compare with previous run JSON for regression detection"),
+    triage: bool = typer.Option(False, "--triage", help="Triage mode: show only top issues for CI dashboards"),
+    max_ai_clusters: int = typer.Option(5, "--max-ai-clusters", help="Maximum clusters to analyze with AI (default: 5)"),
+    ai_summary_only: bool = typer.Option(False, "--ai-summary-only", help="AI mode: generate summary only, skip per-cluster analysis"),
 ):
     """
-    Parse and analyze test execution logs.
+    Parse and analyze test execution logs with advanced failure analysis.
     
     Supports multiple test frameworks with automatic detection:
     - Robot Framework (output.xml)
@@ -51,11 +64,31 @@ def log_command(
     - Behave (behave-results.json)
     - Java Cucumber (*Steps.java)
     
+    Intelligence Features:
+    - Automatic failure clustering and deduplication
+    - Severity-based prioritization (Critical/High/Medium/Low)
+    - Domain classification (Infra/Env/Test/Product)
+    - Regression detection (compare with previous runs)
+    - Confidence scoring for root cause identification
+    - AI-enhanced analysis with smart recommendations
+    
     Examples:
+        # Basic parsing with clustering
         crossbridge log output.xml
-        crossbridge log output.xml --enable-ai
+        
+        # Compare with previous run
+        crossbridge log output.xml --compare-with previous.json
+        
+        # Triage mode for CI/CD dashboards
+        crossbridge log output.xml --triage
+        
+        # AI-enhanced analysis
+        crossbridge log output.xml --enable-ai --max-ai-clusters 3
+        
+        # Export structured JSON
         crossbridge log output.xml --output results.json
-        crossbridge log output.xml --test-name "Login*"
+        
+        # Filter failed tests only
         crossbridge log output.xml --status FAIL
     """
     try:
@@ -72,6 +105,10 @@ def log_command(
             time_from=time_from,
             time_to=time_to,
             no_analyze=no_analyze,
+            compare_with=compare_with,
+            triage=triage,
+            max_ai_clusters=max_ai_clusters,
+            ai_summary_only=ai_summary_only,
         )
     except Exception as e:
         console.print(f"\n[red]Error: {str(e)}[/red]")
@@ -899,6 +936,10 @@ def parse_log_file(
     time_from: Optional[str] = None,
     time_to: Optional[str] = None,
     no_analyze: bool = False,
+    compare_with: Optional[Path] = None,
+    triage: bool = False,
+    max_ai_clusters: int = 5,
+    ai_summary_only: bool = False,
 ):
     """Core log parsing logic."""
     # Initialize logging
@@ -965,18 +1006,103 @@ def parse_log_file(
     }
     filtered_data = parser.apply_filters(enriched_data, {k: v for k, v in filters.items() if v})
     
-    # Display results
+    # Perform regression analysis if requested
+    regression_analysis = None
+    if compare_with and not no_analyze:
+        console.print("[blue]🔄 Performing regression analysis...[/blue]")
+        logger.info(f"Comparing with previous run: {compare_with}")
+        try:
+            regression_analysis = compare_with_previous(
+                enriched_data,
+                compare_with,
+                similarity_threshold=0.85
+            )
+            if regression_analysis:
+                console.print(f"[green]✅ Regression analysis complete:[/green]")
+                console.print(f"   New failures: [red]{len(regression_analysis.new_failures)}[/red]")
+                console.print(f"   Recurring: [yellow]{len(regression_analysis.recurring_failures)}[/yellow]")
+                console.print(f"   Resolved: [green]{len(regression_analysis.resolved_failures)}[/green]")
+                logger.info(f"Regression analysis: {len(regression_analysis.new_failures)} new, "
+                          f"{len(regression_analysis.recurring_failures)} recurring, "
+                          f"{len(regression_analysis.resolved_failures)} resolved")
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Regression analysis failed: {e}[/yellow]")
+            logger.warning(f"Regression analysis failed: {e}")
+    
+    # Compute confidence scores for clusters if analysis was performed
+    if not no_analyze and "failure_clusters" in enriched_data:
+        console.print("[blue]📊 Computing confidence scores...[/blue]")
+        clusters = enriched_data.get("failure_clusters", [])
+        for cluster in clusters:
+            try:
+                confidence = compute_confidence_score(cluster, enriched_data)
+                cluster["confidence_score"] = {
+                    "overall": confidence.overall_score,
+                    "cluster_signal": confidence.cluster_signal,
+                    "domain_signal": confidence.domain_signal,
+                    "pattern_signal": confidence.pattern_signal,
+                    "ai_signal": confidence.ai_signal,
+                    "components": confidence.components
+                }
+                logger.debug(f"Confidence score for {cluster.get('root_cause', 'unknown')}: {confidence.overall_score:.2f}")
+            except Exception as e:
+                logger.warning(f"Failed to compute confidence for cluster: {e}")
+                cluster["confidence_score"] = None
+    
+    # Apply AI sanitization if AI was enabled
+    if enable_ai and not no_analyze:
+        console.print("[blue]🧹 Sanitizing AI output...[/blue]")
+        clusters = enriched_data.get("failure_clusters", [])
+        for cluster in clusters:
+            if "ai_analysis" in cluster and cluster.get("ai_analysis"):
+                try:
+                    sanitized = sanitize_ai_output(cluster["ai_analysis"])
+                    cluster["ai_analysis"] = sanitized
+                    logger.debug(f"Sanitized AI output for cluster: {cluster.get('root_cause', 'unknown')}")
+                except Exception as e:
+                    logger.warning(f"Failed to sanitize AI output: {e}")
+    
+    # Generate structured output if triage mode is enabled
+    output_data = filtered_data
+    if triage and not no_analyze:
+        console.print(f"[blue]📋 Generating triage output (top {max_ai_clusters} critical issues)...[/blue]")
+        try:
+            output_data = create_triage_output(
+                enriched_data,
+                max_clusters=max_ai_clusters,
+                regression_analysis=regression_analysis
+            )
+            logger.info(f"Generated triage output with {len(output_data.get('critical_issues', []))} issues")
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Triage output generation failed: {e}[/yellow]")
+            logger.warning(f"Triage output failed: {e}")
+            output_data = filtered_data
+    elif output and not no_analyze:
+        # Generate full structured output if saving to file (not in triage mode)
+        console.print("[blue]📦 Generating structured output...[/blue]")
+        try:
+            output_data = create_structured_output(
+                enriched_data,
+                regression_analysis=regression_analysis
+            )
+            logger.info("Generated structured output")
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Structured output generation failed: {e}[/yellow]")
+            logger.warning(f"Structured output failed: {e}")
+            output_data = filtered_data
+    
+    # Display results (use filtered_data for console display, not structured output)
     parser.display_results(filtered_data, framework)
     
-    # Save to file
+    # Save to file (use structured output if generated)
     if output:
-        output.write_text(json.dumps(filtered_data, indent=2))
+        output.write_text(json.dumps(output_data, indent=2, default=str))
         console.print(f"\n[blue]Results saved to: {output}[/blue]")
         logger.info(f"Results saved to: {output}")
     else:
         # Save to default file
         default_output = log_file.with_suffix(f".parsed.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
-        default_output.write_text(json.dumps(filtered_data, indent=2))
+        default_output.write_text(json.dumps(output_data, indent=2, default=str))
         console.print(f"\n[blue]Full results saved to: {default_output}[/blue]")
         logger.info(f"Results saved to: {default_output}")
     
