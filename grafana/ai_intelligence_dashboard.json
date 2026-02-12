@@ -1,747 +1,621 @@
 {
-  "dashboard": {
-    "title": "CrossBridge AI Intelligence Dashboard",
-    "description": "Comprehensive AI-powered test intelligence with confidence tracking, cost monitoring, regression detection, and flaky test identification",
-    "tags": ["ai", "intelligence", "ml", "confidence", "cost-tracking", "regression", "flaky-detection"],
-    "timezone": "browser",
-    "schemaVersion": 38,
-    "version": 1,
-    "refresh": "30s",
-    "time": {
-      "from": "now-7d",
-      "to": "now"
-    },
-    "panels": [
-      {
-        "id": 1,
-        "title": "AI Analysis Overview",
-        "type": "stat",
-        "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
-        "targets": [
-          {
-            "expr": "sum(rate(crossbridge_ai_clusters_analyzed_total[5m]))",
-            "legendFormat": "Clusters/min"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value",
-          "textMode": "value_and_name"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "cpm",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "green" },
-                { "value": 10, "color": "yellow" },
-                { "value": 50, "color": "red" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 2,
-        "title": "Average AI Confidence",
-        "type": "gauge",
-        "gridPos": { "x": 4, "y": 0, "w": 5, "h": 4 },
-        "targets": [
-          {
-            "expr": "avg(crossbridge_ai_confidence_score)",
-            "legendFormat": "Confidence"
-          }
-        ],
-        "options": {
-          "showThresholdLabels": true,
-          "showThresholdMarkers": true
-        },
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "max": 1,
-            "unit": "percentunit",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "red" },
-                { "value": 0.6, "color": "yellow" },
-                { "value": 0.8, "color": "green" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 3,
-        "title": "AI Cost (Last 24h)",
-        "type": "stat",
-        "gridPos": { "x": 9, "y": 0, "w": 5, "h": 4 },
-        "targets": [
-          {
-            "expr": "sum(increase(crossbridge_ai_cost_usd_total[24h]))",
-            "legendFormat": "Total Cost"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value",
-          "textMode": "value_and_name"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "currencyUSD",
-            "decimals": 4,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "green" },
-                { "value": 1, "color": "yellow" },
-                { "value": 10, "color": "red" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 4,
-        "title": "AI Error Rate",
-        "type": "stat",
-        "gridPos": { "x": 14, "y": 0, "w": 5, "h": 4 },
-        "targets": [
-          {
-            "expr": "sum(rate(crossbridge_ai_errors_total[5m])) / sum(rate(crossbridge_ai_clusters_analyzed_total[5m])) * 100",
-            "legendFormat": "Error %"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "green" },
-                { "value": 5, "color": "yellow" },
-                { "value": 10, "color": "red" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 5,
-        "title": "Cache Hit Rate",
-        "type": "gauge",
-        "gridPos": { "x": 19, "y": 0, "w": 5, "h": 4 },
-        "targets": [
-          {
-            "expr": "sum(rate(crossbridge_ai_cache_hits_total[5m])) / (sum(rate(crossbridge_ai_clusters_analyzed_total[5m])) + sum(rate(crossbridge_ai_cache_hits_total[5m]))) * 100",
-            "legendFormat": "Cache Hit %"
-          }
-        ],
-        "options": {
-          "showThresholdLabels": true,
-          "showThresholdMarkers": true
-        },
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "max": 100,
-            "unit": "percent",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "red" },
-                { "value": 50, "color": "yellow" },
-                { "value": 80, "color": "green" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 6,
-        "title": "AI Confidence Score Trend (7 days)",
-        "type": "timeseries",
-        "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "expr": "avg(crossbridge_ai_confidence_score) by (model)",
-            "legendFormat": "{{model}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "drawStyle": "line",
-              "lineInterpolation": "smooth",
-              "fillOpacity": 20,
-              "showPoints": "auto"
-            },
-            "min": 0,
-            "max": 1,
-            "unit": "percentunit"
-          }
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "bottom",
-            "calcs": ["mean", "last"]
-          }
-        }
-      },
-      {
-        "id": 7,
-        "title": "AI Response Time (95th Percentile)",
-        "type": "timeseries",
-        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(crossbridge_ai_response_time_ms[5m]))",
-            "legendFormat": "p95 Response Time"
-          },
-          {
-            "expr": "avg(crossbridge_ai_response_time_ms)",
-            "legendFormat": "Avg Response Time"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "drawStyle": "line",
-              "lineInterpolation": "smooth",
-              "fillOpacity": 10
-            },
-            "unit": "ms"
-          }
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "bottom",
-            "calcs": ["mean", "max"]
-          }
-        }
-      },
-      {
-        "id": 8,
-        "title": "Token Usage by Model",
-        "type": "timeseries",
-        "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "expr": "sum(rate(crossbridge_ai_tokens_used_total[5m])) by (model)",
-            "legendFormat": "{{model}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "drawStyle": "bars",
-              "fillOpacity": 80,
-              "stacking": {
-                "mode": "normal"
-              }
-            },
-            "unit": "tokens/sec"
-          }
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "bottom",
-            "calcs": ["sum", "mean"]
-          }
-        }
-      },
-      {
-        "id": 9,
-        "title": "Cost Breakdown by Model",
-        "type": "piechart",
-        "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "expr": "sum(increase(crossbridge_ai_cost_usd_total[24h])) by (model)",
-            "legendFormat": "{{model}}"
-          }
-        ],
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "values": ["value", "percent"]
-          },
-          "pieType": "donut"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "currencyUSD",
-            "decimals": 4
-          }
-        }
-      },
-      {
-        "id": 10,
-        "title": "Confidence Score Distribution",
-        "type": "barchart",
-        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT CASE WHEN confidence < 0.4 THEN 'Very Low (0-0.4)' WHEN confidence < 0.6 THEN 'Low (0.4-0.6)' WHEN confidence < 0.8 THEN 'Medium (0.6-0.8)' WHEN confidence < 0.9 THEN 'High (0.8-0.9)' ELSE 'Very High (0.9-1.0)' END as confidence_range, COUNT(*) as count FROM ai_metrics WHERE timestamp > NOW() - INTERVAL '7 days' GROUP BY confidence_range ORDER BY MIN(confidence)",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "orientation": "horizontal",
-          "xTickLabelRotation": 0,
-          "showValue": "always"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            }
-          }
-        }
-      },
-      {
-        "id": 11,
-        "title": "Framework Analysis Breakdown",
-        "type": "barchart",
-        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "expr": "sum(rate(crossbridge_ai_clusters_analyzed_total[1h])) by (framework)",
-            "legendFormat": "{{framework}}"
-          }
-        ],
-        "options": {
-          "orientation": "horizontal",
-          "xTickLabelRotation": 0,
-          "showValue": "always"
-        }
-      },
-      {
-        "id": 12,
-        "title": "🔴 New Failures (Regression Detection)",
-        "type": "table",
-        "gridPos": { "x": 0, "y": 28, "w": 8, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT cluster_hash, root_cause, severity, confidence, occurrences FROM failure_clusters WHERE is_regression = true AND last_seen > NOW() - INTERVAL '24 hours' ORDER BY severity DESC, confidence DESC LIMIT 10",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "severity", "desc": true }]
-        },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "severity" },
-              "properties": [
-                {
-                  "id": "custom.displayMode",
-                  "value": "color-background"
-                },
-                {
-                  "id": "mappings",
-                  "value": [
-                    { "type": "value", "value": "CRITICAL", "text": "🔴 CRITICAL", "color": "dark-red" },
-                    { "type": "value", "value": "HIGH", "text": "🟠 HIGH", "color": "red" },
-                    { "type": "value", "value": "MEDIUM", "text": "🟡 MEDIUM", "color": "yellow" },
-                    { "type": "value", "value": "LOW", "text": "🟢 LOW", "color": "green" }
-                  ]
-                }
-              ]
-            },
-            {
-              "matcher": { "id": "byName", "options": "confidence" },
-              "properties": [
-                {
-                  "id": "custom.displayMode",
-                  "value": "gradient-gauge"
-                },
-                {
-                  "id": "min",
-                  "value": 0
-                },
-                {
-                  "id": "max",
-                  "value": 1
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 13,
-        "title": "⚠️ Flaky Tests Detected",
-        "type": "table",
-        "gridPos": { "x": 8, "y": 28, "w": 8, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT cluster_hash, root_cause, occurrences, AVG(confidence) as avg_confidence, COUNT(DISTINCT run_id) as run_count FROM failure_clusters WHERE is_flaky = true AND last_seen > NOW() - INTERVAL '7 days' GROUP BY cluster_hash, root_cause, occurrences ORDER BY run_count DESC LIMIT 10",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "run_count", "desc": true }]
-        },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "avg_confidence" },
-              "properties": [
-                {
-                  "id": "custom.displayMode",
-                  "value": "gradient-gauge"
-                },
-                {
-                  "id": "min",
-                  "value": 0
-                },
-                {
-                  "id": "max",
-                  "value": 1
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 14,
-        "title": "🟢 Fixed Failures (Since Last Run)",
-        "type": "table",
-        "gridPos": { "x": 16, "y": 28, "w": 8, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "WITH recent_runs AS (SELECT DISTINCT run_id, created_at FROM test_runs ORDER BY created_at DESC LIMIT 2), previous_failures AS (SELECT DISTINCT cluster_hash FROM failure_clusters WHERE run_id = (SELECT run_id FROM recent_runs ORDER BY created_at ASC LIMIT 1)), current_failures AS (SELECT DISTINCT cluster_hash FROM failure_clusters WHERE run_id = (SELECT run_id FROM recent_runs ORDER BY created_at DESC LIMIT 1)) SELECT fc.cluster_hash, fc.root_cause, fc.severity, fc.occurrences FROM failure_clusters fc WHERE fc.cluster_hash IN (SELECT cluster_hash FROM previous_failures EXCEPT SELECT cluster_hash FROM current_failures) ORDER BY fc.severity DESC LIMIT 10",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "severity", "desc": true }]
-        },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "severity" },
-              "properties": [
-                {
-                  "id": "custom.displayMode",
-                  "value": "color-background"
-                },
-                {
-                  "id": "mappings",
-                  "value": [
-                    { "type": "value", "value": "CRITICAL", "text": "✅ Fixed CRITICAL", "color": "green" },
-                    { "type": "value", "value": "HIGH", "text": "✅ Fixed HIGH", "color": "green" },
-                    { "type": "value", "value": "MEDIUM", "text": "✅ Fixed MEDIUM", "color": "green" },
-                    { "type": "value", "value": "LOW", "text": "✅ Fixed LOW", "color": "green" }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 15,
-        "title": "Failure Trend (7 Days)",
-        "type": "timeseries",
-        "gridPos": { "x": 0, "y": 36, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT DATE_TRUNC('day', created_at) as time, COUNT(*) as total_failures, COUNT(*) FILTER (WHERE is_regression = true) as new_failures, COUNT(*) FILTER (WHERE is_flaky = true) as flaky_failures FROM failure_clusters WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY time ORDER BY time",
-            "format": "time_series"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "drawStyle": "line",
-              "lineInterpolation": "smooth",
-              "fillOpacity": 20,
-              "showPoints": "always"
-            }
-          },
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "new_failures" },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": { "mode": "fixed", "fixedColor": "red" }
-                }
-              ]
-            },
-            {
-              "matcher": { "id": "byName", "options": "flaky_failures" },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": { "mode": "fixed", "fixedColor": "yellow" }
-                }
-              ]
-            }
-          ]
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "bottom",
-            "calcs": ["sum", "mean"]
-          }
-        }
-      },
-      {
-        "id": 16,
-        "title": "Top Root Causes (Cross-Run Analysis)",
-        "type": "table",
-        "gridPos": { "x": 12, "y": 36, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT root_cause, domain, COUNT(DISTINCT run_id) as affected_runs, SUM(occurrences) as total_occurrences, AVG(confidence) as avg_confidence FROM failure_clusters WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY root_cause, domain ORDER BY affected_runs DESC, total_occurrences DESC LIMIT 10",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "affected_runs", "desc": true }]
-        },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "domain" },
-              "properties": [
-                {
-                  "id": "custom.displayMode",
-                  "value": "color-background"
-                },
-                {
-                  "id": "mappings",
-                  "value": [
-                    { "type": "value", "value": "PRODUCT", "text": "🐛 Product Defect", "color": "red" },
-                    { "type": "value", "value": "INFRA", "text": "🔧 Infrastructure", "color": "orange" },
-                    { "type": "value", "value": "TEST", "text": "🧪 Test Issue", "color": "blue" },
-                    { "type": "value", "value": "ENV", "text": "🌍 Environment", "color": "purple" }
-                  ]
-                }
-              ]
-            },
-            {
-              "matcher": { "id": "byName", "options": "avg_confidence" },
-              "properties": [
-                {
-                  "id": "custom.displayMode",
-                  "value": "gradient-gauge"
-                },
-                {
-                  "id": "min",
-                  "value": 0
-                },
-                {
-                  "id": "max",
-                  "value": 1
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 17,
-        "title": "AI Model Performance Comparison",
-        "type": "table",
-        "gridPos": { "x": 0, "y": 44, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT ai_model, COUNT(*) as analyses, AVG(AVG(confidence)) OVER (PARTITION BY ai_model) as avg_confidence, SUM(tokens_used) as total_tokens, AVG(inference_time_ms) as avg_inference_time FROM ai_metrics WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY ai_model ORDER BY avg_confidence DESC",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "avg_confidence", "desc": true }]
-        },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "avg_confidence" },
-              "properties": [
-                {
-                  "id": "custom.displayMode",
-                  "value": "gradient-gauge"
-                },
-                {
-                  "id": "min",
-                  "value": 0
-                },
-                {
-                  "id": "max",
-                  "value": 1
-                }
-              ]
-            },
-            {
-              "matcher": { "id": "byName", "options": "avg_inference_time" },
-              "properties": [
-                {
-                  "id": "unit",
-                  "value": "ms"
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 18,
-        "title": "Domain Distribution (Product vs Infra vs Test)",
-        "type": "piechart",
-        "gridPos": { "x": 12, "y": 44, "w": 12, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT domain, COUNT(*) as count FROM failure_clusters WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY domain ORDER BY count DESC",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "values": ["value", "percent"]
-          },
-          "pieType": "pie"
-        },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "PRODUCT" },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": { "mode": "fixed", "fixedColor": "red" }
-                }
-              ]
-            },
-            {
-              "matcher": { "id": "byName", "options": "INFRA" },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": { "mode": "fixed", "fixedColor": "orange" }
-                }
-              ]
-            },
-            {
-              "matcher": { "id": "byName", "options": "TEST" },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": { "mode": "fixed", "fixedColor": "blue" }
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 19,
-        "title": "AI Analysis Volume by Hour (7 Days)",
-        "type": "heatmap",
-        "gridPos": { "x": 0, "y": 52, "w": 24, "h": 8 },
-        "targets": [
-          {
-            "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as count FROM test_runs WHERE ai_enabled = true AND created_at > NOW() - INTERVAL '7 days' GROUP BY time, hour ORDER BY time",
-            "format": "time_series"
-          }
-        ],
-        "options": {
-          "calculate": true,
-          "cellGap": 2,
-          "color": {
-            "mode": "scheme",
-            "scheme": "Spectral",
-            "steps": 128
-          },
-          "yAxis": {
-            "unit": "short",
-            "decimals": 0
-          }
-        }
-      }
-    ],
-    "templating": {
-      "list": [
-        {
-          "name": "framework",
-          "type": "query",
-          "label": "Framework",
-          "query": {
-            "rawSql": "SELECT DISTINCT framework FROM test_runs ORDER BY framework"
-          },
-          "multi": true,
-          "includeAll": true,
-          "allValue": ".*"
-        },
-        {
-          "name": "model",
-          "type": "query",
-          "label": "AI Model",
-          "query": {
-            "rawSql": "SELECT DISTINCT ai_model FROM test_runs WHERE ai_enabled = true ORDER BY ai_model"
-          },
-          "multi": true,
-          "includeAll": true,
-          "allValue": ".*"
-        },
-        {
-          "name": "severity",
-          "type": "custom",
-          "label": "Severity",
-          "options": [
-            { "text": "All", "value": ".*", "selected": true },
-            { "text": "CRITICAL", "value": "CRITICAL" },
-            { "text": "HIGH", "value": "HIGH" },
-            { "text": "MEDIUM", "value": "MEDIUM" },
-            { "text": "LOW", "value": "LOW" }
-          ],
-          "multi": true,
-          "includeAll": true
-        }
-      ]
-    }
+  "annotations": {
+    "list": []
   },
-  "inputs": [
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
     {
-      "name": "DS_POSTGRES",
-      "label": "PostgreSQL",
-      "description": "PostgreSQL datasource for CrossBridge Intelligence Store",
-      "type": "datasource",
-      "pluginId": "postgres",
-      "pluginName": "PostgreSQL"
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 100},
+              {"color": "red", "value": 500}
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
+        }
+      ],
+      "title": "AI Analyses (24h)",
+      "type": "stat"
     },
     {
-      "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
-      "description": "Prometheus datasource for real-time AI metrics",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.6},
+              {"color": "green", "value": 0.8}
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "id": 2,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(confidence_score) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg AI Confidence",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "red", "value": 50}
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SUM(cost_usd) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
+        }
+      ],
+      "title": "AI Cost (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT (COUNT(*) FILTER (WHERE error_occurred = true) * 100.0 / NULLIF(COUNT(*), 0)) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
+        }
+      ],
+      "title": "AI Error Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 20},
+              {"color": "green", "value": 40}
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "id": 5,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT (COUNT(*) FILTER (WHERE cache_hit = true) * 100.0 / NULLIF(COUNT(*), 0)) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
+        }
+      ],
+      "title": "Cache Hit Rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 4},
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, ai_model as metric, AVG(confidence_score) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY time, ai_model ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "AI Confidence Trend by Model",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 4},
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, 'Avg Response Time' as metric, AVG(response_time_ms) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY time ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "AI Response Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "normal"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 10},
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, ai_model as metric, SUM(tokens_used) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY time, ai_model ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "Token Usage by Model",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false}
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 12, "y": 10},
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ai_model, SUM(cost_usd) as value FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY ai_model ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Cost Breakdown by Model",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"}
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 18, "y": 10},
+      "id": 10,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {"mode": "single"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN confidence_score < 0.4 THEN 'Very Low' WHEN confidence_score < 0.6 THEN 'Low' WHEN confidence_score < 0.8 THEN 'Medium' WHEN confidence_score < 0.9 THEN 'High' ELSE 'Very High' END as confidence_range, COUNT(*) as count FROM ai_metrics WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY confidence_range ORDER BY MIN(confidence_score);",
+          "refId": "A"
+        }
+      ],
+      "title": "Confidence Distribution",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "severity"},
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {"type": "color-background"}
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {"type": "value", "value": "critical", "display": {"color": "dark-red"}},
+                  {"type": "value", "value": "high", "display": {"color": "dark-orange"}},
+                  {"type": "value", "value": "medium", "display": {"color": "dark-yellow"}},
+                  {"type": "value", "value": "low", "display": {"color": "dark-green"}}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT root_cause, severity, domain, COUNT(*) as occurrences, AVG(confidence_score)::numeric(3,2) as confidence FROM failure_clusters WHERE is_regression = true AND created_at >= NOW() - INTERVAL '24 hours' GROUP BY root_cause, severity, domain ORDER BY occurrences DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "🔴 New Failures (Regressions)",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "id": 13,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT root_cause, severity, domain, COUNT(*) as occurrences, AVG(confidence_score)::numeric(3,2) as confidence FROM failure_clusters WHERE is_flaky = true AND created_at >= NOW() - INTERVAL '7 days' GROUP BY root_cause, severity, domain ORDER BY occurrences DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "⚠️ Flaky Tests",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT root_cause, severity, domain, COUNT(*) as occurrences FROM failure_clusters WHERE is_fixed = true AND created_at >= NOW() - INTERVAL '24 hours' GROUP BY root_cause, severity, domain ORDER BY occurrences DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "🟢 Fixed Failures",
+      "type": "table"
     }
   ],
-  "overwrite": true
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["crossbridge", "ai", "intelligence"],
+  "templating": {"list": []},
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CrossBridge AI Intelligence Dashboard",
+  "version": 0,
+  "weekStart": ""
 }

@@ -1,470 +1,514 @@
 {
-  "dashboard": {
-    "title": "Test Execution & Trend Analysis Dashboard",
-    "description": "Comprehensive view of test execution metrics, pass/fail rates, performance trends, and test suite evolution",
-    "tags": ["test-execution", "trends", "performance", "quality"],
-    "timezone": "browser",
-    "schemaVersion": 38,
-    "version": 1,
-    "refresh": "30s",
-    "time": {
-      "from": "now-7d",
-      "to": "now"
-    },
-    "templating": {
-      "list": [
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "green", "value": 50}
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
         {
-          "name": "framework",
-          "type": "query",
-          "datasource": "PostgreSQL",
-          "query": "SELECT DISTINCT framework FROM test_runs ORDER BY framework",
-          "multi": true,
-          "includeAll": true,
-          "allValue": ".*"
-        },
-        {
-          "name": "environment",
-          "type": "custom",
-          "query": "qa,stage,prod,local",
-          "multi": true,
-          "includeAll": true
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Total Test Executions (24h)",
+      "type": "stat"
     },
-    "panels": [
-      {
-        "id": 1,
-        "title": "📊 Total Test Executions",
-        "type": "stat",
-        "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT COUNT(*) as total FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours' AND framework IN ($framework)",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value",
-          "textMode": "value_and_name"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "red" },
-                { "value": 10, "color": "orange" },
-                { "value": 50, "color": "green" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 2,
-        "title": "✅ Pass Rate (24h)",
-        "type": "gauge",
-        "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT (COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / NULLIF(COUNT(*), 0)) as pass_rate FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours' AND framework IN ($framework)",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showThresholdLabels": true,
-          "showThresholdMarkers": true
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "min": 0,
-            "max": 100,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "red" },
-                { "value": 70, "color": "orange" },
-                { "value": 90, "color": "yellow" },
-                { "value": 95, "color": "green" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 3,
-        "title": "⏱️ Avg Test Duration",
-        "type": "stat",
-        "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT AVG(duration_ms) as avg_duration FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours' AND framework IN ($framework)",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "ms",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "green" },
-                { "value": 5000, "color": "yellow" },
-                { "value": 10000, "color": "red" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 4,
-        "title": "🔄 Test Execution Frequency",
-        "type": "stat",
-        "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT COUNT(*) / 24.0 as executions_per_hour FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours'",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value",
-          "textMode": "value_and_name"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "short",
-            "decimals": 1,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": 0, "color": "red" },
-                { "value": 1, "color": "yellow" },
-                { "value": 5, "color": "green" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 5,
-        "title": "📈 Pass/Fail Rate Trend (7 Days)",
-        "type": "timeseries",
-        "gridPos": { "x": 0, "y": 4, "w": 12, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / NULLIF(COUNT(*), 0) as \"Pass Rate\", COUNT(*) FILTER (WHERE status = 'failed') * 100.0 / NULLIF(COUNT(*), 0) as \"Fail Rate\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' AND framework IN ($framework) GROUP BY time ORDER BY time",
-            "format": "time_series"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 10,
-              "spanNulls": true
-            }
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]
           },
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "Pass Rate" },
-              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
-            },
-            {
-              "matcher": { "id": "byName", "options": "Fail Rate" },
-              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
-            }
-          ]
-        },
-        "options": {
-          "legend": {
-            "displayMode": "list",
-            "placement": "bottom"
-          }
+          "unit": "percent"
         }
       },
-      {
-        "id": 6,
-        "title": "🎯 Test Count Evolution (30 Days)",
-        "type": "timeseries",
-        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT DATE_TRUNC('day', created_at) as time, COUNT(DISTINCT test_name) as \"Unique Tests\", COUNT(*) as \"Total Executions\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '30 days' AND framework IN ($framework) GROUP BY time ORDER BY time",
-            "format": "time_series"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 5
-            }
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "id": 2,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT (COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / NULLIF(COUNT(*), 0)) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
+        }
+      ],
+      "title": "Pass Rate (24h)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5000},
+              {"color": "red", "value": 10000}
+            ]
           },
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "Unique Tests" },
-              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }]
-            },
-            {
-              "matcher": { "id": "byName", "options": "Total Executions" },
-              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } }]
-            }
-          ]
+          "unit": "ms"
         }
       },
-      {
-        "id": 7,
-        "title": "⚡ Performance Trend - Test Duration (7 Days)",
-        "type": "timeseries",
-        "gridPos": { "x": 0, "y": 10, "w": 16, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, AVG(duration_ms) as \"Avg Duration\", PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms) as \"Median Duration\", PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ms) as \"P95 Duration\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' AND framework IN ($framework) GROUP BY time ORDER BY time",
-            "format": "time_series"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "ms",
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 10
-            }
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(duration_ms) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Test Duration",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "green", "value": 5}
+            ]
           },
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "Avg Duration" },
-              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }]
-            },
-            {
-              "matcher": { "id": "byName", "options": "Median Duration" },
-              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
-            },
-            {
-              "matcher": { "id": "byName", "options": "P95 Duration" },
-              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
-            }
-          ]
+          "unit": "short",
+          "decimals": 1
         }
       },
-      {
-        "id": 8,
-        "title": "🔥 Slowest Tests (Last 24h)",
-        "type": "table",
-        "gridPos": { "x": 16, "y": 10, "w": 8, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT test_name as \"Test Name\", framework as \"Framework\", MAX(duration_ms) as \"Max Duration (ms)\", AVG(duration_ms) as \"Avg Duration (ms)\", COUNT(*) as \"Executions\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours' AND framework IN ($framework) GROUP BY test_name, framework ORDER BY MAX(duration_ms) DESC LIMIT 10",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "Max Duration (ms)", "desc": true }]
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
         },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "Max Duration (ms)" },
-              "properties": [
-                { "id": "custom.displayMode", "value": "gradient-gauge" },
-                { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": 0, "color": "green" }, { "value": 5000, "color": "yellow" }, { "value": 10000, "color": "red" }] } }
-              ]
-            }
-          ]
-        }
+        "textMode": "value_and_name"
       },
-      {
-        "id": 9,
-        "title": "🏗️ Framework Adoption Trend (30 Days)",
-        "type": "timeseries",
-        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT DATE_TRUNC('day', created_at) as time, framework, COUNT(*) as executions FROM test_runs WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY time, framework ORDER BY time, framework",
-            "format": "time_series"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 0,
-              "stacking": { "mode": "normal" }
-            }
-          }
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "calcs": ["sum", "last"]
-          }
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT (COUNT(*) / 24.0) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours';",
+          "refId": "A"
         }
-      },
-      {
-        "id": 10,
-        "title": "📊 Framework Distribution (Last 7 Days)",
-        "type": "piechart",
-        "gridPos": { "x": 12, "y": 16, "w": 6, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT framework, COUNT(*) as count FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' AND framework IN ($framework) GROUP BY framework ORDER BY count DESC",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "pieType": "donut",
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "values": ["value", "percent"]
-          }
-        }
-      },
-      {
-        "id": 11,
-        "title": "💯 Test Stability Score (Last 30 Days)",
-        "type": "table",
-        "gridPos": { "x": 18, "y": 16, "w": 6, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT test_name as \"Test Name\", COUNT(*) as \"Total Runs\", COUNT(*) FILTER (WHERE status = 'passed') as \"Passed\", (COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / COUNT(*)) as \"Stability %\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '30 days' AND framework IN ($framework) GROUP BY test_name HAVING COUNT(*) >= 5 ORDER BY \"Stability %\" ASC LIMIT 15",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "Stability %", "desc": false }]
-        },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "Stability %" },
-              "properties": [
-                { "id": "custom.displayMode", "value": "gradient-gauge" },
-                { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": 0, "color": "red" }, { "value": 70, "color": "yellow" }, { "value": 95, "color": "green" }] } }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "id": 12,
-        "title": "📅 Test Execution Heatmap (Last 7 Days)",
-        "type": "heatmap",
-        "gridPos": { "x": 0, "y": 22, "w": 12, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as executions FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' AND framework IN ($framework) GROUP BY time, hour ORDER BY time",
-            "format": "time_series"
-          }
-        ],
-        "options": {
-          "calculate": false,
-          "cellGap": 2,
-          "color": {
-            "mode": "scheme",
-            "scheme": "Spectral"
+      ],
+      "title": "Execution Frequency (per hour)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
           },
-          "yAxis": {
-            "decimals": 0
-          }
+          "unit": "percent"
         }
       },
-      {
-        "id": 13,
-        "title": "🏆 Most Executed Tests (Last 7 Days)",
-        "type": "table",
-        "gridPos": { "x": 12, "y": 22, "w": 12, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "SELECT test_name as \"Test Name\", framework as \"Framework\", COUNT(*) as \"Executions\", COUNT(*) FILTER (WHERE status = 'passed') as \"Passed\", COUNT(*) FILTER (WHERE status = 'failed') as \"Failed\", (COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / COUNT(*)) as \"Pass Rate %\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' AND framework IN ($framework) GROUP BY test_name, framework ORDER BY COUNT(*) DESC LIMIT 20",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "Executions", "desc": true }]
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 4},
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "Pass Rate %" },
-              "properties": [
-                { "id": "custom.displayMode", "value": "color-background" },
-                { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": 0, "color": "red" }, { "value": 90, "color": "yellow" }, { "value": 95, "color": "green" }] } }
-              ]
-            }
-          ]
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, 'Pass Rate' as metric, (COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / NULLIF(COUNT(*), 0)) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY time ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "Pass/Fail Rate Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "unit": "short"
         }
       },
-      {
-        "id": 14,
-        "title": "🔍 New Tests Introduced (Last 30 Days)",
-        "type": "table",
-        "gridPos": { "x": 0, "y": 28, "w": 12, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "WITH first_run AS (SELECT test_name, framework, MIN(created_at) as first_seen FROM test_runs GROUP BY test_name, framework) SELECT f.test_name as \"Test Name\", f.framework as \"Framework\", f.first_seen as \"First Seen\", COUNT(t.id) as \"Total Runs\", COUNT(*) FILTER (WHERE t.status = 'passed') as \"Passed\" FROM first_run f JOIN test_runs t ON f.test_name = t.test_name AND f.framework = t.framework WHERE f.first_seen >= NOW() - INTERVAL '30 days' AND f.framework IN ($framework) GROUP BY f.test_name, f.framework, f.first_seen ORDER BY f.first_seen DESC LIMIT 15",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true
-        }
-      },
-      {
-        "id": 15,
-        "title": "⚠️ Tests With Increasing Duration (Performance Regression)",
-        "type": "table",
-        "gridPos": { "x": 12, "y": 28, "w": 12, "h": 6 },
-        "datasource": "PostgreSQL",
-        "targets": [
-          {
-            "rawSql": "WITH recent AS (SELECT test_name, framework, AVG(duration_ms) as recent_avg FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY test_name, framework), older AS (SELECT test_name, framework, AVG(duration_ms) as older_avg FROM test_runs WHERE created_at >= NOW() - INTERVAL '14 days' AND created_at < NOW() - INTERVAL '7 days' GROUP BY test_name, framework) SELECT r.test_name as \"Test Name\", r.framework as \"Framework\", o.older_avg as \"Avg Duration 2 Weeks Ago (ms)\", r.recent_avg as \"Avg Duration Last Week (ms)\", ((r.recent_avg - o.older_avg) / o.older_avg * 100) as \"% Increase\" FROM recent r JOIN older o ON r.test_name = o.test_name AND r.framework = o.framework WHERE r.recent_avg > o.older_avg AND o.older_avg > 0 AND r.framework IN ($framework) ORDER BY ((r.recent_avg - o.older_avg) / o.older_avg) DESC LIMIT 15",
-            "format": "table"
-          }
-        ],
-        "options": {
-          "showHeader": true,
-          "sortBy": [{ "displayName": "% Increase", "desc": true }]
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 4},
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "fieldConfig": {
-          "overrides": [
-            {
-              "matcher": { "id": "byName", "options": "% Increase" },
-              "properties": [
-                { "id": "custom.displayMode", "value": "gradient-gauge" },
-                { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": 0, "color": "green" }, { "value": 20, "color": "yellow" }, { "value": 50, "color": "red" }] } }
-              ]
-            }
-          ]
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('day', created_at) as time, 'Unique Tests' as metric, COUNT(DISTINCT test_name) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY time ORDER BY time;",
+          "refId": "A"
         }
-      }
-    ]
-  }
+      ],
+      "title": "Test Count Evolution",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": {"h": 6, "w": 16, "x": 0, "y": 10},
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('hour', created_at) as time, 'Avg Duration' as metric, AVG(duration_ms) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY time ORDER BY time;",
+          "refId": "A"
+        }
+      ],
+      "title": "Performance Trend - Test Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5000},
+              {"color": "red", "value": 10000}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 10},
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT test_name as \"Test\", framework as \"Framework\", MAX(duration_ms) as \"Max Duration (ms)\", AVG(duration_ms)::integer as \"Avg Duration (ms)\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '24 hours' GROUP BY test_name, framework ORDER BY MAX(duration_ms) DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "Slowest Tests (Last 24h)",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false}
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT framework, COUNT(*) as value FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY framework ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Framework Distribution (Last 7 Days)",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 95}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16},
+      "id": 10,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT test_name as \"Test\", COUNT(*) as \"Runs\", (COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / COUNT(*))::numeric(5,2) as \"Stability %\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY test_name HAVING COUNT(*) >= 5 ORDER BY \"Stability %\" ASC LIMIT 15;",
+          "refId": "A"
+        }
+      ],
+      "title": "Test Stability Score (Least Stable)",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 22},
+      "id": 11,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "postgres"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT test_name as \"Test\", framework as \"Framework\", COUNT(*) as \"Executions\", COUNT(*) FILTER (WHERE status = 'passed') as \"Passed\", COUNT(*) FILTER (WHERE status = 'failed') as \"Failed\", (COUNT(*) FILTER (WHERE status = 'passed') * 100.0 / COUNT(*))::numeric(5,2) as \"Pass Rate %\" FROM test_runs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY test_name, framework ORDER BY COUNT(*) DESC LIMIT 20;",
+          "refId": "A"
+        }
+      ],
+      "title": "Most Executed Tests (Last 7 Days)",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["crossbridge", "test-execution", "trends"],
+  "templating": {"list": []},
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CrossBridge Test Execution & Trend Analysis",
+  "version": 0,
+  "weekStart": ""
 }

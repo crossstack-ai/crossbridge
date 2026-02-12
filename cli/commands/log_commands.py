@@ -169,6 +169,10 @@ class LogParser:
         """Auto-detect framework based on filename and content."""
         filename = log_file.name.lower()
         
+        # Check for Robot Framework HTML files (not parseable)
+        if filename in ("log.html", "report.html") or (filename.endswith(".html") and "robot" in filename):
+            return "robot-html-unsupported"
+        
         # Check by filename patterns
         if "output.xml" in filename or filename.startswith("robot"):
             return "robot"
@@ -966,8 +970,28 @@ def parse_log_file(
     # Detect framework
     framework = parser.detect_framework(log_file)
     
+    if framework == "robot-html-unsupported":
+        console.print(f"[red]Error: Robot Framework HTML files cannot be parsed[/red]")
+        console.print("")
+        console.print(f"[yellow]You provided:[/yellow] {log_file.name}")
+        console.print("")
+        console.print("[yellow]HTML files (log.html, report.html) are for viewing results in a browser.")
+        console.print("To parse and analyze test results, please use the XML output file instead:[/yellow]")
+        console.print("")
+        console.print("  [green]✓[/green] Use: [cyan]output.xml[/cyan] (typically in the same directory)")
+        console.print("")
+        console.print("Example:")
+        if log_file.parent:
+            output_xml_path = log_file.parent / "output.xml"
+            console.print(f"  $ crossbridge log [cyan]{output_xml_path}[/cyan] --enable-ai")
+        else:
+            console.print("  $ crossbridge log [cyan]output.xml[/cyan] --enable-ai")
+        logger.error(f"Robot Framework HTML file not supported: {log_file}")
+        raise typer.Exit(1)
+    
     if framework == "unknown":
         console.print(f"[red]Error: Could not detect log format for {log_file}[/red]")
+        console.print("")
         console.print("Supported formats:")
         console.print("  - Robot Framework (output.xml)")
         console.print("  - Cypress (cypress-results.json)")
