@@ -96,6 +96,10 @@ class ExecutionOrchestrator:
                 f"{result.execution_time_seconds:.1f}s"
             )
             
+            # Step 2.5: Process structured log artifacts (if enabled)
+            if self.config.get('log_analysis', {}).get('enabled', False):
+                result = self._process_log_artifacts(result)
+            
             # Step 3: Store results (for future analysis)
             self._store_result(result, plan)
             
@@ -268,6 +272,137 @@ class ExecutionOrchestrator:
         """Store execution result for future analysis"""
         # This would persist to results database
         logger.debug("Storing execution result")
+    
+    def _process_log_artifacts(self, result: ExecutionResult) -> ExecutionResult:
+        """
+        Process structured log artifacts (TestNG, framework logs).
+        
+        Args:
+            result: Execution result with report/log paths
+            
+        Returns:
+            Enhanced result with structured failures
+        """
+        try:
+            from core.log_analysis.ingestion import (
+                LogArtifacts,
+                TestNGParser,
+                FrameworkLogParser,
+                CorrelationEngine
+            )
+            
+            logger.info("Processing structured log artifacts")
+            
+            # Collect available artifacts
+            artifacts = self._collect_log_artifacts(result)
+            
+            if not artifacts.validate():
+                logger.warning("No valid log artifacts found for structured analysis")
+                return result
+            
+            logger.info(f"Found artifacts: {', '.join(artifacts.available_sources())}")
+            
+            # Parse TestNG XML (if available)
+            structured_failures = []
+            if artifacts.testng_xml_path:
+                parser = TestNGParser()
+                structured_failures = parser.parse(artifacts.testng_xml_path)
+                logger.info(f"Parsed {len(structured_failures)} TestNG test results")
+            
+            # Parse framework logs (if available)
+            framework_parser = None
+            if artifacts.framework_log_path:
+                framework_parser = FrameworkLogParser()
+                framework_parser.parse(artifacts.framework_log_path)
+                logger.info(
+                    f"Parsed framework logs: "
+                    f"{len(framework_parser.get_errors())} errors, "
+                    f"{len(framework_parser.get_warnings())} warnings"
+                )
+            
+            # Correlate failures with logs
+            if structured_failures:
+                engine = CorrelationEngine()
+                correlated = engine.correlate(structured_failures, framework_parser)
+                
+                summary = engine.get_summary()
+                logger.info(
+                    f"Correlation complete: {summary['total_failures']} failures, "
+                    f"{summary['with_logs']} with framework logs, "
+                    f"{summary['infra_related']} infra-related"
+                )
+                
+                # Attach to result
+                result.log_artifacts = artifacts
+                result.structured_failures = correlated
+            
+            return result
+            
+        except ImportError:
+            logger.warning("Log ingestion module not available, skipping structured analysis")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to process log artifacts: {e}", exc_info=True)
+            return result
+    
+    def _collect_log_artifacts(self, result: ExecutionResult) -> 'LogArtifacts':
+        """
+        Collect log artifact paths from execution result.
+        
+        Args:
+            result: Execution result
+            
+        Returns:
+            LogArtifacts with available paths
+        """
+        from core.log_analysis.ingestion import LogArtifacts
+        
+        config = self.config.get('log_analysis', {})
+        
+        # Find TestNG XML
+        testng_xml = None
+        testng_path = config.get('testng', {}).get('path', 'test-output/testng-results.xml')
+        
+        # Check in report paths
+        for report in result.report_paths:
+            if 'testng' in report.lower() and report.endswith('.xml'):
+                testng_xml = Path(report)
+                break
+        
+        # Check default location
+        if not testng_xml:
+            default_path = self.workspace / testng_path
+            if default_path.exists():
+                testng_xml = default_path
+        
+        # Find framework log
+        framework_log = None
+        framework_log_path = config.get('framework_log', {}).get('path', 'logs/framework.log')
+        
+        # Check in log paths
+        for log in result.log_paths:
+            if 'framework' in log.lower() or log.endswith('.log'):
+                framework_log = Path(log)
+                break
+        
+        # Check default location
+        if not framework_log:
+            default_path = self.workspace / framework_log_path
+            if default_path.exists():
+                framework_log = default_path
+        
+        # Driver logs (optional)
+        driver_logs = []
+        if config.get('driver_logs', {}).get('enabled', False):
+            driver_dir = self.workspace / config.get('driver_logs', {}).get('directory', 'logs/drivers')
+            if driver_dir.exists():
+                driver_logs = list(driver_dir.glob('*.log'))
+        
+        return LogArtifacts(
+            testng_xml_path=testng_xml,
+            framework_log_path=framework_log,
+            driver_log_paths=driver_logs
+        )
     
     def _plan_to_dry_run_result(self, plan: ExecutionPlan) -> ExecutionResult:
         """Convert plan to dry-run result"""

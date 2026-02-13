@@ -133,6 +133,10 @@ class ExecutionResult:
     status: ExecutionStatus = ExecutionStatus.COMPLETED
     error_message: Optional[str] = None
     
+    # Structured log artifacts (TestNG, framework logs, etc.)
+    log_artifacts: Optional[Any] = None  # LogArtifacts from log_analysis.ingestion
+    structured_failures: List[Any] = field(default_factory=list)  # StructuredFailure objects
+    
     def pass_rate(self) -> float:
         """Calculate pass rate"""
         total = len(self.executed_tests)

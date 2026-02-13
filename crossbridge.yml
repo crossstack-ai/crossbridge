@@ -2057,6 +2057,111 @@ execution:
   # FRAMEWORK ADAPTERS
   # ───────────────────────────────────────────────────────────────────────
   adapters:
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# STRUCTURED LOG ANALYSIS (TestNG, JUnit, Framework Logs)
+# ═════════════════════════════════════════════════════════════════════════
+# Structured ingestion of test results and framework logs for root cause analysis
+# Integrates with execution orchestration for post-execution analysis
+log_analysis:
+  # Enable structured log ingestion
+  enabled: false  # Set to true to enable TestNG/framework log analysis
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # TESTNG XML CONFIGURATION
+  # ───────────────────────────────────────────────────────────────────────
+  testng:
+    # Path to testng-results.xml (relative to workspace)
+    # Can use glob patterns: test-output/**/testng-results.xml
+    path: test-output/testng-results.xml
+    
+    # Auto-discovery (search workspace for TestNG results)
+    auto_discover: true
+    search_patterns:
+      - "**/testng-results.xml"
+      - "**/TEST-*.xml"
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # FRAMEWORK LOG CONFIGURATION (log4j, slf4j, logback)
+  # ───────────────────────────────────────────────────────────────────────
+  framework_log:
+    # Path to framework log file (relative to workspace)
+    path: logs/framework.log
+    
+    # Auto-discovery
+    auto_discover: true
+    search_patterns:
+      - "logs/**/*.log"
+      - "**/application.log"
+      - "**/test.log"
+    
+    # Filter log levels (only parse ERROR and WARN by default)
+    levels:
+      - ERROR
+      - WARN
+    
+    # Infrastructure error patterns (for classification)
+    # Add custom patterns to detect infrastructure issues
+    infra_patterns:
+      - "connection.*reset"
+      - "connection.*refused"
+      - "timeout"
+      - "session not created"
+      - "webdriver.*exception"
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # DRIVER LOGS (Selenium, Playwright)
+  # ───────────────────────────────────────────────────────────────────────
+  driver_logs:
+    enabled: false  # Optional: Set to true if driver logs are available
+    directory: logs/drivers
+    
+    # Auto-discovery
+    patterns:
+      - "chromedriver.log"
+      - "geckodriver.log"
+      - "playwright.log"
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # CORRELATION ENGINE
+  # ───────────────────────────────────────────────────────────────────────
+  correlation:
+    # Time window for correlating log entries with test failures (seconds)
+    time_window_seconds: 30
+    
+    # Minimum confidence score for correlation (0.0 - 1.0)
+    min_confidence: 0.5
+    
+    # Enable semantic correlation (requires AI/semantic engine)
+    semantic_enabled: false
+  
+  # ───────────────────────────────────────────────────────────────────────
+  # FAILURE CLASSIFICATION
+  # ───────────────────────────────────────────────────────────────────────
+  classification:
+    # Enable automatic failure categorization
+    enabled: true
+    
+    # Categories: test_assertion, infrastructure, environment, application
+    categories:
+      - test_assertion
+      - infrastructure
+      - environment
+      - application
+      - flaky
+    
+    # Custom classification rules (regex patterns)
+    # Format: category: [pattern1, pattern2, ...]
+    custom_rules: {}
+      # infrastructure:
+      #   - "OOM: Out of memory"
+      #   - "Database connection pool exhausted"
+      # environment:
+      #   - "Configuration file not found"
+
+
+  adapters:
     testng:
       enabled: true
       build_tool: mvn  # mvn or gradle
