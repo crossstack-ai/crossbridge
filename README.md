@@ -553,6 +553,13 @@ Result: 75% noise reduction, instant root cause visibility
 - **Framework Logs:** log4j, slf4j, logback (standard Java logging)
 - **Driver Logs:** Selenium WebDriver logs (optional)
 
+**✅ RestAssured Compatibility:**
+This works **perfectly** with RestAssured + TestNG frameworks:
+- RestAssured uses TestNG for test execution (generates identical `testng-results.xml`)
+- Framework logs capture RestAssured HTTP client activity
+- Additional benefit: HTTP request/response details in framework logs
+- Same correlation engine links API test failures with HTTP errors
+
 **Key Features:**
 
 **1. TestNG XML Parsing** 🎯
