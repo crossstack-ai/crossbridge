@@ -793,12 +793,14 @@ class SidecarAPIServer:
                 "failed_tests": [
                     {
                         "test_name": f.test_name,
-                        "class_name": f.test_context.get("class", "Unknown") if f.test_context else "Unknown",
-                        "status": "FAILED",
+                        "class_name": f.class_name,
+                        "method_name": f.method_name,
+                        "status": f.status,
                         "error_message": f.error_message,
-                        "failure_type": f.failure_type if hasattr(f, "failure_type") else None,
+                        "failure_type": f.failure_type,
                         "category": f.category.value if f.category else None,
-                        "duration_ms": f.duration_ms if hasattr(f, "duration_ms") else 0
+                        "duration_ms": f.duration_ms,
+                        "stack_trace": f.stack_trace
                     }
                     for f in failed_tests
                 ],
