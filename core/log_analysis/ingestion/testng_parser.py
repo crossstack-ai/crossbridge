@@ -85,10 +85,10 @@ class TestNGParser:
             
         except ET.ParseError as e:
             logger.error(f"Failed to parse TestNG XML: {e}")
-            return []
+            raise ValueError(f"Invalid TestNG XML format: {e}") from e
         except Exception as e:
             logger.error(f"Unexpected error parsing TestNG XML: {e}")
-            return []
+            raise
     
     def _parse_test_method(
         self, 

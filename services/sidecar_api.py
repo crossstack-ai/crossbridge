@@ -806,6 +806,12 @@ class SidecarAPIServer:
                 ],
                 "statistics": parser.stats
             }
+        except ValueError as e:
+            # XML parsing error - return 400 Bad Request
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            logger.error(f"Failed to parse TestNG results: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to parse TestNG results: {str(e)}")
         finally:
             Path(tmp_path).unlink(missing_ok=True)
     
