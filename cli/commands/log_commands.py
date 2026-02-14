@@ -59,6 +59,7 @@ def log_command(
     
     Supports multiple test frameworks with automatic detection:
     - Robot Framework (output.xml)
+    - TestNG (testng-results.xml)
     - Cypress (cypress-results.json)
     - Playwright (playwright-trace.json)
     - Behave (behave-results.json)
@@ -176,6 +177,9 @@ class LogParser:
         # Check by filename patterns
         if "output.xml" in filename or filename.startswith("robot"):
             return "robot"
+        elif "testng" in filename:
+            # TestNG files: testng-results.xml, TestNG-Report.xml, etc.
+            return "testng"
         elif "cypress" in filename:
             return "cypress"
         elif "playwright" in filename or "trace" in filename:
@@ -201,6 +205,8 @@ class LogParser:
                 
                 if "<robot" in content:
                     return "robot"
+                elif "<testng-results" in content:
+                    return "testng"
                 elif '"suites"' in content:
                     return "cypress"
                 elif '"entries"' in content:
@@ -991,6 +997,7 @@ def parse_log_file(
         console.print("")
         console.print("Supported formats:")
         console.print("  - Robot Framework (output.xml)")
+        console.print("  - TestNG (testng-results.xml)")
         console.print("  - Cypress (cypress-results.json)")
         console.print("  - Playwright (playwright-trace.json)")
         console.print("  - Behave (behave-results.json)")
