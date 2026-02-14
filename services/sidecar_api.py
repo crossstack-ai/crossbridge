@@ -780,6 +780,7 @@ class SidecarAPIServer:
             parser.parse(Path(tmp_path))  # Populates parser's internal state
             summary = parser.get_summary()
             failed_tests = parser.get_failures()
+            all_tests = parser.get_all()
             
             return {
                 "framework": "testng",
@@ -803,6 +804,16 @@ class SidecarAPIServer:
                         "stack_trace": f.stack_trace
                     }
                     for f in failed_tests
+                ],
+                "all_tests": [
+                    {
+                        "test_name": t.test_name,
+                        "class_name": t.class_name,
+                        "method_name": t.method_name,
+                        "status": t.status,
+                        "duration_ms": t.duration_ms
+                    }
+                    for t in all_tests
                 ],
                 "statistics": parser.stats
             }

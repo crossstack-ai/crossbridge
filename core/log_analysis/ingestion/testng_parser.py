@@ -262,3 +262,7 @@ class TestNGParser:
     def get_passed(self) -> List[StructuredFailure]:
         """Get all passed tests"""
         return [f for f in self.failures if f.is_passed()]
+    
+    def get_all(self) -> List[StructuredFailure]:
+        """Get all tests (passed, failed, and skipped)"""
+        return self.failures

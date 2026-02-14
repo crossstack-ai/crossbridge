@@ -420,6 +420,8 @@ class LogParser:
         
         if framework == "robot":
             self._display_robot_results(display_data)
+        elif framework == "testng":
+            self._display_testng_results(display_data)
         elif framework == "cypress":
             self._display_cypress_results(display_data)
         elif framework == "playwright":
@@ -693,6 +695,259 @@ class LogParser:
             
             console.print(table)
             console.print()
+    
+    def _display_testng_results(self, data: dict):
+        """Display TestNG results with detailed analysis."""
+        console.print("=" * 41, style="green")
+        console.print("           TestNG Test Results", style="green bold")
+        console.print("=" * 41, style="green")
+        console.print()
+        
+        summary = data.get("summary", {})
+        total = summary.get("total_tests", 0)
+        passed = summary.get("passed", 0)
+        failed = summary.get("failed", 0)
+        skipped = summary.get("skipped", 0)
+        pass_rate = summary.get("pass_rate", 0.0)
+        
+        # Overall status
+        status = "PASS" if failed == 0 else "FAIL"
+        status_style = "green" if status == "PASS" else "red"
+        console.print(f"[blue]Status:[/blue] [{status_style}]{status}[/{status_style}]")
+        console.print()
+        
+        # Test Statistics
+        console.print("[blue]Test Statistics:[/blue]")
+        console.print(f"  Total:    {total}")
+        console.print(f"  Passed:   [green]{passed}[/green]")
+        console.print(f"  Failed:   [red]{failed}[/red]")
+        if skipped > 0:
+            console.print(f"  Skipped:  [yellow]{skipped}[/yellow]")
+        console.print(f"  Pass Rate: {pass_rate:.1f}%")
+        console.print()
+        
+        # Failed tests - apply clustering for deduplication
+        failed_tests = data.get("failed_tests", [])
+        if failed_tests:
+            # Import clustering module
+            from core.log_analysis.clustering import cluster_failures, get_cluster_summary
+            
+            # Convert failed tests to clustering format
+            failures_for_clustering = []
+            for test in failed_tests:
+                failures_for_clustering.append({
+                    "name": test.get("test_name", "Unknown"),
+                    "test_name": test.get("test_name"),
+                    "class_name": test.get("class_name"),
+                    "error": test.get("error_message", ""),
+                    "failure_type": test.get("failure_type", ""),
+                    "category": test.get("category", "UNKNOWN"),
+                })
+            
+            # Cluster failures
+            clusters = cluster_failures(failures_for_clustering, deduplicate=True)
+            cluster_summary = get_cluster_summary(clusters)
+            
+            total_failed = len(failed_tests)
+            unique_issues = cluster_summary["unique_issues"]
+            
+            # Show summary with deduplication stats
+            if unique_issues < total_failed:
+                console.print(
+                    f"[red]Root Cause Analysis: {unique_issues} unique issues "
+                    f"(deduplicated from {total_failed} failures)[/red]"
+                )
+                console.print(f"[dim]Deduplication saved {total_failed - unique_issues} duplicate entries "
+                             f"({int((1 - unique_issues/total_failed) * 100)}% reduction)[/dim]")
+            else:
+                console.print(f"[red]Failed Tests ({total_failed} unique failures):[/red]")
+            
+            # Show domain distribution
+            domain_stats = cluster_summary.get("by_domain", {})
+            if any(domain_stats.values()):
+                domain_parts = []
+                if domain_stats.get("product", 0) > 0:
+                    domain_parts.append(f"[red]{domain_stats['product']} Product[/red]")
+                if domain_stats.get("infrastructure", 0) > 0:
+                    domain_parts.append(f"[magenta]{domain_stats['infrastructure']} Infra[/magenta]")
+                if domain_stats.get("environment", 0) > 0:
+                    domain_parts.append(f"[cyan]{domain_stats['environment']} Env[/cyan]")
+                if domain_stats.get("test_automation", 0) > 0:
+                    domain_parts.append(f"[blue]{domain_stats['test_automation']} Test[/blue]")
+                if domain_stats.get("unknown", 0) > 0:
+                    domain_parts.append(f"[dim]{domain_stats['unknown']} Unknown[/dim]")
+                
+                if domain_parts:
+                    console.print(f"[dim]Domain breakdown: {', '.join(domain_parts)}[/dim]")
+            
+            # Display systemic patterns if detected
+            systemic_patterns = cluster_summary.get("systemic_patterns", [])
+            if systemic_patterns:
+                console.print()
+                console.print("[yellow bold]⚠️  Systemic Patterns Detected:[/yellow bold]")
+                for pattern in systemic_patterns:
+                    console.print(f"   {pattern}")
+            
+            console.print()
+            
+            # Domain display mapping
+            domain_display = {
+                "infrastructure": ("magenta", "🔧 INFRA"),
+                "environment": ("cyan", "⚙️  ENV"),
+                "test_automation": ("blue", "🤖 TEST"),
+                "product": ("red", "🐛 PROD"),
+                "unknown": ("dim", "❓ UNK")
+            }
+            
+            # Severity display
+            severity_display = {
+                "critical": ("red bold", "🔴 CRITICAL"),
+                "high": ("red", "⚠️  HIGH"),
+                "medium": ("yellow", "⚡ MEDIUM"),
+                "low": ("dim yellow", "ℹ️  LOW")
+            }
+            
+            # Create table for clustered failures
+            from rich.table import Table
+            from rich import box
+            
+            table = Table(
+                show_header=True,
+                header_style="bold cyan",
+                box=box.ROUNDED,
+                padding=(0, 1),
+                show_lines=True
+            )
+            table.add_column("Severity", style="white", width=14)
+            table.add_column("Domain", style="white", width=10)
+            table.add_column("Root Cause", style="white", no_wrap=False, max_width=60)
+            table.add_column("Count", justify="right", style="cyan bold", width=7)
+            table.add_column("Affected Tests", style="dim", no_wrap=False, max_width=35)
+            
+            # Sort clusters by severity and count
+            sorted_clusters = sorted(
+                clusters,
+                key=lambda c: (
+                    {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(c.get("severity", "low"), 4),
+                    -len(c.get("members", []))
+                )
+            )
+            
+            # Display top clusters
+            for cluster in sorted_clusters[:10]:
+                severity = cluster.get("severity", "low")
+                domain = cluster.get("domain", "unknown")
+                root_cause = cluster.get("root_cause", "Unknown error")
+                count = len(cluster.get("members", []))
+                
+                # Get severity and domain display
+                sev_style, sev_label = severity_display.get(severity, ("dim", "❓ UNKNOWN"))
+                dom_style, dom_label = domain_display.get(domain, ("dim", "❓ UNK"))
+                
+                # Truncate root cause if too long
+                if len(root_cause) > 60:
+                    root_cause = root_cause[:57] + "..."
+                
+                # Get affected test names
+                members = cluster.get("members", [])
+                if members:
+                    first_test = members[0].get("test_name", members[0].get("name", "Unknown"))
+                    # Shorten test names
+                    if len(first_test) > 30:
+                        first_test = first_test[:27] + "..."
+                    
+                    if len(members) > 1:
+                        affected = f"{first_test}, +{len(members)-1} more"
+                    else:
+                        affected = first_test
+                else:
+                    affected = "Unknown"
+                
+                table.add_row(
+                    f"[{sev_style}]{sev_label}[/{sev_style}]",
+                    f"[{dom_style}]{dom_label}[/{dom_style}]",
+                    root_cause,
+                    str(count),
+                    affected
+                )
+            
+            console.print(table)
+            console.print()
+            
+            # Detailed failure analysis for top 3 issues
+            console.print("[cyan bold]━━━ Detailed Failure Analysis ━━━[/cyan bold]")
+            console.print()
+            
+            for idx, cluster in enumerate(sorted_clusters[:3], 1):
+                severity = cluster.get("severity", "low")
+                sev_style, sev_label = severity_display.get(severity, ("dim", "❓ UNKNOWN"))
+                root_cause = cluster.get("root_cause", "Unknown error")
+                count = len(cluster.get("members", []))
+                
+                console.print(f"[bold]{idx}. [{sev_style}]{sev_label}[/{sev_style}] - {root_cause}[/bold]")
+                console.print(f"   Occurrences: {count}")
+                
+                # Show affected tests
+                members = cluster.get("members", [])
+                if members:
+                    console.print(f"   [dim]Affected Tests:[/dim]")
+                    for member in members[:5]:
+                        test_name = member.get("test_name", member.get("name", "Unknown"))
+                        console.print(f"      • {test_name}")
+                    if len(members) > 5:
+                        console.print(f"      [dim]... and {len(members)-5} more[/dim]")
+                
+                # Show patterns if available
+                patterns = cluster.get("patterns", [])
+                if patterns:
+                    console.print(f"   [yellow]Patterns:[/yellow] {', '.join(patterns)}")
+                
+                # Suggested fix
+                if "assertion" in root_cause.lower() or "expected" in root_cause.lower():
+                    console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
+                    console.print(f"      Review test expectations and actual application behavior. Update assertions if requirements changed or fix application logic.")
+                
+                console.print()
+            
+            # Show summary for remaining clusters
+            if len(sorted_clusters) > 3:
+                console.print(f"[dim]... and {len(sorted_clusters) - 3} additional unique issues[/dim]")
+                console.print()
+        
+        # Slowest tests if available
+        all_tests = data.get("all_tests", [])
+        if all_tests:
+            # Sort by duration
+            tests_with_duration = [t for t in all_tests if t.get("duration_ms", 0) > 0]
+            sorted_tests = sorted(tests_with_duration, key=lambda t: t.get("duration_ms", 0), reverse=True)
+            
+            if sorted_tests:
+                display_count = min(len(sorted_tests), 5)
+                console.print(f"[yellow]⏱️  Slowest Tests (Top {display_count}):[/yellow]")
+                
+                # Create table for slowest tests
+                from rich.table import Table
+                from rich import box
+                
+                table = Table(
+                    show_header=True,
+                    header_style="bold yellow",
+                    box=box.ROUNDED,
+                    padding=(0, 1),
+                    show_lines=False
+                )
+                table.add_column("Test Case", style="white", no_wrap=False, max_width=80)
+                table.add_column("Duration", style="yellow bold", justify="right", width=12)
+                
+                for test in sorted_tests[:5]:
+                    test_name = test.get("test_name", test.get("name", "Unknown"))
+                    duration_ms = test.get("duration_ms", 0)
+                    test_duration = self.format_duration(duration_ms // 1000)
+                    
+                    table.add_row(test_name, test_duration)
+                
+                console.print(table)
+                console.print()
     
     def _display_cypress_results(self, data: dict):
         """Display Cypress results."""
