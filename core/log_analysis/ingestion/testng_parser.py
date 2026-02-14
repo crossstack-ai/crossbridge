@@ -54,6 +54,17 @@ class TestNGParser:
             tree = ET.parse(xml_path)
             root = tree.getroot()
             
+            # Validate this is a TestNG XML file, not HTML or other format
+            if root.tag.lower() in ['html', 'body', 'head']:
+                raise ValueError(
+                    "This appears to be an HTML file. TestNG HTML reports cannot be parsed. "
+                    "Please use testng-results.xml instead (typically found in test-output/ directory)."
+                )
+            
+            # Check for testng-results root element
+            if root.tag not in ['testng-results', 'suite']:
+                logger.warning(f"Unexpected root element '{root.tag}' - expected 'testng-results' or 'suite'")
+            
             # Reset state
             self.failures = []
             self.stats = {'total': 0, 'passed': 0, 'failed': 0, 'skipped': 0}

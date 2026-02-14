@@ -178,7 +178,10 @@ class LogParser:
         if "output.xml" in filename or filename.startswith("robot"):
             return "robot"
         elif "testng" in filename:
-            # TestNG files: testng-results.xml, TestNG-Report.xml, etc.
+            # TestNG files: must be XML, not HTML
+            if filename.endswith(".html") or filename.endswith(".htm"):
+                return "testng-html-unsupported"
+            # TestNG XML files: testng-results.xml, TestNG-Report.xml, etc.
             return "testng"
         elif "cypress" in filename:
             return "cypress"
@@ -990,6 +993,26 @@ def parse_log_file(
             console.print(f"  $ crossbridge log [cyan]{output_xml_path}[/cyan] --enable-ai")
         else:
             console.print("  $ crossbridge log [cyan]output.xml[/cyan] --enable-ai")
+        raise typer.Exit(1)
+    
+    if framework == "testng-html-unsupported":
+        console.print(f"[red]Error: TestNG HTML files cannot be parsed[/red]")
+        console.print("")
+        console.print(f"[yellow]You provided:[/yellow] {log_file.name}")
+        console.print("")
+        console.print("[yellow]HTML files (TestNG-Report.html, index.html) are for viewing results in a browser.[/yellow]")
+        console.print("[yellow]To parse and analyze test results, please use the XML output file instead:[/yellow]")
+        console.print("")
+        console.print("  [green]✓[/green] Use: [cyan]testng-results.xml[/cyan] (typically in test-output directory)")
+        console.print("")
+        console.print("Example:")
+        if log_file.parent:
+            testng_xml_path = log_file.parent / "testng-results.xml"
+            console.print(f"  $ crossbridge log [cyan]{testng_xml_path}[/cyan] --enable-ai")
+        else:
+            console.print("  $ crossbridge log [cyan]testng-results.xml[/cyan] --enable-ai")
+        console.print("")
+        console.print("[dim]Note: TestNG XML output is usually in the test-output/ directory[/dim]")
         raise typer.Exit(1)
     
     if framework == "unknown":
