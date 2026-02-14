@@ -36,6 +36,7 @@ from core.intelligence.java_step_parser import JavaStepDefinitionParser
 from core.intelligence.cypress_results_parser import CypressResultsParser
 from core.intelligence.playwright_trace_parser import PlaywrightTraceParser
 from core.intelligence.behave_selenium_parsers import BehaveResultsParser, SeleniumLogParser
+from core.log_analysis.ingestion import TestNGParser
 
 # Import execution intelligence components
 from core.execution.intelligence.analyzer import ExecutionAnalyzer
@@ -506,6 +507,7 @@ class SidecarAPIServer:
             - playwright: Playwright trace files
             - behave: Behave JSON results
             - java: Java step definitions
+            - testng: TestNG XML results (testng-results.xml)
             
             Upload test results/logs and get detailed analysis including:
             - Test statistics (passed/failed/total)
@@ -533,6 +535,11 @@ class SidecarAPIServer:
                 curl -X POST http://localhost:8765/parse/behave \\
                      -H "Content-Type: application/json" \\
                      --data-binary @behave-results.json
+                
+                # TestNG
+                curl -X POST http://localhost:8765/parse/testng \\
+                     -H "Content-Type: application/xml" \\
+                     --data-binary @testng-results.xml
             """
             try:
                 # Get content from request body
@@ -552,11 +559,13 @@ class SidecarAPIServer:
                     return await self._parse_behave_results(content)
                 elif framework == "java":
                     return await self._parse_java_steps(content)
+                elif framework == "testng":
+                    return await self._parse_testng_results(content)
                 else:
                     raise HTTPException(
                         status_code=400,
                         detail=f"Unsupported framework: {framework}. "
-                               f"Supported: robot, cypress, playwright, behave, java"
+                               f"Supported: robot, cypress, playwright, behave, java, testng"
                     )
                     
             except HTTPException:
@@ -754,6 +763,46 @@ class SidecarAPIServer:
                     }
                     for step in steps
                 ]
+            }
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+    
+    async def _parse_testng_results(self, content: bytes) -> dict:
+        """Parse TestNG XML results"""
+        import tempfile
+        
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            parser = TestNGParser()
+            parser.parse(Path(tmp_path))  # Populates parser's internal state
+            summary = parser.get_summary()
+            failed_tests = parser.get_failures()
+            
+            return {
+                "framework": "testng",
+                "summary": {
+                    "total_tests": summary.get("total_tests", 0),
+                    "passed": summary.get("passed", 0),
+                    "failed": summary.get("failed", 0),
+                    "skipped": summary.get("skipped", 0),
+                    "pass_rate": summary.get("pass_rate", 0.0)
+                },
+                "failed_tests": [
+                    {
+                        "test_name": f.test_name,
+                        "class_name": f.test_context.get("class", "Unknown") if f.test_context else "Unknown",
+                        "status": "FAILED",
+                        "error_message": f.error_message,
+                        "failure_type": f.failure_type if hasattr(f, "failure_type") else None,
+                        "category": f.category.value if f.category else None,
+                        "duration_ms": f.duration_ms if hasattr(f, "duration_ms") else 0
+                    }
+                    for f in failed_tests
+                ],
+                "statistics": parser.stats
             }
         finally:
             Path(tmp_path).unlink(missing_ok=True)
