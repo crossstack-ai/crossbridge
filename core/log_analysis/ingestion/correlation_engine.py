@@ -12,7 +12,7 @@ from core.logging import get_logger, LogCategory
 from .log_artifacts import StructuredFailure, FailureCategory
 from .framework_log_parser import FrameworkLogEntry, FrameworkLogParser
 
-logger = get_logger(__name__, category=LogCategory.ANALYSIS)
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 @dataclass

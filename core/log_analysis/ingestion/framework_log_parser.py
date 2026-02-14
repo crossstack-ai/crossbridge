@@ -12,7 +12,7 @@ from datetime import datetime
 
 from core.logging import get_logger, LogCategory
 
-logger = get_logger(__name__, category=LogCategory.ANALYSIS)
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 class FrameworkLogEntry:
