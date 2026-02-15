@@ -213,141 +213,201 @@ class LogParser:
             If valid: (True, "")
             If invalid: (False, "error description")
         """
+        logger.info(f"Starting validation for file: {log_file.name}")
+        
         # Check 1: File exists
         if not log_file.exists():
+            logger.error(f"Validation failed - file does not exist: {log_file}")
             return False, f"File does not exist: {log_file}"
+        logger.debug(f"✓ File exists: {log_file}")
         
         # Check 2: Is a file (not directory)
         if not log_file.is_file():
+            logger.error(f"Validation failed - path is not a file: {log_file}")
             return False, f"Path is not a file: {log_file}"
+        logger.debug(f"✓ Path is a file (not directory)")
         
         # Check 3: File is readable
         if not os.access(log_file, os.R_OK):
+            logger.error(f"Validation failed - file not readable: {log_file}")
             return False, f"File is not readable (permission denied): {log_file}"
+        logger.debug(f"✓ File is readable (permissions OK)")
         
         # Check 4: File size (not empty, not too large)
         file_size = log_file.stat().st_size
         if file_size == 0:
+            logger.error(f"Validation failed - file is empty: {log_file}")
             return False, f"File is empty (0 bytes): {log_file}"
+        
+        file_size_mb = file_size / (1024 * 1024)
+        logger.info(f"File size: {file_size_mb:.2f} MB ({file_size:,} bytes)")
         
         # Warn if file is very large (>100MB) but don't fail
         if file_size > 100 * 1024 * 1024:
-            logger.warning(f"Large file detected ({file_size / (1024*1024):.1f} MB): {log_file}")
-            console.print(f"[yellow]⚠️  Large file detected ({file_size / (1024*1024):.1f} MB), parsing may be slow[/yellow]")
+            logger.warning(f"Large file detected ({file_size_mb:.1f} MB): {log_file}")
+            console.print(f"[yellow]⚠️  Large file detected ({file_size_mb:.1f} MB), parsing may be slow[/yellow]")
         
         # Detect framework if not provided
         if framework is None:
+            logger.debug(f"Framework not specified, running auto-detection")
             framework = self.detect_framework(log_file)
             if framework == "unknown":
+                logger.error(f"Framework detection failed for: {log_file}")
                 return False, f"Could not detect framework from filename or content: {log_file}"
+            logger.info(f"Auto-detected framework: {framework}")
+        else:
+            logger.info(f"Using specified framework: {framework}")
         
         # Framework-specific validation
         try:
             if framework in ["robot", "testng"]:
                 # XML file validation
+                logger.debug(f"Running XML validation for {framework}")
                 is_valid, error = self._validate_xml_file(log_file, framework)
                 if not is_valid:
+                    logger.error(f"XML validation failed for {log_file.name}: {error}")
                     return False, error
+                logger.info(f"✓ XML structure validation passed for {framework}")
                     
             elif framework in ["cypress", "playwright", "behave"]:
                 # JSON file validation
+                logger.debug(f"Running JSON validation for {framework}")
                 is_valid, error = self._validate_json_file(log_file, framework)
                 if not is_valid:
+                    logger.error(f"JSON validation failed for {log_file.name}: {error}")
                     return False, error
+                logger.info(f"✓ JSON structure validation passed for {framework}")
                     
             elif framework == "java":
                 # Java file validation
+                logger.debug(f"Running Java source file validation")
                 is_valid, error = self._validate_java_file(log_file)
                 if not is_valid:
+                    logger.error(f"Java validation failed for {log_file.name}: {error}")
                     return False, error
+                logger.info(f"✓ Java source file validation passed")
                     
             else:
                 # Unknown framework - basic check passed
                 logger.warning(f"No specific validation for framework: {framework}")
                 
         except Exception as e:
+            logger.error(f"Validation exception for {log_file.name}: {str(e)}", exc_info=True)
             return False, f"Validation error: {str(e)}"
         
-        logger.info(f"Validation passed for {log_file.name} (framework: {framework})")
+        logger.info(f"✓ All validation checks passed for {log_file.name} (framework: {framework}, size: {file_size_mb:.2f} MB)")
         return True, ""
     
     def _validate_xml_file(self, log_file: Path, framework: str) -> Tuple[bool, str]:
         """Validate XML file structure and framework-specific schema."""
         try:
             # Parse XML
+            logger.debug(f"Parsing XML file: {log_file.name}")
             tree = ET.parse(log_file)
             root = tree.getroot()
+            logger.debug(f"XML parsed successfully, root element: <{root.tag}>")
             
             # Framework-specific validation
             if framework == "robot":
                 # Robot Framework: must have <robot> root element
                 if root.tag != "robot":
+                    logger.error(f"Invalid Robot XML root: expected <robot>, found <{root.tag}>")
                     return False, f"Invalid Robot Framework XML: expected <robot> root, found <{root.tag}>"
                 
                 # Check for required child elements
                 suites = root.findall(".//suite")
                 if not suites:
+                    logger.error(f"No <suite> elements found in Robot XML")
                     return False, "Invalid Robot Framework XML: no <suite> elements found"
+                logger.debug(f"Found {len(suites)} suite(s) in Robot XML")
                 
             elif framework == "testng":
                 # TestNG: must have <testng-results> root element
                 if root.tag != "testng-results":
+                    logger.error(f"Invalid TestNG XML root: expected <testng-results>, found <{root.tag}>")
                     return False, f"Invalid TestNG XML: expected <testng-results> root, found <{root.tag}>"
                 
                 # Check for required child elements
                 suites = root.findall(".//suite")
                 if not suites:
+                    logger.error(f"No <suite> elements found in TestNG XML")
                     return False, "Invalid TestNG XML: no <suite> elements found"
+                logger.debug(f"Found {len(suites)} suite(s) in TestNG XML")
             
             return True, ""
             
         except ET.ParseError as e:
+            logger.error(f"XML parsing error in {log_file.name}: {str(e)}")
             return False, f"XML parsing error: {str(e)}"
         except Exception as e:
+            logger.error(f"XML validation error in {log_file.name}: {str(e)}")
             return False, f"XML validation error: {str(e)}"
     
     def _validate_json_file(self, log_file: Path, framework: str) -> Tuple[bool, str]:
         """Validate JSON file structure and framework-specific schema."""
         try:
             # Parse JSON
+            logger.debug(f"Parsing JSON file: {log_file.name}")
             with open(log_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
+            data_type = "object" if isinstance(data, dict) else "array" if isinstance(data, list) else type(data).__name__
+            logger.debug(f"JSON parsed successfully, root type: {data_type}")
+            
             # Must be dict or list
             if not isinstance(data, (dict, list)):
+                logger.error(f"Invalid JSON type: expected object or array, got {type(data).__name__}")
                 return False, f"Invalid JSON: expected object or array, got {type(data).__name__}"
             
             # Framework-specific validation
             if framework == "cypress":
                 # Cypress: must have stats or results
                 if isinstance(data, dict):
+                    keys = list(data.keys())
+                    logger.debug(f"Cypress JSON keys: {keys[:10]}...")  # Log first 10 keys
                     if "stats" not in data and "results" not in data and "runs" not in data:
+                        logger.error(f"Invalid Cypress JSON: missing required fields (has: {keys[:5]})")
                         return False, "Invalid Cypress JSON: missing 'stats', 'results', or 'runs' fields"
+                    logger.debug(f"✓ Cypress JSON has required fields")
                         
             elif framework == "playwright":
                 # Playwright: must have entries or suites
                 if isinstance(data, dict):
+                    keys = list(data.keys())
+                    logger.debug(f"Playwright JSON keys: {keys[:10]}...")  # Log first 10 keys
                     if "entries" not in data and "suites" not in data:
+                        logger.error(f"Invalid Playwright JSON: missing required fields (has: {keys[:5]})")
                         return False, "Invalid Playwright JSON: missing 'entries' or 'suites' fields"
+                    logger.debug(f"✓ Playwright JSON has required fields")
                         
             elif framework == "behave":
                 # Behave: must be list of features or dict with features
                 if isinstance(data, list):
                     # List of features
+                    logger.debug(f"Behave JSON is array with {len(data)} items")
                     if data and not all(isinstance(item, dict) and "name" in item for item in data[:3]):
+                        logger.error(f"Invalid Behave JSON: list items not feature objects")
                         return False, "Invalid Behave JSON: list items must be feature objects with 'name' field"
+                    logger.debug(f"✓ Behave JSON array items have required structure")
                 elif isinstance(data, dict):
                     # Dict with features key
+                    keys = list(data.keys())
+                    logger.debug(f"Behave JSON keys: {keys}")
                     if "features" not in data and "elements" not in data:
+                        logger.error(f"Invalid Behave JSON: missing required fields (has: {keys})")
                         return False, "Invalid Behave JSON: missing 'features' or 'elements' fields"
+                    logger.debug(f"✓ Behave JSON has required fields")
             
             return True, ""
             
         except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing error in {log_file.name}: line {e.lineno}, col {e.colno} - {e.msg}")
             return False, f"JSON parsing error at line {e.lineno}, column {e.colno}: {e.msg}"
         except UnicodeDecodeError as e:
+            logger.error(f"File encoding error in {log_file.name}: {str(e)}")
             return False, f"File encoding error: {str(e)}"
         except Exception as e:
+            logger.error(f"JSON validation error in {log_file.name}: {str(e)}")
             return False, f"JSON validation error: {str(e)}"
     
     def _validate_java_file(self, log_file: Path) -> Tuple[bool, str]:
@@ -381,85 +441,134 @@ class LogParser:
     
     def detect_framework(self, log_file: Path) -> str:
         """Auto-detect framework based on filename and content."""
+        logger.debug(f"Starting framework detection for: {log_file.name}")
         filename = log_file.name.lower()
         
         # Check for Robot Framework HTML files (not parseable)
         if filename in ("log.html", "report.html") or (filename.endswith(".html") and "robot" in filename):
+            logger.info(f"Detected unsupported Robot HTML file: {filename}")
             return "robot-html-unsupported"
         
         # Check by filename patterns
         if "output.xml" in filename or filename.startswith("robot"):
+            logger.info(f"Framework detected by filename pattern: robot (filename: {filename})")
             return "robot"
         elif "testng" in filename:
             # TestNG files: must be XML, not HTML
             if filename.endswith(".html") or filename.endswith(".htm"):
+                logger.info(f"Detected unsupported TestNG HTML file: {filename}")
                 return "testng-html-unsupported"
             # TestNG XML files: testng-results.xml, TestNG-Report.xml, etc.
+            logger.info(f"Framework detected by filename pattern: testng (filename: {filename})")
             return "testng"
         elif "cypress" in filename:
+            logger.info(f"Framework detected by filename pattern: cypress (filename: {filename})")
             return "cypress"
         elif "playwright" in filename or "trace" in filename:
+            logger.info(f"Framework detected by filename pattern: playwright (filename: {filename})")
             return "playwright"
         elif "behave" in filename or "cucumber" in filename:
             # Read content to distinguish
+            logger.debug(f"Filename contains 'behave' or 'cucumber', checking content to confirm")
             try:
                 with open(log_file) as f:
                     content = f.read(1000)
                     if '"feature"' in content:
+                        logger.info(f"Framework detected by content inspection: behave (has 'feature' field)")
                         return "behave"
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Content inspection failed: {e}")
                 pass
+            logger.info(f"Defaulting to cypress for behave/cucumber filename pattern")
             return "cypress"
         elif filename.endswith("steps.java") or "stepdefinitions" in filename:
+            logger.info(f"Framework detected by filename pattern: java (filename: {filename})")
             return "java"
         
         # Check by content
+        logger.debug(f"Filename pattern didn't match, inspecting file content")
         try:
             with open(log_file) as f:
                 lines = [f.readline() for _ in range(5)]
                 content = "".join(lines)
                 
                 if "<robot" in content:
+                    logger.info(f"Framework detected by content inspection: robot (found '<robot' tag)")
                     return "robot"
                 elif "<testng-results" in content:
+                    logger.info(f"Framework detected by content inspection: testng (found '<testng-results' tag)")
                     return "testng"
                 elif '"suites"' in content:
+                    logger.info(f"Framework detected by content inspection: cypress (found 'suites' field)")
                     return "cypress"
                 elif '"entries"' in content:
+                    logger.info(f"Framework detected by content inspection: playwright (found 'entries' field)")
                     return "playwright"
                 elif '"feature"' in content:
+                    logger.info(f"Framework detected by content inspection: behave (found 'feature' field)")
                     return "behave"
-                
+            
             # Check for Java annotations
+            logger.debug(f"Checking for Java BDD annotations in full file content")
             with open(log_file) as f:
                 full_content = f.read()
                 if "@Given" in full_content or "@When" in full_content or "@Then" in full_content:
+                    logger.info(f"Framework detected by content inspection: java (found BDD annotations)")
                     return "java"
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Content inspection failed for {log_file.name}: {e}")
             pass
         
+        logger.warning(f"Framework detection failed for {log_file.name} - no matching patterns found")
         return "unknown"
     
     def parse_log(self, log_file: Path, framework: str) -> dict:
         """Parse log file via sidecar API."""
         console.print(f"[blue]Parsing log file: {log_file}[/blue]")
         
+        file_size = log_file.stat().st_size
+        file_size_mb = file_size / (1024 * 1024)
+        endpoint = f"{self.sidecar_url}/parse/{framework}"
+        
+        logger.info(f"Sending parse request to sidecar: {endpoint}")
+        logger.info(f"File: {log_file.name}, Size: {file_size_mb:.2f} MB, Framework: {framework}")
+        
         try:
+            parse_start = time.time()
             with open(log_file, "rb") as f:
+                logger.debug(f"Uploading file to sidecar endpoint...")
                 response = requests.post(
-                    f"{self.sidecar_url}/parse/{framework}",
+                    endpoint,
                     data=f,
                     headers={"Content-Type": "application/octet-stream"},
                     timeout=60
                 )
             
+            parse_duration = int(time.time() - parse_start)
+            logger.info(f"Sidecar response received: HTTP {response.status_code} (took {parse_duration}s)")
+            
             if response.status_code == 200:
-                return response.json()
+                result = response.json()
+                total_tests = result.get('total_tests', 0)
+                passed_tests = result.get('passed_tests', 0)
+                failed_tests = result.get('failed_tests', 0)
+                logger.info(f"Parsing successful - Total: {total_tests}, Passed: {passed_tests}, Failed: {failed_tests}")
+                return result
             else:
                 error_detail = response.json().get("detail", "Unknown error")
+                logger.error(f"Sidecar parsing failed: HTTP {response.status_code} - {error_detail}")
                 console.print(f"[red]Error: {error_detail}[/red]")
                 return {}
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Sidecar request timeout after 60s for {log_file.name}: {e}")
+            console.print(f"[red]Error parsing log: Request timeout (file too large or sidecar not responding)[/red]")
+            return {}
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Sidecar connection error for {log_file.name}: {e}")
+            console.print(f"[red]Error parsing log: Cannot connect to sidecar service[/red]")
+            return {}
         except Exception as e:
+            logger.error(f"Parsing exception for {log_file.name}: {e}", exc_info=True)
             console.print(f"[red]Error parsing log: {e}[/red]")
             return {}
     
@@ -542,8 +651,34 @@ class LogParser:
             
             response = response_holder[0]
             
+            analysis_duration = int(time.time() - time.time())
+            logger.info(f"Intelligence analysis request completed: HTTP {response.status_code}")
+            
             if response.status_code == 200:
                 result = response.json()
+                
+                # Log analysis results
+                if result.get("failure_clusters"):
+                    num_clusters = len(result["failure_clusters"])
+                    total_failures = result.get("data", {}).get("failed_tests", 0)
+                    logger.info(f"Clustering analysis complete: {num_clusters} unique issue(s) identified from {total_failures} failure(s)")
+                    
+                    # Log cluster details
+                    for idx, cluster in enumerate(result["failure_clusters"][:5], 1):  # Log first 5
+                        severity = cluster.get("severity", "unknown")
+                        domain = cluster.get("domain", "unknown")
+                        count = cluster.get("failure_count", 0)
+                        root_cause = cluster.get("root_cause", "Unknown")
+                        logger.debug(f"  Cluster {idx}: [{severity}/{domain}] {root_cause} (count: {count})")
+                
+                if result.get("ai_analysis") and enable_ai:
+                    ai_insights = len(result["ai_analysis"].get("insights", []))
+                    logger.info(f"AI analysis complete: {ai_insights} insights generated")
+                    
+                if result.get("intelligence_summary"):
+                    summary = result["intelligence_summary"]
+                    logger.info(f"Intelligence summary: {summary}")
+                
                 if enable_ai:
                     console.print("[green][OK] AI analysis completed successfully[/green]")
                 else:
@@ -598,7 +733,13 @@ class LogParser:
     def apply_filters(self, data: dict, filters: dict) -> dict:
         """Apply filtering to the parsed data."""
         if not filters:
+            logger.debug("No filters specified, returning unfiltered data")
             return data
+        
+        active_filters = {k: v for k, v in filters.items() if v is not None}
+        if active_filters:
+            logger.info(f"Applying filters: {list(active_filters.keys())}")
+            logger.debug(f"Filter values: {active_filters}")
         
         # This is a simplified version - full implementation would use jq-like filtering
         # For now, we'll let the sidecar handle filtering via query parameters
@@ -1975,9 +2116,12 @@ def parse_multiple_log_files(
             
             # Save per-file JSON with log filename in output name
             per_file_output = _generate_per_file_output_path(log_file)
-            per_file_output.write_text(json.dumps(output_data, indent=2, default=str))
+            logger.debug(f"Writing per-file results to: {per_file_output}")
+            json_content = json.dumps(output_data, indent=2, default=str)
+            per_file_output.write_text(json_content)
+            output_size = len(json_content) / 1024  # KB
             console.print(f"\n[blue]Results saved to: {per_file_output.name}[/blue]")
-            logger.info(f"Per-file results saved to: {per_file_output}")
+            logger.info(f"Per-file results saved to: {per_file_output} ({output_size:.1f} KB)")
             
             # Collect for merged output
             all_results.append({
@@ -2013,15 +2157,22 @@ def parse_multiple_log_files(
     
     # Generate merged results
     if all_results:
+        logger.info(f"Merging results from {len(all_results)} successfully processed file(s)")
         merged_data = _merge_results(all_results, log_files)
         
         # Save merged JSON
         if output:
             merged_output = output
+            logger.info(f"Using specified output path: {merged_output}")
         else:
             merged_output = Path(f"merged-results.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+            logger.info(f"Using auto-generated output path: {merged_output}")
         
-        merged_output.write_text(json.dumps(merged_data, indent=2, default=str))
+        logger.debug(f"Writing merged results to: {merged_output}")
+        json_content = json.dumps(merged_data, indent=2, default=str)
+        merged_output.write_text(json_content)
+        merged_size = len(json_content) / 1024  # KB
+        logger.info(f"Merged results saved to: {merged_output} ({merged_size:.1f} KB)")
         
         # Display overall summary
         console.print()
@@ -2252,6 +2403,14 @@ def parse_log_file(
     # Initialize root logger with timestamped file
     setup_logging()
     
+    # Log the parsing request details
+    logger.info(f"Starting log parsing for: {log_file.name} (framework: auto-detect)")
+    logger.info(f"Options: AI={enable_ai}, no_analyze={no_analyze}, triage={triage}")
+    if app_logs:
+        logger.info(f"Application logs provided: {app_logs}")
+    if compare_with:
+        logger.info(f"Regression comparison: {compare_with}")
+    
     parser = LogParser()
     
     # Check sidecar
@@ -2440,15 +2599,21 @@ def parse_log_file(
     
     # Save to file (use structured output if generated)
     if output:
-        output.write_text(json.dumps(output_data, indent=2, default=str))
+        logger.debug(f"Writing results to: {output}")
+        json_content = json.dumps(output_data, indent=2, default=str)
+        output.write_text(json_content)
+        output_size = len(json_content) / 1024  # KB
         console.print(f"\n[blue]Results saved to: {output}[/blue]")
-        logger.info(f"Results saved to: {output}")
+        logger.info(f"Results saved to: {output} ({output_size:.1f} KB)")
     else:
         # Save to default file
         default_output = log_file.with_suffix(f".parsed.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
-        default_output.write_text(json.dumps(output_data, indent=2, default=str))
+        logger.debug(f"Writing results to auto-generated path: {default_output}")
+        json_content = json.dumps(output_data, indent=2, default=str)
+        default_output.write_text(json_content)
+        output_size = len(json_content) / 1024  # KB
         console.print(f"\n[blue]Full results saved to: {default_output}[/blue]")
-        logger.info(f"Results saved to: {default_output}")
+        logger.info(f"Results saved to: {default_output} ({output_size:.1f} KB)")
     
     console.print()
     console.print("=" * 41, style="green")
