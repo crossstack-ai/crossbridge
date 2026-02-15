@@ -2195,9 +2195,19 @@ def parse_multiple_log_files(
                 test_data = filtered_data.get("data", filtered_data)
                 logger.debug(f"Unwrapped intelligence structure for {log_file.name}")
             
+            # Get test counts, handling both integer counts and lists
             total_tests = test_data.get("total_tests", 0)
+            if isinstance(total_tests, list):
+                total_tests = len(total_tests)
+            
             passed_tests = test_data.get("passed_tests", 0)
+            if isinstance(passed_tests, list):
+                passed_tests = len(passed_tests)
+            
             failed_tests = test_data.get("failed_tests", 0)
+            if isinstance(failed_tests, list):
+                failed_tests = len(failed_tests)
+            
             logger.info(f"File {log_file.name} results: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
             
             all_file_info.append({
@@ -2306,9 +2316,16 @@ def parse_multiple_log_files(
             if result_data.get("analyzed"):
                 result_data = result_data.get("data", result_data)
                 logger.debug(f"Unwrapped intelligence structure for aggregate calculation")
-            total_tests += result_data.get("total_tests", 0)
-            total_passed += result_data.get("passed_tests", 0)
-            total_failed += result_data.get("failed_tests", 0)
+            
+            # Handle both integer counts and lists
+            tests = result_data.get("total_tests", 0)
+            total_tests += len(tests) if isinstance(tests, list) else tests
+            
+            passed = result_data.get("passed_tests", 0)
+            total_passed += len(passed) if isinstance(passed, list) else passed
+            
+            failed = result_data.get("failed_tests", 0)
+            total_failed += len(failed) if isinstance(failed, list) else failed
         
         logger.info(f"Aggregate statistics: Total={total_tests}, Passed={total_passed}, Failed={total_failed}")
         
