@@ -37,8 +37,8 @@ logger = get_logger(__name__)
 
 
 def log_command(
-    log_file: Path = typer.Argument(..., help="Path to log file to parse"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to file (JSON format)"),
+    log_files: List[Path] = typer.Argument(..., help="Path(s) to log file(s) to parse (supports multiple files)"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save merged results to file (JSON format). Per-file results are always saved."),
     enable_ai: bool = typer.Option(False, "--enable-ai", help="Enable AI-enhanced analysis"),
     app_logs: Optional[str] = typer.Option(None, "--app-logs", "-a", help="Application logs for correlation"),
     test_name: Optional[str] = typer.Option(None, "--test-name", "-t", help="Filter by test name pattern"),
@@ -73,9 +73,22 @@ def log_command(
     - Confidence scoring for root cause identification
     - AI-enhanced analysis with smart recommendations
     
+    Multi-File Analysis:
+    - Analyze multiple log files in one command
+    - Per-file console output with clear file headers
+    - Per-file JSON output (auto-named with source file)
+    - Merged JSON combining all results
+    - Unified clustering across all files
+    
     Examples:
-        # Basic parsing with clustering
+        # Single file analysis
         crossbridge log output.xml
+        
+        # Multi-file analysis
+        crossbridge log testng-vm1.xml testng-vm2.xml testng-vm3.xml --enable-ai
+        
+        # Multi-file with custom merged output
+        crossbridge log output1.xml output2.xml --output merged-results.json
         
         # Compare with previous run
         crossbridge log output.xml --compare-with previous.json
@@ -86,31 +99,51 @@ def log_command(
         # AI-enhanced analysis
         crossbridge log output.xml --enable-ai --max-ai-clusters 3
         
-        # Export structured JSON
-        crossbridge log output.xml --output results.json
-        
         # Filter failed tests only
         crossbridge log output.xml --status FAIL
     """
     try:
-        parse_log_file(
-            log_file=log_file,
-            output=output,
-            enable_ai=enable_ai,
-            app_logs=app_logs,
-            test_name=test_name,
-            test_id=test_id,
-            status=status,
-            error_code=error_code,
-            pattern=pattern,
-            time_from=time_from,
-            time_to=time_to,
-            no_analyze=no_analyze,
-            compare_with=compare_with,
-            triage=triage,
-            max_ai_clusters=max_ai_clusters,
-            ai_summary_only=ai_summary_only,
-        )
+        # Handle single file (backward compatibility) or multiple files
+        if len(log_files) == 1:
+            # Single file - use existing logic
+            parse_log_file(
+                log_file=log_files[0],
+                output=output,
+                enable_ai=enable_ai,
+                app_logs=app_logs,
+                test_name=test_name,
+                test_id=test_id,
+                status=status,
+                error_code=error_code,
+                pattern=pattern,
+                time_from=time_from,
+                time_to=time_to,
+                no_analyze=no_analyze,
+                compare_with=compare_with,
+                triage=triage,
+                max_ai_clusters=max_ai_clusters,
+                ai_summary_only=ai_summary_only,
+            )
+        else:
+            # Multiple files - use new multi-file logic
+            parse_multiple_log_files(
+                log_files=log_files,
+                output=output,
+                enable_ai=enable_ai,
+                app_logs=app_logs,
+                test_name=test_name,
+                test_id=test_id,
+                status=status,
+                error_code=error_code,
+                pattern=pattern,
+                time_from=time_from,
+                time_to=time_to,
+                no_analyze=no_analyze,
+                compare_with=compare_with,
+                triage=triage,
+                max_ai_clusters=max_ai_clusters,
+                ai_summary_only=ai_summary_only,
+            )
     except typer.Exit:
         # Re-raise exit without logging - this is an intentional exit with user-friendly message already shown
         raise
@@ -1551,6 +1584,348 @@ class LogParser:
             console.print(f"  [blue]Total Cost:[/blue]     ${cost:.4f}")
         
         console.print()
+
+
+def parse_multiple_log_files(
+    log_files: List[Path],
+    output: Optional[Path] = None,
+    enable_ai: bool = False,
+    app_logs: Optional[str] = None,
+    test_name: Optional[str] = None,
+    test_id: Optional[str] = None,
+    status: Optional[str] = None,
+    error_code: Optional[str] = None,
+    pattern: Optional[str] = None,
+    time_from: Optional[str] = None,
+    time_to: Optional[str] = None,
+    no_analyze: bool = False,
+    compare_with: Optional[Path] = None,
+    triage: bool = False,
+    max_ai_clusters: int = 5,
+    ai_summary_only: bool = False,
+):
+    """Core multi-file log parsing logic with unified clustering and analysis."""
+    # Configure CrossBridge loggers once
+    configure_logging(
+        enable_console=False,
+        enable_file=False
+    )
+    
+    # Initialize root logger with timestamped file
+    setup_logging()
+    
+    logger.info(f"Starting multi-file log parsing for {len(log_files)} files")
+    
+    # Initialize parser once
+    parser = LogParser()
+    
+    # Check sidecar once (shared across all files)
+    if not parser.check_sidecar():
+        raise typer.Exit(1)
+    
+    # Display multi-file analysis header
+    console.print()
+    console.print("=" * 60, style="cyan bold")
+    console.print(f"  📊 Multi-File Log Analysis ({len(log_files)} files)", style="cyan bold")
+    console.print("=" * 60, style="cyan bold")
+    console.print()
+    
+    # Collect results from all files
+    all_results = []
+    all_file_info = []
+    failed_files = []
+    
+    for idx, log_file in enumerate(log_files, 1):
+        console.print()
+        console.print("┏" + "━" * 58 + "┓", style="blue")
+        console.print(f"┃  File {idx}/{len(log_files)}: {log_file.name:<47}┃", style="blue bold")
+        console.print("┗" + "━" * 58 + "┛", style="blue")
+        console.print()
+        
+        try:
+            # Detect framework for this file
+            framework = parser.detect_framework(log_file)
+            
+            # Handle unsupported formats
+            if framework in ["robot-html-unsupported", "testng-html-unsupported"]:
+                console.print(f"[yellow]⚠️  Skipping {log_file.name}: HTML files are not supported[/yellow]")
+                console.print(f"[dim]   Please use XML output files instead (output.xml or testng-results.xml)[/dim]")
+                failed_files.append({"file": log_file.name, "reason": "HTML format not supported"})
+                continue
+            
+            if framework == "unknown":
+                console.print(f"[yellow]⚠️  Skipping {log_file.name}: Unknown log format[/yellow]")
+                failed_files.append({"file": log_file.name, "reason": "Unknown format"})
+                continue
+            
+            console.print(f"[green][OK][/green] Detected framework: [blue]{framework}[/blue]")
+            logger.info(f"Processing file {idx}/{len(log_files)}: {log_file} (framework: {framework})")
+            
+            # Parse log
+            parsed_data = parser.parse_log(log_file, framework)
+            
+            if not parsed_data:
+                console.print(f"[yellow]⚠️  Skipping {log_file.name}: Parsing failed[/yellow]")
+                logger.error(f"Parsing failed for: {log_file}")
+                failed_files.append({"file": log_file.name, "reason": "Parsing failed"})
+                continue
+            
+            logger.info(f"Parsing successful for: {log_file}")
+            
+            # Enrich with intelligence if not disabled
+            if not no_analyze:
+                logger.info(f"Starting intelligence analysis for {log_file.name} (AI: {enable_ai})")
+                start_time = time.time()
+                enriched_data = parser.enrich_with_intelligence(
+                    parsed_data,
+                    framework,
+                    enable_ai=enable_ai,
+                    app_logs=app_logs
+                )
+                analysis_duration = int(time.time() - start_time)
+            else:
+                enriched_data = parsed_data
+                analysis_duration = 0
+            
+            # Apply filters
+            filters = {
+                "test_name": test_name,
+                "test_id": test_id,
+                "status": status,
+                "error_code": error_code,
+                "pattern": pattern,
+                "time_from": time_from,
+                "time_to": time_to,
+            }
+            filtered_data = parser.apply_filters(enriched_data, {k: v for k, v in filters.items() if v})
+            
+            # Compute confidence scores if analysis was performed
+            if not no_analyze and "failure_clusters" in enriched_data:
+                clusters = enriched_data.get("failure_clusters", [])
+                for cluster in clusters:
+                    try:
+                        confidence = compute_confidence_score(cluster, enriched_data)
+                        cluster["confidence_score"] = {
+                            "overall": confidence.overall_score,
+                            "cluster_signal": confidence.cluster_signal,
+                            "domain_signal": confidence.domain_signal,
+                            "pattern_signal": confidence.pattern_signal,
+                            "ai_signal": confidence.ai_signal,
+                            "components": confidence.components
+                        }
+                    except Exception as e:
+                        logger.warning(f"Failed to compute confidence for cluster in {log_file.name}: {e}")
+                        cluster["confidence_score"] = None
+            
+            # Apply AI sanitization if enabled
+            if enable_ai and not no_analyze:
+                clusters = enriched_data.get("failure_clusters", [])
+                for cluster in clusters:
+                    if "ai_analysis" in cluster and cluster.get("ai_analysis"):
+                        try:
+                            sanitized = sanitize_ai_output(cluster["ai_analysis"])
+                            cluster["ai_analysis"] = sanitized
+                        except Exception as e:
+                            logger.warning(f"Failed to sanitize AI output in {log_file.name}: {e}")
+            
+            # Generate structured output
+            output_data = filtered_data
+            if not no_analyze:
+                try:
+                    output_data = create_structured_output(
+                        enriched_data,
+                        regression_analysis=None  # Multi-file doesn't support regression yet
+                    )
+                except Exception as e:
+                    logger.warning(f"Structured output generation failed for {log_file.name}: {e}")
+                    output_data = filtered_data
+            
+            # Display results for this file
+            parser.display_results(filtered_data, framework)
+            
+            # Save per-file JSON with log filename in output name
+            per_file_output = _generate_per_file_output_path(log_file)
+            per_file_output.write_text(json.dumps(output_data, indent=2, default=str))
+            console.print(f"\n[blue]Results saved to: {per_file_output.name}[/blue]")
+            logger.info(f"Per-file results saved to: {per_file_output}")
+            
+            # Collect for merged output
+            all_results.append({
+                "source_file": str(log_file),
+                "framework": framework,
+                "data": output_data,
+                "output_file": str(per_file_output)
+            })
+            
+            all_file_info.append({
+                "file": log_file.name,
+                "framework": framework,
+                "status": "success",
+                "total_tests": filtered_data.get("total_tests", 0),
+                "passed_tests": filtered_data.get("passed_tests", 0),
+                "failed_tests": filtered_data.get("failed_tests", 0),
+            })
+            
+            console.print()
+            console.print("[dim]" + "─" * 60 + "[/dim]")
+            
+        except Exception as e:
+            console.print(f"\n[red]Error processing {log_file.name}: {str(e)}[/red]")
+            logger.error(f"Error processing {log_file}: {e}", exc_info=True)
+            failed_files.append({"file": log_file.name, "reason": str(e)})
+            console.print()
+            console.print("[dim]" + "─" * 60 + "[/dim]")
+            continue
+    
+    # Generate merged results
+    if all_results:
+        merged_data = _merge_results(all_results, log_files)
+        
+        # Save merged JSON
+        if output:
+            merged_output = output
+        else:
+            merged_output = Path(f"merged-results.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        
+        merged_output.write_text(json.dumps(merged_data, indent=2, default=str))
+        
+        # Display overall summary
+        console.print()
+        console.print("=" * 60, style="green bold")
+        console.print("  📊 Multi-File Analysis Summary", style="green bold")
+        console.print("=" * 60, style="green bold")
+        console.print()
+        
+        console.print(f"[green]✅ Successfully processed:[/green] {len(all_results)} file(s)")
+        if failed_files:
+            console.print(f"[yellow]⚠️  Failed/Skipped:[/yellow] {len(failed_files)} file(s)")
+        
+        console.print()
+        console.print("[blue]📁 Output Files:[/blue]")
+        console.print(f"   Merged results: [cyan]{merged_output}[/cyan]")
+        console.print(f"   Per-file results: {len(all_results)} individual files")
+        
+        # Display aggregate statistics
+        total_tests = sum(r["data"].get("total_tests", 0) for r in all_results)
+        total_passed = sum(r["data"].get("passed_tests", 0) for r in all_results)
+        total_failed = sum(r["data"].get("failed_tests", 0) for r in all_results)
+        
+        console.print()
+        console.print("[blue]📈 Aggregate Statistics:[/blue]")
+        console.print(f"   Total tests:  {total_tests}")
+        console.print(f"   Passed:       {total_passed} ({(total_passed/total_tests*100) if total_tests > 0 else 0:.1f}%)")
+        console.print(f"   Failed:       {total_failed} ({(total_failed/total_tests*100) if total_tests > 0 else 0:.1f}%)")
+        
+        # Show failed files if any
+        if failed_files:
+            console.print()
+            console.print("[yellow]⚠️  Skipped Files:[/yellow]")
+            for failed in failed_files:
+                console.print(f"   • {failed['file']}: {failed['reason']}")
+        
+        console.print()
+        console.print("=" * 60, style="green")
+        console.print("[green][OK] Multi-file parsing complete![/green]")
+        logger.info(f"Multi-file parsing completed: {len(all_results)} successful, {len(failed_files)} failed")
+        
+    else:
+        console.print()
+        console.print("[red]❌ No files were successfully processed[/red]")
+        if failed_files:
+            console.print()
+            console.print("[yellow]Failed files:[/yellow]")
+            for failed in failed_files:
+                console.print(f"   • {failed['file']}: {failed['reason']}")
+        logger.error("Multi-file parsing failed: no files processed successfully")
+        raise typer.Exit(1)
+
+
+def _generate_per_file_output_path(log_file: Path) -> Path:
+    """Generate output path for individual file using log filename."""
+    # Extract base name without extension
+    base_name = log_file.stem
+    
+    # Add timestamp and parsed suffix
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_name = f"{base_name}.parsed.{timestamp}.json"
+    
+    # Use same directory as input file
+    return log_file.parent / output_name
+
+
+def _merge_results(all_results: List[dict], log_files: List[Path]) -> dict:
+    """Merge results from multiple files with unified clustering."""
+    logger.info(f"Merging results from {len(all_results)} files")
+    
+    # Collect all failures across files for unified clustering
+    all_failures = []
+    
+    for result in all_results:
+        data = result["data"]
+        source_file = result["source_file"]
+        
+        # Extract failures from this file
+        if "failure_clusters" in data:
+            for cluster in data.get("failure_clusters", []):
+                for failure in cluster.get("failures", []):
+                    failure["source_file"] = source_file
+                    all_failures.append(failure)
+        elif "failed_tests" in data and isinstance(data.get("tests", []), list):
+            # If no clustering yet, extract from tests
+            for test in data.get("tests", []):
+                if test.get("status") in ["FAIL", "failed", "FAILED"]:
+                    failure = {
+                        "test_name": test.get("name", test.get("test_name", "Unknown")),
+                        "error_message": test.get("error_message", test.get("message", "")),
+                        "test_file": test.get("test_file", ""),
+                        "source_file": source_file,
+                    }
+                    all_failures.append(failure)
+    
+    # Perform unified clustering across all failures
+    from core.log_analysis.clustering import cluster_failures, get_cluster_summary
+    
+    unified_clusters = []
+    if all_failures:
+        logger.info(f"Performing unified clustering on {len(all_failures)} failures")
+        try:
+            unified_clusters = cluster_failures(all_failures)
+            logger.info(f"Created {len(unified_clusters)} unified clusters")
+        except Exception as e:
+            logger.warning(f"Unified clustering failed: {e}")
+    
+    # Build merged output
+    merged_data = {
+        "analysis_type": "multi-file",
+        "timestamp": datetime.now().isoformat(),
+        "total_files": len(all_results),
+        "files": [
+            {
+                "path": result["source_file"],
+                "framework": result["framework"],
+                "output_file": result["output_file"],
+                "statistics": {
+                    "total_tests": result["data"].get("total_tests", 0),
+                    "passed_tests": result["data"].get("passed_tests", 0),
+                    "failed_tests": result["data"].get("failed_tests", 0),
+                    "skipped_tests": result["data"].get("skipped_tests", 0),
+                }
+            }
+            for result in all_results
+        ],
+        "aggregate_statistics": {
+            "total_tests": sum(r["data"].get("total_tests", 0) for r in all_results),
+            "passed_tests": sum(r["data"].get("passed_tests", 0) for r in all_results),
+            "failed_tests": sum(r["data"].get("failed_tests", 0) for r in all_results),
+            "skipped_tests": sum(r["data"].get("skipped_tests", 0) for r in all_results),
+        },
+        "unified_failure_clusters": unified_clusters,
+        "unified_cluster_summary": get_cluster_summary(unified_clusters) if unified_clusters else None,
+        "per_file_results": [result["data"] for result in all_results]
+    }
+    
+    logger.info("Results merged successfully")
+    return merged_data
 
 
 def parse_log_file(

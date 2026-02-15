@@ -912,3 +912,397 @@ class TestBehaveDisplay:
             args = mock_display.call_args[0]
             assert args[0] == behave_data_with_failures
 
+
+class TestMultiFileAnalysis:
+    """Tests for multi-file log analysis functionality."""
+    
+    @pytest.fixture
+    def mock_testng_file1(self, tmp_path):
+        """Create mock TestNG file 1."""
+        file_path = tmp_path / "testng-vm1.xml"
+        file_path.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results><suite name="Suite1"><test name="Test1">
+<class name="TestClass1"><test-method name="test1" status="PASS"/></class>
+</test></suite></testng-results>""")
+        return file_path
+    
+    @pytest.fixture
+    def mock_testng_file2(self, tmp_path):
+        """Create mock TestNG file 2."""
+        file_path = tmp_path / "testng-vm2.xml"
+        file_path.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results><suite name="Suite2"><test name="Test2">
+<class name="TestClass2"><test-method name="test2" status="FAIL"/></class>
+</test></suite></testng-results>""")
+        return file_path
+    
+    @pytest.fixture
+    def mock_cypress_file(self, tmp_path):
+        """Create mock Cypress file."""
+        file_path = tmp_path / "cypress-results.json"
+        cypress_data = {
+            "stats": {"tests": 5, "passes": 3, "failures": 2},
+            "results": []
+        }
+        file_path.write_text(json.dumps(cypress_data))
+        return file_path
+    
+    def test_generate_per_file_output_path(self, tmp_path):
+        """Test generation of per-file output paths."""
+        from cli.commands.log_commands import _generate_per_file_output_path
+        
+        # Test with XML file
+        input_file = tmp_path / "testng-vm1.xml"
+        input_file.touch()
+        
+        output_path = _generate_per_file_output_path(input_file)
+        
+        # Should preserve base name, add .parsed and timestamp
+        assert output_path.parent == input_file.parent
+        assert output_path.name.startswith("testng-vm1.parsed.")
+        assert output_path.name.endswith(".json")
+        assert ".2026" in output_path.name or ".202" in output_path.name  # Contains timestamp
+    
+    def test_generate_per_file_output_path_preserves_name(self, tmp_path):
+        """Test that per-file output path preserves original log filename."""
+        from cli.commands.log_commands import _generate_per_file_output_path
+        
+        # Test with various filenames
+        test_files = [
+            "testng-vm1.xml",
+            "testng-vm2-integration.xml",
+            "cypress-smoke-tests.json",
+            "behave-results-staging.json",
+        ]
+        
+        for filename in test_files:
+            input_file = tmp_path / filename
+            input_file.touch()
+            
+            output_path = _generate_per_file_output_path(input_file)
+            base_name = filename.rsplit(".", 1)[0]  # Remove extension
+            
+            # Output should start with original base name
+            assert output_path.name.startswith(base_name)
+            assert ".parsed." in output_path.name
+            assert output_path.name.endswith(".json")
+    
+    def test_merge_results_with_multiple_files(self):
+        """Test merging results from multiple files."""
+        from cli.commands.log_commands import _merge_results
+        
+        # Mock results from two files
+        all_results = [
+            {
+                "source_file": "/path/to/file1.xml",
+                "framework": "testng",
+                "output_file": "/path/to/file1.parsed.json",
+                "data": {
+                    "total_tests": 10,
+                    "passed_tests": 8,
+                    "failed_tests": 2,
+                    "skipped_tests": 0,
+                    "tests": [],
+                }
+            },
+            {
+                "source_file": "/path/to/file2.xml",
+                "framework": "cypress",
+                "output_file": "/path/to/file2.parsed.json",
+                "data": {
+                    "total_tests": 15,
+                    "passed_tests": 12,
+                    "failed_tests": 3,
+                    "skipped_tests": 0,
+                    "tests": [],
+                }
+            }
+        ]
+        
+        merged = _merge_results(all_results, [])
+        
+        # Verify structure
+        assert merged["analysis_type"] == "multi-file"
+        assert merged["total_files"] == 2
+        assert len(merged["files"]) == 2
+        
+        # Verify aggregate statistics
+        agg_stats = merged["aggregate_statistics"]
+        assert agg_stats["total_tests"] == 25
+        assert agg_stats["passed_tests"] == 20
+        assert agg_stats["failed_tests"] == 5
+        assert agg_stats["skipped_tests"] == 0
+        
+        # Verify per-file results
+        assert len(merged["per_file_results"]) == 2
+    
+    def test_merge_results_with_failures_clustering(self):
+        """Test that merge_results performs unified clustering."""
+        from cli.commands.log_commands import _merge_results
+        
+        # Mock results with failures
+        all_results = [
+            {
+                "source_file": "/path/to/file1.xml",
+                "framework": "testng",
+                "output_file": "/path/to/file1.parsed.json",
+                "data": {
+                    "total_tests": 5,
+                    "passed_tests": 3,
+                    "failed_tests": 2,
+                    "tests": [
+                        {
+                            "name": "test1",
+                            "status": "FAIL",
+                            "error_message": "Connection timeout",
+                            "test_file": "Test1.java"
+                        },
+                        {
+                            "name": "test2",
+                            "status": "FAIL",
+                            "error_message": "Connection timeout",
+                            "test_file": "Test2.java"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_file": "/path/to/file2.xml",
+                "framework": "testng",
+                "output_file": "/path/to/file2.parsed.json",
+                "data": {
+                    "total_tests": 5,
+                    "passed_tests": 4,
+                    "failed_tests": 1,
+                    "tests": [
+                        {
+                            "name": "test3",
+                            "status": "FAIL",
+                            "error_message": "Connection timeout",
+                            "test_file": "Test3.java"
+                        }
+                    ]
+                }
+            }
+        ]
+        
+        with patch("core.log_analysis.clustering.cluster_failures") as mock_cluster:
+            mock_cluster.return_value = [
+                {
+                    "root_cause": "Connection timeout",
+                    "count": 3,
+                    "failures": []
+                }
+            ]
+            
+            with patch("core.log_analysis.clustering.get_cluster_summary") as mock_summary:
+                mock_summary.return_value = {"total_clusters": 1}
+                
+                merged = _merge_results(all_results, [])
+                
+                # Should call clustering with all failures
+                mock_cluster.assert_called_once()
+                failures_arg = mock_cluster.call_args[0][0]
+                assert len(failures_arg) == 3  # All 3 failures from both files
+                
+                # All failures should have source_file attached
+                for failure in failures_arg:
+                    assert "source_file" in failure
+                
+                # Merged result should have unified clusters
+                assert "unified_failure_clusters" in merged
+                assert len(merged["unified_failure_clusters"]) == 1
+    
+    @patch("cli.commands.log_commands.LogParser")
+    @patch("cli.commands.log_commands.configure_logging")
+    @patch("cli.commands.log_commands.setup_logging")
+    def test_parse_multiple_files_success(self, mock_setup, mock_config, mock_parser_class, tmp_path):
+        """Test successful parsing of multiple files."""
+        from cli.commands.log_commands import parse_multiple_log_files
+        
+        # Create mock files
+        file1 = tmp_path / "test1.xml"
+        file2 = tmp_path / "test2.xml"
+        file1.touch()
+        file2.touch()
+        
+        # Setup mocks
+        mock_parser = Mock()
+        mock_parser.check_sidecar.return_value = True
+        mock_parser.detect_framework.side_effect = ["testng", "testng"]
+        mock_parser.parse_log.return_value = {
+            "total_tests": 10,
+            "passed_tests": 8,
+            "failed_tests": 2,
+            "tests": []
+        }
+        mock_parser.enrich_with_intelligence.return_value = {
+            "total_tests": 10,
+            "passed_tests": 8,
+            "failed_tests": 2,
+            "tests": []
+        }
+        mock_parser.apply_filters.return_value = {
+            "total_tests": 10,
+            "passed_tests": 8,
+            "failed_tests": 2,
+            "tests": []
+        }
+        mock_parser_class.return_value = mock_parser
+        
+        # Execute
+        with patch("cli.commands.log_commands.create_structured_output") as mock_structured:
+            mock_structured.return_value = {"total_tests": 10}
+            
+            with patch("builtins.open", mock_open()) as mock_file:
+                parse_multiple_log_files(
+                    log_files=[file1, file2],
+                    enable_ai=False,
+                    no_analyze=False
+                )
+        
+        # Verify parser was used correctly
+        assert mock_parser.check_sidecar.call_count == 1  # Called once
+        assert mock_parser.detect_framework.call_count == 2  # Once per file
+        assert mock_parser.parse_log.call_count == 2  # Once per file
+        assert mock_parser.display_results.call_count == 2  # Once per file
+    
+    @patch("cli.commands.log_commands.LogParser")
+    @patch("cli.commands.log_commands.configure_logging")
+    @patch("cli.commands.log_commands.setup_logging")
+    def test_parse_multiple_files_with_failures(self, mock_setup, mock_config, mock_parser_class, tmp_path):
+        """Test parsing multiple files when some fail."""
+        from cli.commands.log_commands import parse_multiple_log_files
+        import typer
+        
+        # Create mock files
+        file1 = tmp_path / "test1.xml"
+        file2 = tmp_path / "test2.xml"
+        file1.touch()
+        file2.touch()
+        
+        # Setup mocks - first file succeeds, second fails
+        mock_parser = Mock()
+        mock_parser.check_sidecar.return_value = True
+        mock_parser.detect_framework.side_effect = ["testng", "unknown"]
+        mock_parser.parse_log.return_value = {
+            "total_tests": 10,
+            "passed_tests": 10,
+            "failed_tests": 0,
+            "tests": []
+        }
+        mock_parser.enrich_with_intelligence.return_value = {
+            "total_tests": 10,
+            "passed_tests": 10,
+            "failed_tests": 0,
+            "tests": []
+        }
+        mock_parser.apply_filters.return_value = {
+            "total_tests": 10,
+            "passed_tests": 10,
+            "failed_tests": 0,
+            "tests": []
+        }
+        mock_parser_class.return_value = mock_parser
+        
+        # Execute - should handle failure gracefully
+        with patch("cli.commands.log_commands.create_structured_output") as mock_structured:
+            mock_structured.return_value = {"total_tests": 10}
+            
+            with patch("builtins.open", mock_open()):
+                parse_multiple_log_files(
+                    log_files=[file1, file2],
+                    enable_ai=False,
+                    no_analyze=False
+                )
+        
+        # Should process first file, skip second
+        assert mock_parser.parse_log.call_count == 1  # Only for successful file
+    
+    @patch("cli.commands.log_commands.LogParser")
+    @patch("cli.commands.log_commands.configure_logging")
+    @patch("cli.commands.log_commands.setup_logging")
+    def test_parse_multiple_files_all_fail(self, mock_setup, mock_config, mock_parser_class, tmp_path):
+        """Test that multi-file parsing exits when all files fail."""
+        from cli.commands.log_commands import parse_multiple_log_files
+        import typer
+        
+        # Create mock files
+        file1 = tmp_path / "test1.xml"
+        file2 = tmp_path / "test2.xml"
+        file1.touch()
+        file2.touch()
+        
+        # Setup mocks - all files fail
+        mock_parser = Mock()
+        mock_parser.check_sidecar.return_value = True
+        mock_parser.detect_framework.side_effect = ["unknown", "unknown"]
+        mock_parser_class.return_value = mock_parser
+        
+        # Should raise Exit when all files fail
+        with pytest.raises(typer.Exit):
+            parse_multiple_log_files(
+                log_files=[file1, file2],
+                enable_ai=False,
+                no_analyze=False
+            )
+    
+    @patch("cli.commands.log_commands.LogParser")
+    @patch("cli.commands.log_commands.configure_logging")
+    @patch("cli.commands.log_commands.setup_logging")
+    def test_parse_multiple_files_mixed_frameworks(self, mock_setup, mock_config, mock_parser_class, tmp_path):
+        """Test parsing files from different frameworks."""
+        from cli.commands.log_commands import parse_multiple_log_files
+        
+        # Create mock files
+        file1 = tmp_path / "testng.xml"
+        file2 = tmp_path / "cypress.json"
+        file3 = tmp_path / "behave.json"
+        file1.touch()
+        file2.touch()
+        file3.touch()
+        
+        # Setup mocks with different frameworks
+        mock_parser = Mock()
+        mock_parser.check_sidecar.return_value = True
+        mock_parser.detect_framework.side_effect = ["testng", "cypress", "behave"]
+        mock_parser.parse_log.return_value = {
+            "total_tests": 5,
+            "passed_tests": 5,
+            "failed_tests": 0,
+            "tests": []
+        }
+        mock_parser.enrich_with_intelligence.return_value = {
+            "total_tests": 5,
+            "passed_tests": 5,
+            "failed_tests": 0,
+            "tests": []
+        }
+        mock_parser.apply_filters.return_value = {
+            "total_tests": 5,
+            "passed_tests": 5,
+            "failed_tests": 0,
+            "tests": []
+        }
+        mock_parser_class.return_value = mock_parser
+        
+        # Execute
+        with patch("cli.commands.log_commands.create_structured_output") as mock_structured:
+            mock_structured.return_value = {"total_tests": 5}
+            
+            with patch("builtins.open", mock_open()):
+                parse_multiple_log_files(
+                    log_files=[file1, file2, file3],
+                    enable_ai=False,
+                    no_analyze=False
+                )
+        
+        # Should process all three files
+        assert mock_parser.parse_log.call_count == 3
+        assert mock_parser.display_results.call_count == 3
+        
+        # Check frameworks detected
+        framework_calls = [call[0][1] for call in mock_parser.display_results.call_args_list]
+        assert "testng" in framework_calls
+        assert "cypress" in framework_calls
+        assert "behave" in framework_calls
