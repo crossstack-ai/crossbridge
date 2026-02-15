@@ -1184,6 +1184,127 @@ Each per-file JSON contains complete analysis identical to single-file mode:
 - 🚀 **CI/CD Native**: Perfect for distributed test execution pipelines
 - ✅ **Zero Configuration**: Works with existing test outputs as-is
 
+#### Detailed Logging & Observability 🆕
+
+**Comprehensive logging throughout the analysis workflow for production troubleshooting and debugging.**
+
+CrossBridge now provides enterprise-grade detailed logging across all operations, giving complete visibility into validation, parsing, sidecar communication, intelligence analysis, and file operations.
+
+**What's Logged:**
+
+```
+2026-02-15 12:56:53 | INFO | Starting log parsing for: TestNG-VM1.xml (framework: auto-detect)
+2026-02-15 12:56:53 | INFO | Options: AI=True, no_analyze=False, triage=False
+2026-02-15 12:56:53 | INFO | Starting validation for file: TestNG-VM1.xml
+2026-02-15 12:56:53 | DEBUG | ✓ File exists: TestNG-VM1.xml
+2026-02-15 12:56:53 | DEBUG | ✓ Path is a file (not directory)
+2026-02-15 12:56:53 | DEBUG | ✓ File is readable (permissions OK)
+2026-02-15 12:56:53 | INFO | File size: 2.45 MB (2,569,834 bytes)
+2026-02-15 12:56:53 | INFO | Auto-detected framework: testng
+2026-02-15 12:56:53 | DEBUG | Running XML validation for testng
+2026-02-15 12:56:53 | DEBUG | XML parsed successfully, root element: <testng-results>
+2026-02-15 12:56:53 | DEBUG | Found 5 suite(s) in TestNG XML
+2026-02-15 12:56:53 | INFO | ✓ All validation checks passed (framework: testng, size: 2.45 MB)
+2026-02-15 12:56:53 | INFO | Sending parse request to sidecar: http://localhost:8000/parse/testng
+2026-02-15 12:56:53 | INFO | File: TestNG-VM1.xml, Size: 2.45 MB, Framework: testng
+2026-02-15 12:56:53 | DEBUG | Uploading file to sidecar endpoint...
+2026-02-15 12:56:56 | INFO | Sidecar response received: HTTP 200 (took 3s)
+2026-02-15 12:56:56 | INFO | Parsing successful - Total: 150, Passed: 115, Failed: 35
+2026-02-15 12:56:56 | INFO | Starting intelligence analysis (AI: True)
+2026-02-15 12:58:45 | INFO | Intelligence analysis request completed: HTTP 200
+2026-02-15 12:58:45 | INFO | Clustering analysis complete: 12 unique issue(s) from 35 failure(s)
+2026-02-15 12:58:45 | DEBUG | Cluster 1: [critical/product] NullPointerException (count: 8)
+2026-02-15 12:58:45 | DEBUG | Cluster 2: [high/infrastructure] DB connection timeout (count: 5)
+2026-02-15 12:58:45 | DEBUG | Cluster 3: [medium/product] Invalid API response (count: 4)
+2026-02-15 12:58:45 | INFO | AI analysis complete: 15 insights generated
+2026-02-15 12:58:45 | INFO | Results saved to: TestNG-VM1.parsed.json (347.2 KB)
+```
+
+**Logging Categories:**
+
+1. **Validation Logging**
+   - File existence, readability, size checks
+   - Framework auto-detection process
+   - XML/JSON/Java schema validation details
+   - Validation failures with specific errors
+
+2. **Framework Detection**
+   - Filename pattern matching attempts
+   - Content inspection findings
+   - Detection method used (filename vs content)
+   - Failures when framework unknown
+
+3. **Sidecar Communication**
+   - Parse request details (endpoint, file size)
+   - HTTP response codes and timing
+   - Test counts (total/passed/failed)
+   - Connection errors and timeouts
+
+4. **Intelligence Analysis**
+   - Clustering results and deduplication stats
+   - Top cluster details (severity, domain, root cause)
+   - AI insights generation
+   - Analysis timing and performance
+
+5. **File Operations**
+   - Output file paths (specified vs auto-generated)
+   - JSON content sizes
+   - Per-file and merged output writing
+
+**Log Files Location:**
+
+```bash
+# Default log location
+~/.crossbridge/logs/
+
+# Typical log files
+run-20260215_125653.log      # Detailed operation logs
+run-20260215_121204.log      # Previous runs
+```
+
+**View Logs:**
+
+```bash
+# Live tail during analysis
+tail -f ~/.crossbridge/logs/run-$(date +%Y%m%d)*.log
+
+# Search for errors
+grep "ERROR" ~/.crossbridge/logs/run-*.log
+
+# Filter sidecar communication
+grep "Sidecar" ~/.crossbridge/logs/run-*.log
+
+# View clustering results
+grep "Clustering analysis" ~/.crossbridge/logs/run-*.log
+```
+
+**Benefits:**
+
+- 🔍 **Complete Audit Trail**: Every operation logged with timing
+- 🐛 **Easy Troubleshooting**: Identify exact failure points
+- ⚡ **Performance Monitoring**: Track file sizes, HTTP response times
+- 🔗 **Sidecar Visibility**: Full API request/response details
+- 📊 **Analysis Insights**: See clustering and AI results in logs
+- 🏢 **Enterprise Ready**: Production-grade logging for monitoring
+
+**Debugging Examples:**
+
+```bash
+# Why did validation fail?
+grep "Validation failed" ~/.crossbridge/logs/run-*.log
+
+# Sidecar connection issues?
+grep -E "Sidecar.*(timeout|connection)" ~/.crossbridge/logs/run-*.log
+
+# How many clusters were identified?
+grep "unique issue" ~/.crossbridge/logs/run-*.log
+
+# Which files were processed?
+grep "Starting log parsing" ~/.crossbridge/logs/run-*.log
+```
+
+📖 **See Also:** [Logging Framework Documentation](core/logging/README.md) | [Troubleshooting Guide](docs/configuration/TROUBLESHOOTING.md)
+
 ---
 
 ### 🔹 5. **Intelligent Parsers & Unified Embeddings** ⭐
