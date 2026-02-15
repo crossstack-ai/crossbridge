@@ -2195,6 +2195,9 @@ def parse_multiple_log_files(
                 test_data = filtered_data.get("data", filtered_data)
                 logger.debug(f"Unwrapped intelligence structure for {log_file.name}")
             
+            # Log available keys for debugging
+            logger.debug(f"Available keys in test_data: {list(test_data.keys())}")
+            
             # Get test counts, handling both integer counts and lists
             total_tests = test_data.get("total_tests", 0)
             if isinstance(total_tests, list):
@@ -2207,6 +2210,18 @@ def parse_multiple_log_files(
             failed_tests = test_data.get("failed_tests", 0)
             if isinstance(failed_tests, list):
                 failed_tests = len(failed_tests)
+            
+            # If total_tests is 0 but we have failed tests, calculate from test list
+            if total_tests == 0 and "tests" in test_data:
+                tests_list = test_data.get("tests", [])
+                if isinstance(tests_list, list):
+                    total_tests = len(tests_list)
+                    # Recalculate passed/failed from test list if needed
+                    if passed_tests == 0:
+                        passed_tests = sum(1 for t in tests_list if t.get("status") in ["PASS", "passed", "success"])
+                    if failed_tests == 0:
+                        failed_tests = sum(1 for t in tests_list if t.get("status") in ["FAIL", "failed", "failure"])
+                    logger.debug(f"Calculated from tests list: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
             
             logger.info(f"File {log_file.name} results: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
             
@@ -2289,7 +2304,13 @@ def parse_multiple_log_files(
             failed = file_info["failed_tests"]
             pass_rate = (passed / total * 100) if total > 0 else 0
             
-            status_icon = "✅" if failed == 0 else "⚠️" if failed < total // 2 else "❌"
+            # Determine status icon based on failure ratio
+            if failed == 0:
+                status_icon = "✅"
+            elif total > 0 and failed < total // 2:
+                status_icon = "⚠️"
+            else:
+                status_icon = "❌"
             
             console.print(f"[bold cyan]{'─' * 80}[/bold cyan]")
             console.print(f"[bold cyan]=== {file_name} log analysis ===[/bold cyan]")
@@ -2319,13 +2340,31 @@ def parse_multiple_log_files(
             
             # Handle both integer counts and lists
             tests = result_data.get("total_tests", 0)
-            total_tests += len(tests) if isinstance(tests, list) else tests
+            if isinstance(tests, list):
+                tests = len(tests)
             
             passed = result_data.get("passed_tests", 0)
-            total_passed += len(passed) if isinstance(passed, list) else passed
+            if isinstance(passed, list):
+                passed = len(passed)
             
             failed = result_data.get("failed_tests", 0)
-            total_failed += len(failed) if isinstance(failed, list) else failed
+            if isinstance(failed, list):
+                failed = len(failed)
+            
+            # If total_tests is 0 but we have test data, calculate from test list
+            if tests == 0 and "tests" in result_data:
+                tests_list = result_data.get("tests", [])
+                if isinstance(tests_list, list):
+                    tests = len(tests_list)
+                    # Recalculate passed/failed from test list if needed
+                    if passed == 0:
+                        passed = sum(1 for t in tests_list if t.get("status") in ["PASS", "passed", "success"])
+                    if failed == 0:
+                        failed = sum(1 for t in tests_list if t.get("status") in ["FAIL", "failed", "failure"])
+            
+            total_tests += tests
+            total_passed += passed
+            total_failed += failed
         
         logger.info(f"Aggregate statistics: Total={total_tests}, Passed={total_passed}, Failed={total_failed}")
         
