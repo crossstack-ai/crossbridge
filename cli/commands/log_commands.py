@@ -2112,6 +2112,10 @@ def parse_multiple_log_files(
                     output_data = filtered_data
             
             # Display results for this file
+            console.print(f"\n[bold cyan]{'=' * 80}[/bold cyan]")
+            console.print(f"[bold cyan]=== {log_file.name} log analysis ===[/bold cyan]")
+            console.print(f"[bold cyan]{'=' * 80}[/bold cyan]\n")
+            logger.info(f"Displaying results for {log_file.name}")
             parser.display_results(filtered_data, framework)
             
             # Save per-file JSON with log filename in output name
