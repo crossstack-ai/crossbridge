@@ -953,27 +953,132 @@ class LogParser:
                 console.print()
     
     def _display_cypress_results(self, data: dict):
-        """Display Cypress results."""
+        """Display Cypress results with detailed analysis."""
         console.print("=" * 41, style="green")
-        console.print("           Cypress Test Results", style="green bold")
+        console.print("          Cypress Test Results", style="green bold")
         console.print("=" * 41, style="green")
         console.print()
         
-        stats = data.get("statistics", {})
+        total = data.get("total_tests", 0)
+        passed = data.get("passed", 0)
+        failed = data.get("failed", 0)
+        skipped = data.get("skipped", 0)
+        pass_rate = data.get("pass_rate", 0.0)
+        
+        # Overall status
+        status = "PASS" if failed == 0 else "FAIL"
+        status_style = "green" if status == "PASS" else "red"
+        console.print(f"[blue]Status:[/blue] [{status_style}]{status}[/{status_style}]")
+        console.print()
+        
+        # Test Statistics
         console.print("[blue]Test Statistics:[/blue]")
-        console.print(f"  Total:  {stats.get('total_tests', 0)}")
-        console.print(f"  Passed: [green]{stats.get('passed_tests', 0)}[/green]")
-        console.print(f"  Failed: [red]{stats.get('failed_tests', 0)}[/red]")
+        console.print(f"  Total:    {total}")
+        console.print(f"  Passed:   [green]{passed}[/green]")
+        console.print(f"  Failed:   [red]{failed}[/red]")
+        if skipped > 0:
+            console.print(f"  Skipped:  [yellow]{skipped}[/yellow]")
+        console.print(f"  Pass Rate: {pass_rate:.1f}%")
         console.print()
         
-        failures = data.get("failures", [])
-        if failures:
-            console.print("[red]Failed Tests:[/red]")
-            for failure in failures:
-                title = failure.get("title", "Unknown")
-                error = failure.get("error_message", "")
-                console.print(f"  [X] {title}: {error}")
+        # Failed tests - apply clustering for deduplication
+        failed_tests = data.get("failed_tests", [])
+        if failed_tests:
+            # Import clustering module
+            from core.log_analysis.clustering import cluster_failures, get_cluster_summary
+            
+            # Convert failed tests to clustering format
+            failures_for_clustering = []
+            for test in failed_tests:
+                failures_for_clustering.append({
+                    "name": test.get("test_name", "Unknown"),
+                    "test_name": test.get("test_name"),
+                    "error": test.get("error_message", ""),
+                    "stack_trace": test.get("stack_trace"),
+                })
+            
+            # Cluster failures
+            clusters = cluster_failures(failures_for_clustering, deduplicate=True)
+            cluster_summary = get_cluster_summary(clusters)
+            
+            total_failed = len(failed_tests)
+            unique_issues = cluster_summary["unique_issues"]
+            
+            # Show summary with deduplication stats
+            if unique_issues < total_failed:
+                console.print(
+                    f"[red]Root Cause Analysis: {unique_issues} unique issues "
+                    f"(deduplicated from {total_failed} failures)[/red]"
+                )
+                console.print(f"[dim]Deduplication saved {total_failed - unique_issues} duplicate entries "
+                             f"({int((1 - unique_issues/total_failed) * 100)}% reduction)[/dim]")
+            else:
+                console.print(f"[red]Failed Tests ({total_failed} unique failures):[/red]")
+            
+            # Show domain distribution
+            domain_stats = cluster_summary.get("by_domain", {})
+            if any(domain_stats.values()):
+                domain_parts = []
+                if domain_stats.get("product", 0) > 0:
+                    domain_parts.append(f"[red]{domain_stats['product']} Product[/red]")
+                if domain_stats.get("infrastructure", 0) > 0:
+                    domain_parts.append(f"[magenta]{domain_stats['infrastructure']} Infra[/magenta]")
+                if domain_stats.get("environment", 0) > 0:
+                    domain_parts.append(f"[cyan]{domain_stats['environment']} Env[/cyan]")
+                if domain_stats.get("test_automation", 0) > 0:
+                    domain_parts.append(f"[blue]{domain_stats['test_automation']} Test[/blue]")
+                if domain_stats.get("unknown", 0) > 0:
+                    domain_parts.append(f"[dim]{domain_stats['unknown']} Unknown[/dim]")
+                
+                if domain_parts:
+                    console.print(f"[dim]Domain breakdown: {', '.join(domain_parts)}[/dim]")
+            
+            # Display systemic patterns if detected
+            systemic_patterns = cluster_summary.get("systemic_patterns", [])
+            if systemic_patterns:
+                console.print()
+                console.print("[yellow bold]⚠️  Systemic Patterns Detected:[/yellow bold]")
+                for pattern in systemic_patterns:
+                    console.print(f"   {pattern}")
+            
             console.print()
+            
+            # Display clustered failures
+            self._display_clustered_failures(clusters, "Cypress")
+            console.print()
+        
+        # Slowest tests
+        all_tests = data.get("all_tests", [])
+        if all_tests:
+            tests_with_duration = [t for t in all_tests if t.get("duration_ms", 0) > 0]
+            sorted_tests = sorted(tests_with_duration, key=lambda t: t.get("duration_ms", 0), reverse=True)
+            
+            if sorted_tests:
+                display_count = min(len(sorted_tests), 5)
+                console.print(f"[yellow]⏱️  Slowest Tests (Top {display_count}):[/yellow]")
+                
+                from rich.table import Table
+                from rich import box
+                
+                table = Table(
+                    show_header=True,
+                    header_style="bold yellow",
+                    box=box.ROUNDED,
+                    padding=(0, 1),
+                    show_lines=False
+                )
+                table.add_column("Test Case", style="white", no_wrap=False, max_width=80)
+                table.add_column("Duration", style="yellow bold", justify="right", width=12)
+                
+                for test in sorted_tests[:5]:
+                    test_name = test.get("test_name", test.get("title", "Unknown"))
+                    duration_ms = test.get("duration_ms", 0)
+                    test_duration = self.format_duration(duration_ms // 1000)
+                    
+                    table.add_row(test_name, test_duration)
+                
+                console.print(table)
+                console.print()
     
     def _display_playwright_results(self, data: dict):
         """Display Playwright results."""
@@ -999,21 +1104,132 @@ class LogParser:
             console.print()
     
     def _display_behave_results(self, data: dict):
-        """Display Behave BDD results."""
+        """Display Behave BDD results with detailed analysis."""
         console.print("=" * 41, style="green")
-        console.print("            Behave BDD Results", style="green bold")
+        console.print("           Behave BDD Results", style="green bold")
         console.print("=" * 41, style="green")
         console.print()
         
-        feature_count = len(data.get("features", []))
-        stats = data.get("statistics", {})
+        total_scenarios = data.get("total_scenarios", 0)
+        passed_scenarios = data.get("passed_scenarios", 0)
+        failed_scenarios_count = data.get("failed_scenarios", 0)
+        skipped = data.get("skipped_scenarios", 0)
+        pass_rate = data.get("pass_rate", 0.0)
         
+        # Overall status
+        status = "PASS" if failed_scenarios_count == 0 else "FAIL"
+        status_style = "green" if status == "PASS" else "red"
+        console.print(f"[blue]Status:[/blue] [{status_style}]{status}[/{status_style}]")
+        console.print()
+        
+        # BDD Statistics
         console.print("[blue]BDD Statistics:[/blue]")
-        console.print(f"  Features:  {feature_count}")
-        console.print(f"  Scenarios: {stats.get('total_scenarios', 0)}")
-        console.print(f"  Passed:    [green]{stats.get('passed_scenarios', 0)}[/green]")
-        console.print(f"  Failed:    [red]{stats.get('failed_scenarios', 0)}[/red]")
+        console.print(f"  Features:  {data.get('total_features', 0)}")
+        console.print(f"  Scenarios: {total_scenarios}")
+        console.print(f"  Passed:    [green]{passed_scenarios}[/green]")
+        console.print(f"  Failed:    [red]{failed_scenarios_count}[/red]")
+        if skipped > 0:
+            console.print(f"  Skipped:   [yellow]{skipped}[/yellow]")
+        console.print(f"  Pass Rate: {pass_rate:.1f}%")
         console.print()
+        
+        # Failed scenarios - apply clustering for deduplication
+        failed_scenarios = data.get("failed_scenarios_list", [])
+        if failed_scenarios:
+            # Import clustering module
+            from core.log_analysis.clustering import cluster_failures, get_cluster_summary
+            
+            # Convert failed scenarios to clustering format
+            failures_for_clustering = []
+            for scenario in failed_scenarios:
+                failures_for_clustering.append({
+                    "name": scenario.get("test_name", "Unknown"),
+                    "test_name": scenario.get("test_name"),
+                    "error": scenario.get("error_message", ""),
+                })
+            
+            # Cluster failures
+            clusters = cluster_failures(failures_for_clustering, deduplicate=True)
+            cluster_summary = get_cluster_summary(clusters)
+            
+            total_failed = len(failed_scenarios)
+            unique_issues = cluster_summary["unique_issues"]
+            
+            # Show summary with deduplication stats
+            if unique_issues < total_failed:
+                console.print(
+                    f"[red]Root Cause Analysis: {unique_issues} unique issues "
+                    f"(deduplicated from {total_failed} failures)[/red]"
+                )
+                console.print(f"[dim]Deduplication saved {total_failed - unique_issues} duplicate entries "
+                             f"({int((1 - unique_issues/total_failed) * 100)}% reduction)[/dim]")
+            else:
+                console.print(f"[red]Failed Scenarios ({total_failed} unique failures):[/red]")
+            
+            # Show domain distribution
+            domain_stats = cluster_summary.get("by_domain", {})
+            if any(domain_stats.values()):
+                domain_parts = []
+                if domain_stats.get("product", 0) > 0:
+                    domain_parts.append(f"[red]{domain_stats['product']} Product[/red]")
+                if domain_stats.get("infrastructure", 0) > 0:
+                    domain_parts.append(f"[magenta]{domain_stats['infrastructure']} Infra[/magenta]")
+                if domain_stats.get("environment", 0) > 0:
+                    domain_parts.append(f"[cyan]{domain_stats['environment']} Env[/cyan]")
+                if domain_stats.get("test_automation", 0) > 0:
+                    domain_parts.append(f"[blue]{domain_stats['test_automation']} Test[/blue]")
+                if domain_stats.get("unknown", 0) > 0:
+                    domain_parts.append(f"[dim]{domain_stats['unknown']} Unknown[/dim]")
+                
+                if domain_parts:
+                    console.print(f"[dim]Domain breakdown: {', '.join(domain_parts)}[/dim]")
+            
+            # Display systemic patterns if detected
+            systemic_patterns = cluster_summary.get("systemic_patterns", [])
+            if systemic_patterns:
+                console.print()
+                console.print("[yellow bold]⚠️  Systemic Patterns Detected:[/yellow bold]")
+                for pattern in systemic_patterns:
+                    console.print(f"   {pattern}")
+            
+            console.print()
+            
+            # Display clustered failures
+            self._display_clustered_failures(clusters, "Behave")
+            console.print()
+        
+        # Slowest scenarios
+        all_scenarios = data.get("all_scenarios", [])
+        if all_scenarios:
+            scenarios_with_duration = [s for s in all_scenarios if s.get("duration_ms", 0) > 0]
+            sorted_scenarios = sorted(scenarios_with_duration, key=lambda s: s.get("duration_ms", 0), reverse=True)
+            
+            if sorted_scenarios:
+                display_count = min(len(sorted_scenarios), 5)
+                console.print(f"[yellow]⏱️  Slowest Scenarios (Top {display_count}):[/yellow]")
+                
+                from rich.table import Table
+                from rich import box
+                
+                table = Table(
+                    show_header=True,
+                    header_style="bold yellow",
+                    box=box.ROUNDED,
+                    padding=(0, 1),
+                    show_lines=False
+                )
+                table.add_column("Scenario", style="white", no_wrap=False, max_width=80)
+                table.add_column("Duration", style="yellow bold", justify="right", width=12)
+                
+                for scenario in sorted_scenarios[:5]:
+                    scenario_name = scenario.get("test_name", scenario.get("scenario_name", "Unknown"))
+                    duration_ms = scenario.get("duration_ms", 0)
+                    scenario_duration = self.format_duration(duration_ms // 1000)
+                    
+                    table.add_row(scenario_name, scenario_duration)
+                
+                console.print(table)
+                console.print()
     
     def _display_java_results(self, data: dict):
         """Display Java Cucumber results."""
@@ -1039,6 +1255,146 @@ class LogParser:
             console.print(f"  When:  {when}")
             console.print(f"  Then:  {then}")
             console.print()
+    
+    def _display_clustered_failures(self, clusters, framework_name: str = "Test"):
+        """
+        Display clustered failures in a table format (reusable across frameworks).
+        
+        Args:
+            clusters: Dict of FailureCluster objects from cluster_failures()
+            framework_name: Name of the framework for display
+        """
+        from rich.table import Table
+        from rich import box
+        
+        # Domain display mapping
+        domain_display = {
+            "infrastructure": ("magenta", "🔧 INFRA"),
+            "environment": ("cyan", "⚙️  ENV"),
+            "test_automation": ("blue", "🤖 TEST"),
+            "product": ("red", "🐛 PROD"),
+            "unknown": ("dim", "❓ UNK")
+        }
+        
+        # Severity display
+        severity_display = {
+            "critical": ("red bold", "🔴 CRITICAL"),
+            "high": ("red", "⚠️  HIGH"),
+            "medium": ("yellow", "⚡ MEDIUM"),
+            "low": ("dim yellow", "ℹ️  LOW")
+        }
+        
+        # Create table for clustered failures
+        table = Table(
+            show_header=True,
+            header_style="bold cyan",
+            box=box.ROUNDED,
+            padding=(0, 1),
+            show_lines=True
+        )
+        table.add_column("Severity", style="white", width=14)
+        table.add_column("Domain", style="white", width=10)
+        table.add_column("Root Cause", style="white", no_wrap=False, max_width=60)
+        table.add_column("Count", justify="right", style="cyan bold", width=7)
+        table.add_column(f"Affected {framework_name}s", style="dim", no_wrap=False, max_width=35)
+        
+        # Sort clusters by severity and count
+        sorted_clusters = sorted(
+            clusters.values(),
+            key=lambda c: (
+                {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(c.severity.value, 4),
+                -c.failure_count
+            )
+        )
+        
+        # Display top clusters
+        for cluster in sorted_clusters[:10]:
+            severity = cluster.severity.value
+            domain = cluster.domain.value
+            root_cause = cluster.root_cause
+            count = cluster.failure_count
+            
+            # Get severity and domain display
+            sev_style, sev_label = severity_display.get(severity, ("dim", "❓ UNKNOWN"))
+            dom_style, dom_label = domain_display.get(domain, ("dim", "❓ UNK"))
+            
+            # Truncate root cause if too long
+            if len(root_cause) > 60:
+                root_cause = root_cause[:57] + "..."
+            
+            # Get affected test names
+            failures = cluster.failures
+            if failures:
+                first_test = failures[0].test_name
+                # Shorten test names
+                if len(first_test) > 30:
+                    first_test = first_test[:27] + "..."
+                
+                if len(failures) > 1:
+                    affected = f"{first_test}, +{len(failures)-1} more"
+                else:
+                    affected = first_test
+            else:
+                affected = "Unknown"
+            
+            table.add_row(
+                f"[{sev_style}]{sev_label}[/{sev_style}]",
+                f"[{dom_style}]{dom_label}[/{dom_style}]",
+                root_cause,
+                str(count),
+                affected
+            )
+        
+        console.print(table)
+        console.print()
+        
+        # Detailed failure analysis for top 3 issues
+        console.print("[cyan bold]━━━ Detailed Failure Analysis ━━━[/cyan bold]")
+        console.print()
+        
+        for idx, cluster in enumerate(sorted_clusters[:3], 1):
+            severity = cluster.severity.value
+            sev_style, sev_label = severity_display.get(severity, ("dim", "❓ UNKNOWN"))
+            root_cause = cluster.root_cause
+            count = cluster.failure_count
+            
+            console.print(f"[bold]{idx}. [{sev_style}]{sev_label}[/{sev_style}] - {root_cause}[/bold]")
+            console.print(f"   Occurrences: {count}")
+            
+            # Show affected tests
+            failures = cluster.failures
+            if failures:
+                console.print(f"   [dim]Affected {framework_name}s:[/dim]")
+                for failure in failures[:5]:
+                    test_name = failure.test_name
+                    console.print(f"      • {test_name}")
+                if len(failures) > 5:
+                    console.print(f"      [dim]... and {len(failures)-5} more[/dim]")
+            
+            # Show patterns if available
+            patterns = cluster.error_patterns
+            if patterns:
+                console.print(f"   [yellow]Patterns:[/yellow] {', '.join(patterns)}")
+            
+            # Show suggested fix if available
+            if cluster.suggested_fix:
+                console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
+                console.print(f"      {cluster.suggested_fix}")
+            elif "timeout" in root_cause.lower():
+                console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
+                console.print(f"      Increase timeout values or investigate slow operations")
+            elif "element" in root_cause.lower() or "selector" in root_cause.lower():
+                console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
+                console.print(f"      Update selectors or add waits for element visibility")
+            elif "assertion" in root_cause.lower() or "expected" in root_cause.lower():
+                console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
+                console.print(f"      Review test expectations and actual application behavior")
+            
+            console.print()
+        
+        # Show summary for remaining clusters
+        if len(sorted_clusters) > 3:
+            console.print(f"[dim]... and {len(sorted_clusters) - 3} additional unique issues[/dim]")
     
     def _display_intelligence_summary(self, data: dict):
         """Display intelligence analysis summary."""

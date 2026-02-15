@@ -112,6 +112,74 @@ class CypressResultsParser:
     
     def __init__(self):
         self.result_data = None
+        self._last_result = None  # Cache last parsed result
+    
+    def parse(self, data: Dict) -> Dict[str, Any]:
+        """
+        Parse Cypress results from JSON dict (for sidecar API).
+        
+        Args:
+            data: Cypress results as dict
+            
+        Returns:
+            Dict with parsed results in API format
+        """
+        # Parse using existing logic
+        self.result_data = data
+        
+        # Detect format and parse accordingly
+        if 'results' in data and isinstance(data['results'], list):
+            result = self._parse_mochawesome(data)
+        elif 'runs' in data:
+            result = self._parse_cypress_native(data)
+        elif 'tests' in data:
+            result = self._parse_simple_format(data)
+        else:
+            result = self._parse_generic(data)
+        
+        self._last_result = result
+        
+        # Convert to API dict format
+        all_tests = result.get_all_tests()
+        failed_tests = result.get_failed_tests()
+        
+        return {
+            "framework": "cypress",
+            "total_tests": len(all_tests),
+            "passed": len([t for t in all_tests if t.state == 'passed']),
+            "failed": len(failed_tests),
+            "skipped": len([t for t in all_tests if t.state in ['skipped', 'pending']]),
+            "pass_rate": (len([t for t in all_tests if t.state == 'passed']) / len(all_tests) * 100) if all_tests else 0,
+            "duration_ms": result.duration_ms,
+            "failed_tests": [
+                {
+                    "test_name": t.full_title,
+                    "title": t.title,
+                    "status": t.state,
+                    "error_message": t.error or "",
+                    "stack_trace": t.error_stack or "",
+                    "duration_ms": t.duration_ms,
+                    "screenshot_path": t.screenshot_path,
+                    "video_path": t.video_path,
+                }
+                for t in failed_tests
+            ],
+            "all_tests": [
+                {
+                    "test_name": t.full_title,
+                    "title": t.title,
+                    "status": t.state,
+                    "error_message": t.error or "",
+                    "duration_ms": t.duration_ms,
+                }
+                for t in all_tests
+            ],
+            "insights": {
+                "slow_tests": len(result.get_slow_tests()),
+                "browser": result.browser,
+                "cypress_version": result.cypress_version,
+            }
+        }
     
     def parse_results(self, results_path: Path) -> Optional[CypressRunResult]:
         """

@@ -761,6 +761,171 @@ for failure in result.structured_failures:
 - Best results with standard log4j/slf4j patterns
 - Driver log parsing is optional enhancement
 
+#### Cypress Enhanced Output Example
+
+**Modern JavaScript/TypeScript E2E Testing with Intelligent Analysis:**
+
+```bash
+crossbridge log cypress/results/mochawesome.json
+```
+
+**Output:**
+```
+           Cypress Test Results
+=========================================
+
+Status: FAIL
+
+Test Statistics:
+  Total:    45
+  Passed:   38
+  Failed:   7
+  Pass Rate: 84.4%
+  Duration: 2m 15s
+
+Root Cause Analysis: 4 unique issues (deduplicated from 7 failures)
+Deduplication saved 3 duplicate entries (43% reduction)
+Domain breakdown: 2 Product, 2 Infra
+
+⚠️  Systemic Patterns Detected:
+   ⚠️  Multiple network errors suggests possible systemic regression
+
+╭────────────────┬────────────┬──────────────────────────────────────────────┬─────────┬─────────────────────────╮
+│ Severity       │ Domain     │ Root Cause                                   │   Count │ Affected Tests          │
+├────────────────┼────────────┼──────────────────────────────────────────────┼─────────┼─────────────────────────┤
+│ ⚠️  HIGH       │ 🔧 INFRA   │ cy.visit() failed 404 Not Found              │       3 │ smoke/homepage, +2 more │
+│ ⚠️  HIGH       │ 🐛 PROD    │ Timed out retrying after 4000ms              │       2 │ login-flow, dashboard   │
+│ ⚠️  MEDIUM     │ 🐛 PROD    │ expected <button> to be 'visible'            │       1 │ ui/button-states        │
+│ ⚠️  MEDIUM     │ 🔧 INFRA   │ Network request failed - ECONNREFUSED        │       1 │ api/health-check        │
+╰────────────────┴────────────┴──────────────────────────────────────────────┴─────────┴─────────────────────────╯
+
+━━━ Detailed Failure Analysis ━━━
+
+1. ⚠️  HIGH - cy.visit() failed 404 Not Found
+   Occurrences: 3
+   Affected Tests:
+      • smoke/homepage.spec.js › should load homepage
+      • integration/auth.spec.js › should redirect after login
+      • e2e/checkout.spec.js › should complete purchase flow
+   💡 Suggested Fix:
+      Check application availability and routing configuration
+
+2. ⚠️  HIGH - Timed out retrying after 4000ms
+   Occurrences: 2
+   Affected Tests:
+      • login-flow.spec.js › should authenticate user
+      • dashboard.spec.js › should display widgets
+   💡 Suggested Fix:
+      Review test expectations and actual application behavior
+
+⏱️  Slowest Tests (Top 5):
+╭─────────────────────────────────────────┬──────────────╮
+│ Test Case                               │     Duration │
+├─────────────────────────────────────────┼──────────────┤
+│ e2e/checkout-flow.spec.js › full flow   │           45s│
+│ integration/dashboard.spec.js › widgets │           32s│
+│ e2e/user-registration.spec.js › signup  │           28s│
+│ smoke/search.spec.js › advanced filters │           22s│
+│ integration/api-mocking.spec.js › POST  │           18s│
+╰─────────────────────────────────────────┴──────────────╯
+```
+
+**Features:**
+- ✅ Mochawesome and native Cypress JSON result parsing
+- ✅ Intelligent failure clustering with deduplication (powered by `core.log_analysis.clustering`)
+- ✅ Domain classification (Product, Infrastructure, Environment, Test)
+- ✅ Network error detection and categorization
+- ✅ Timeout analysis and suggested fixes
+- ✅ Slowest tests profiling for performance optimization
+- ✅ Retry attempt tracking
+- ✅ Screenshot and video artifact references (when available)
+
+#### Behave Enhanced Output Example
+
+**Python BDD Testing with Scenario-Level Analysis:**
+
+```bash
+crossbridge log behave-results.json
+```
+
+**Output:**
+```
+           Behave Test Results
+=========================================
+
+Status: FAIL
+
+Scenario Statistics:
+  Total:    28
+  Passed:   22
+  Failed:   6
+  Pass Rate: 78.6%
+  Duration: 1m 45s
+
+Root Cause Analysis: 3 unique issues (deduplicated from 6 failures)
+Deduplication saved 3 duplicate entries (50% reduction)
+Domain breakdown: 2 Product, 1 Infra
+
+⚠️  Systemic Patterns Detected:
+   ⚠️  Multiple step failures suggests possible systemic regression
+
+╭────────────────┬────────────┬──────────────────────────────────────────────┬─────────┬─────────────────────────╮
+│ Severity       │ Domain     │ Root Cause                                   │   Count │ Affected Scenarios      │
+├────────────────┼────────────┼──────────────────────────────────────────────┼─────────┼─────────────────────────┤
+│ ⚠️  HIGH       │ 🔧 INFRA   │ selenium.common.exceptions.TimeoutException  │       3 │ User Login, +2 more     │
+│ ⚠️  HIGH       │ 🐛 PROD    │ AssertionError: expected 'Success', got 404  │       2 │ API Health, Status      │
+│ ⚠️  MEDIUM     │ 🐛 PROD    │ NoSuchElementException: element not found    │       1 │ Search Functionality    │
+╰────────────────┴────────────┴──────────────────────────────────────────────┴─────────┴─────────────────────────╯
+
+━━━ Detailed Failure Analysis ━━━
+
+1. ⚠️  HIGH - selenium.common.exceptions.TimeoutException
+   Occurrences: 3
+   Affected Scenarios:
+      • features/authentication.feature › User Login Scenario
+      • features/profile.feature › Profile Update Scenario
+      • features/checkout.feature › Complete Purchase Scenario
+   💡 Suggested Fix:
+      Check WebDriver/browser compatibility and driver version
+
+2. ⚠️  HIGH - AssertionError: expected 'Success', got 404
+   Occurrences: 2
+   Affected Scenarios:
+      • features/api.feature › API Health Check
+      • features/status.feature › Service Status Verification
+   💡 Suggested Fix:
+      Review test expectations and actual application behavior
+
+⏱️  Slowest Scenarios (Top 5):
+╭─────────────────────────────────────────────────────────────┬──────────────╮
+│ Scenario                                                    │     Duration │
+├─────────────────────────────────────────────────────────────┼──────────────┤
+│ features/checkout.feature › Complete Multi-Step Purchase    │           38s│
+│ features/reporting.feature › Generate Comprehensive Report  │           29s│
+│ features/integration.feature › End-to-End Workflow Test     │           24s│
+│ features/data-processing.feature › Bulk Data Import         │           19s│
+│ features/authentication.feature › OAuth2 Login Flow         │           15s│
+╰─────────────────────────────────────────────────────────────┴──────────────╯
+```
+
+**Features:**
+- ✅ Behave JSON result parsing with feature/scenario structure
+- ✅ Intelligent failure clustering at scenario level (powered by `core.log_analysis.clustering`)
+- ✅ Domain classification (Product, Infrastructure, Environment, Test)
+- ✅ Step definition failure mapping
+- ✅ Tag-based test categorization (@smoke, @regression, @wip)
+- ✅ Slowest scenarios profiling for performance optimization
+- ✅ Multi-line string (docstring) and table parameter support
+- ✅ Gherkin syntax validation and parsing
+
+**All Frameworks - Common Benefits:**
+- ✅ **Unified Interface**: Consistent CLI for all frameworks (`crossbridge log <result-file>`)
+- ✅ **Zero Code Changes**: Works with existing test frameworks as-is
+- ✅ **Smart Clustering**: Reduces duplicate failure noise by 40-60%
+- ✅ **Actionable Insights**: Suggested fixes for common failure patterns
+- ✅ **CI/CD Ready**: JSON output for pipeline integration
+- ✅ **Modular Architecture**: Reuses `core.log_analysis.clustering` module across all frameworks
+
 ---
 
 ### 🔹 5. **Intelligent Parsers & Unified Embeddings** ⭐

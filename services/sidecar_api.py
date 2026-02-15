@@ -679,19 +679,7 @@ class SidecarAPIServer:
         parser = CypressResultsParser()
         results = parser.parse(data)
         
-        return {
-            "framework": "cypress",
-            "statistics": {
-                "total": results.get("total_tests", 0),
-                "passed": results.get("passed", 0),
-                "failed": results.get("failed", 0),
-                "skipped": results.get("skipped", 0),
-                "pass_rate": results.get("pass_rate", 0.0)
-            },
-            "failed_tests": results.get("failed_tests", []),
-            "duration_ms": results.get("duration_ms", 0),
-            "insights": results.get("insights", {})
-        }
+        return results
     
     async def _parse_playwright_trace(self, content: bytes) -> dict:
         """Parse Playwright trace files"""
@@ -719,18 +707,7 @@ class SidecarAPIServer:
         parser = BehaveResultsParser()
         results = parser.parse(data)
         
-        return {
-            "framework": "behave",
-            "statistics": {
-                "total_features": results.get("total_features", 0),
-                "total_scenarios": results.get("total_scenarios", 0),
-                "passed_scenarios": results.get("passed_scenarios", 0),
-                "failed_scenarios": results.get("failed_scenarios", 0),
-                "pass_rate": results.get("pass_rate", 0.0)
-            },
-            "failed_scenarios": results.get("failed_scenarios_list", []),
-            "duration_ms": results.get("duration_ms", 0)
-        }
+        return results
     
     async def _parse_java_steps(self, content: bytes) -> dict:
         """Parse Java step definitions"""

@@ -111,6 +111,76 @@ class BehaveResultsParser:
     - JUnit XML output (basic parsing)
     """
     
+    def __init__(self):
+        self._last_result = None  # Cache last parsed result
+    
+    def parse(self, data: List[Dict]) -> Dict[str, Any]:
+        """
+        Parse Behave results from JSON list (for sidecar API).
+        
+        Args:
+            data: Behave results as list of feature dicts
+            
+        Returns:
+            Dict with parsed results in API format
+        """
+        result = BehaveRunResult()
+        
+        # Behave JSON is a list of features
+        if isinstance(data, list):
+            for feature_data in data:
+                feature = self._parse_feature(feature_data)
+                result.features.append(feature)
+        
+        # Calculate total duration
+        for feature in result.features:
+            for scenario in feature.scenarios:
+                result.duration_ms += scenario.duration_ms
+        
+        self._last_result = result
+        
+        # Convert to API dict format
+        all_scenarios = result.get_all_scenarios()
+        failed_scenarios = result.get_failed_scenarios()
+        stats = result.get_statistics()
+        
+        return {
+            "framework": "behave",
+            "total_features": len(result.features),
+            "total_scenarios": len(all_scenarios),
+            "passed_scenarios": stats['scenarios_passed'],
+            "failed_scenarios": stats['scenarios_failed'],
+            "skipped_scenarios": stats['scenarios_skipped'],
+            "pass_rate": (stats['scenarios_passed'] / len(all_scenarios) * 100) if all_scenarios else 0,
+            "duration_ms": result.duration_ms,
+            "failed_scenarios_list": [
+                {
+                    "test_name": f"{s.feature_name}: {s.name}",
+                    "scenario_name": s.name,
+                    "feature_name": s.feature_name,
+                    "status": s.status,
+                    "error_message": " | ".join([step.error_message for step in s.get_failed_steps() if step.error_message]),
+                    "failed_steps": len(s.get_failed_steps()),
+                    "duration_ms": s.duration_ms,
+                    "tags": s.tags,
+                }
+                for s in failed_scenarios
+            ],
+            "all_scenarios": [
+                {
+                    "test_name": f"{s.feature_name}: {s.name}",
+                    "scenario_name": s.name,
+                    "feature_name": s.feature_name,
+                    "status": s.status,
+                    "error_message": " | ".join([step.error_message for step in s.get_failed_steps() if step.error_message]) if s.status == 'failed' else "",
+                    "duration_ms": s.duration_ms,
+                    "tags": s.tags,
+                }
+                for s in all_scenarios
+            ],
+            "statistics": stats,
+        }
+    
     def parse_json(self, json_path: Path) -> Optional[BehaveRunResult]:
         """
         Parse Behave JSON results.

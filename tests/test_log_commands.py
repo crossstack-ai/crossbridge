@@ -569,3 +569,346 @@ class TestTestNGDisplay:
             args = mock_display.call_args[0]
             assert args[0] == testng_data_with_failures
 
+
+class TestCypressDisplay:
+    """Tests for Cypress results display functionality."""
+    
+    @pytest.fixture
+    def cypress_data_with_failures(self):
+        """Cypress data with some failures for testing clustering."""
+        return {
+            "framework": "cypress",
+            "total_tests": 15,
+            "passed": 10,
+            "failed": 5,
+            "skipped": 0,
+            "pass_rate": 66.7,
+            "duration_ms": 45000,
+            "failed_tests": [
+                {
+                    "test_name": "Login Test > should handle invalid credentials",
+                    "title": "should handle invalid credentials",
+                    "status": "failed",
+                    "error_message": "Timed out retrying after 4000ms: Expected to find element: #login-btn",
+                    "stack_trace": "at Object.cypressErr...",
+                    "duration_ms": 4500,
+                },
+                {
+                    "test_name": "Profile Test > should load user profile",
+                    "title": "should load user profile",
+                    "status": "failed",
+                    "error_message": "Timed out retrying after 4000ms: Expected to find element: #profile",
+                    "stack_trace": "at Object.cypressErr...",
+                    "duration_ms": 4200,
+                },
+                {
+                    "test_name": "API Test > should return 200",
+                    "title": "should return 200",
+                    "status": "failed",
+                    "error_message": "expected 200 to equal 500",
+                    "stack_trace": "AssertionError...",
+                    "duration_ms": 1000,
+                },
+            ],
+            "all_tests": [
+                {"test_name": "test1", "status": "passed", "duration_ms": 5000},
+                {"test_name": "test2", "status": "passed", "duration_ms": 3000},
+                {"test_name": "test3", "status": "failed", "duration_ms": 4500},
+            ],
+        }
+    
+    @pytest.fixture
+    def cypress_data_all_passed(self):
+        """Cypress data with all tests passing."""
+        return {
+            "framework": "cypress",
+            "total_tests": 10,
+            "passed": 10,
+            "failed": 0,
+            "skipped": 0,
+            "pass_rate": 100.0,
+            "duration_ms": 25000,
+            "failed_tests": [],
+            "all_tests": [
+                {"test_name": "test1", "status": "passed", "duration_ms": 2500},
+                {"test_name": "test2", "status": "passed", "duration_ms": 2400},
+            ],
+        }
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_cypress_results_with_failures(self, mock_print, cypress_data_with_failures):
+        """Test displaying Cypress results with failures"""
+        parser = LogParser()
+        
+        # This should not raise any exceptions
+        parser._display_cypress_results(cypress_data_with_failures)
+        
+        # Verify console.print was called
+        assert mock_print.called
+        
+        # Should show FAIL status and clustering info
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "FAIL" in calls_str or "Failed" in calls_str
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_cypress_results_all_passed(self, mock_print, cypress_data_all_passed):
+        """Test displaying Cypress results when all tests passed"""
+        parser = LogParser()
+        
+        parser._display_cypress_results(cypress_data_all_passed)
+        
+        # Verify console.print was called
+        assert mock_print.called
+        
+        # Should show PASS status
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "PASS" in calls_str
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_cypress_with_clustering(self, mock_print, cypress_data_with_failures):
+        """Test that Cypress display uses clustering for failures"""
+        parser = LogParser()
+        
+        # Add more similar failures to trigger clustering
+        cypress_data_with_failures["failed_tests"].append({
+            "test_name": "Settings Test > should update settings",
+            "title": "should update settings",
+            "status": "failed",
+            "error_message": "Timed out retrying after 4000ms: Expected to find element: #settings",
+            "stack_trace": "at Object.cypressErr...",
+            "duration_ms": 4100,
+        })
+        
+        parser._display_cypress_results(cypress_data_with_failures)
+        
+        # Should mention clustering or show root cause analysis
+        assert mock_print.called
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_cypress_shows_slowest_tests(self, mock_print, cypress_data_with_failures):
+        """Test that slowest tests are displayed"""
+        parser = LogParser()
+        
+        # Add tests with varying durations
+        cypress_data_with_failures["all_tests"] = [
+            {"test_name": "slow_test_1", "duration_ms": 8000, "status": "passed"},
+            {"test_name": "slow_test_2", "duration_ms": 7000, "status": "passed"},
+            {"test_name": "fast_test", "duration_ms": 100, "status": "passed"},
+        ]
+        
+        parser._display_cypress_results(cypress_data_with_failures)
+        
+        # Should show slowest tests section
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "Slowest" in calls_str or "Duration" in calls_str
+    
+    def test_display_results_routes_to_cypress(self, cypress_data_with_failures):
+        """Test that display_results correctly routes Cypress data"""
+        parser = LogParser()
+        
+        with patch.object(parser, '_display_cypress_results') as mock_display:
+            parser.display_results(cypress_data_with_failures, "cypress")
+            
+            mock_display.assert_called_once()
+            args = mock_display.call_args[0]
+            assert args[0] == cypress_data_with_failures
+
+
+class TestBehaveDisplay:
+    """Tests for Behave BDD results display functionality."""
+    
+    @pytest.fixture
+    def behave_data_with_failures(self):
+        """Behave data with some failures for testing clustering."""
+        return {
+            "framework": "behave",
+            "total_features": 3,
+            "total_scenarios": 20,
+            "passed_scenarios": 15,
+            "failed_scenarios": 5,
+            "skipped_scenarios": 0,
+            "pass_rate": 75.0,
+            "duration_ms": 60000,
+            "failed_scenarios_list": [
+                {
+                    "test_name": "User Authentication: Login with valid credentials",
+                    "scenario_name": "Login with valid credentials",
+                    "feature_name": "User Authentication",
+                    "status": "failed",
+                    "error_message": "Element not found: #login-button",
+                    "failed_steps": 1,
+                    "duration_ms": 5000,
+                    "tags": ["smoke", "auth"],
+                },
+                {
+                    "test_name": "User Authentication: Login with invalid credentials",
+                    "scenario_name": "Login with invalid credentials",
+                    "feature_name": "User Authentication",
+                    "status": "failed",
+                    "error_message": "Element not found: #error-message",
+                    "failed_steps": 1,
+                    "duration_ms": 4500,
+                    "tags": ["smoke", "auth"],
+                },
+                {
+                    "test_name": "API Testing: Get user profile",
+                    "scenario_name": "Get user profile",
+                    "feature_name": "API Testing",
+                    "status": "failed",
+                    "error_message": "AssertionError: expected 200 but got 500",
+                    "failed_steps": 1,
+                    "duration_ms": 2000,
+                    "tags": ["api"],
+                },
+            ],
+            "all_scenarios": [
+                {
+                    "test_name": "Feature1: Scenario1",
+                    "scenario_name": "Scenario1",
+                    "feature_name": "Feature1",
+                    "status": "passed",
+                    "error_message": "",
+                    "duration_ms": 3000,
+                    "tags": [],
+                },
+                {
+                    "test_name": "Feature1: Scenario2",
+                    "scenario_name": "Scenario2",
+                    "feature_name": "Feature1",
+                    "status": "passed",
+                    "duration_ms": 2500,
+                    "tags": [],
+                },
+            ],
+        }
+    
+    @pytest.fixture
+    def behave_data_all_passed(self):
+        """Behave data with all scenarios passing."""
+        return {
+            "framework": "behave",
+            "total_features": 2,
+            "total_scenarios": 12,
+            "passed_scenarios": 12,
+            "failed_scenarios": 0,
+            "skipped_scenarios": 0,
+            "pass_rate": 100.0,
+            "duration_ms": 35000,
+            "failed_scenarios_list": [],
+            "all_scenarios": [
+                {
+                    "test_name": "Feature1: Scenario1",
+                    "scenario_name": "Scenario1",
+                    "feature_name": "Feature1",
+                    "status": "passed",
+                    "error_message": "",
+                    "duration_ms": 2900,
+                    "tags": [],
+                },
+            ],
+        }
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_behave_results_with_failures(self, mock_print, behave_data_with_failures):
+        """Test displaying Behave results with failures"""
+        parser = LogParser()
+        
+        # This should not raise any exceptions
+        parser._display_behave_results(behave_data_with_failures)
+        
+        # Verify console.print was called
+        assert mock_print.called
+        
+        # Should show FAIL status and scenario info
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "FAIL" in calls_str or "Failed" in calls_str
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_behave_results_all_passed(self, mock_print, behave_data_all_passed):
+        """Test displaying Behave results when all scenarios passed"""
+        parser = LogParser()
+        
+        parser._display_behave_results(behave_data_all_passed)
+        
+        # Verify console.print was called
+        assert mock_print.called
+        
+        # Should show PASS status
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "PASS" in calls_str
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_behave_with_clustering(self, mock_print, behave_data_with_failures):
+        """Test that Behave display uses clustering for failures"""
+        parser = LogParser()
+        
+        # Add more similar failures
+        behave_data_with_failures["failed_scenarios_list"].append({
+            "test_name": "User Authentication: Logout",
+            "scenario_name": "Logout",
+            "feature_name": "User Authentication",
+            "status": "failed",
+            "error_message": "Element not found: #logout-button",
+            "failed_steps": 1,
+            "duration_ms": 4800,
+            "tags": ["auth"],
+        })
+        
+        parser._display_behave_results(behave_data_with_failures)
+        
+        # Should mention clustering or root cause analysis
+        assert mock_print.called
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_behave_shows_slowest_scenarios(self, mock_print, behave_data_with_failures):
+        """Test that slowest scenarios are displayed"""
+        parser = LogParser()
+        
+        # Add scenarios with varying durations
+        behave_data_with_failures["all_scenarios"] = [
+            {
+                "test_name": "Feature1: Slow Scenario 1",
+                "scenario_name": "Slow Scenario 1",
+                "feature_name": "Feature1",
+                "status": "passed",
+                "error_message": "",
+                "duration_ms": 10000,
+                "tags": [],
+            },
+            {
+                "test_name": "Feature1: Slow Scenario 2",
+                "scenario_name": "Slow Scenario 2",
+                "feature_name": "Feature1",
+                "status": "passed",
+                "error_message": "",
+                "duration_ms": 9000,
+                "tags": [],
+            },
+            {
+                "test_name": "Feature1: Fast Scenario",
+                "scenario_name": "Fast Scenario",
+                "feature_name": "Feature1",
+                "status": "passed",
+                "error_message": "",
+                "duration_ms": 500,
+                "tags": [],
+            },
+        ]
+        
+        parser._display_behave_results(behave_data_with_failures)
+        
+        # Should show slowest scenarios section
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "Slowest" in calls_str or "Duration" in calls_str
+    
+    def test_display_results_routes_to_behave(self, behave_data_with_failures):
+        """Test that display_results correctly routes Behave data"""
+        parser = LogParser()
+        
+        with patch.object(parser, '_display_behave_results') as mock_display:
+            parser.display_results(behave_data_with_failures, "behave")
+            
+            mock_display.assert_called_once()
+            args = mock_display.call_args[0]
+            assert args[0] == behave_data_with_failures
+
