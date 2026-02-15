@@ -2189,13 +2189,24 @@ def parse_multiple_log_files(
                 "output_file": str(per_file_output)
             })
             
+            # Extract test counts from the correct location (unwrap intelligence structure if present)
+            test_data = filtered_data
+            if filtered_data.get("analyzed"):
+                test_data = filtered_data.get("data", filtered_data)
+                logger.debug(f"Unwrapped intelligence structure for {log_file.name}")
+            
+            total_tests = test_data.get("total_tests", 0)
+            passed_tests = test_data.get("passed_tests", 0)
+            failed_tests = test_data.get("failed_tests", 0)
+            logger.info(f"File {log_file.name} results: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
+            
             all_file_info.append({
                 "file": log_file.name,
                 "framework": framework,
                 "status": "success",
-                "total_tests": filtered_data.get("total_tests", 0),
-                "passed_tests": filtered_data.get("passed_tests", 0),
-                "failed_tests": filtered_data.get("failed_tests", 0),
+                "total_tests": total_tests,
+                "passed_tests": passed_tests,
+                "failed_tests": failed_tests,
             })
             
             console.print()
@@ -2285,10 +2296,21 @@ def parse_multiple_log_files(
         console.print(f"   Merged results: [cyan]{merged_output}[/cyan]")
         console.print(f"   Per-file results: {len(all_results)} individual files")
         
-        # Display aggregate statistics
-        total_tests = sum(r["data"].get("total_tests", 0) for r in all_results)
-        total_passed = sum(r["data"].get("passed_tests", 0) for r in all_results)
-        total_failed = sum(r["data"].get("failed_tests", 0) for r in all_results)
+        # Display aggregate statistics (unwrap intelligence structure if present)
+        total_tests = 0
+        total_passed = 0
+        total_failed = 0
+        for r in all_results:
+            result_data = r["data"]
+            # Unwrap intelligence structure if present
+            if result_data.get("analyzed"):
+                result_data = result_data.get("data", result_data)
+                logger.debug(f"Unwrapped intelligence structure for aggregate calculation")
+            total_tests += result_data.get("total_tests", 0)
+            total_passed += result_data.get("passed_tests", 0)
+            total_failed += result_data.get("failed_tests", 0)
+        
+        logger.info(f"Aggregate statistics: Total={total_tests}, Passed={total_passed}, Failed={total_failed}")
         
         console.print()
         console.print("[blue]📈 Aggregate Statistics:[/blue]")
