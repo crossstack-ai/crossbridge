@@ -12,15 +12,16 @@ import json
 import requests
 import time
 import threading
+import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Tuple
 from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from core.logging import get_logger, configure_logging
+from core.logging import get_logger, configure_logging, LogCategory
 from services.logging_service import setup_logging
 from core.log_analysis.regression import (
     compare_with_previous,
@@ -33,7 +34,7 @@ from core.log_analysis.structured_output import (
 )
 
 console = Console()
-logger = get_logger(__name__)
+logger = get_logger(__name__, category=LogCategory.TESTING)
 
 
 def log_command(
@@ -199,6 +200,185 @@ class LogParser:
         
         return False
     
+    def validate_log_file(self, log_file: Path, framework: str = None) -> Tuple[bool, str]:
+        """
+        Validate log file for format, schema correctness and other checks.
+        
+        Args:
+            log_file: Path to the log file
+            framework: Expected framework (if known), None for auto-detect
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+            If valid: (True, "")
+            If invalid: (False, "error description")
+        """
+        # Check 1: File exists
+        if not log_file.exists():
+            return False, f"File does not exist: {log_file}"
+        
+        # Check 2: Is a file (not directory)
+        if not log_file.is_file():
+            return False, f"Path is not a file: {log_file}"
+        
+        # Check 3: File is readable
+        if not os.access(log_file, os.R_OK):
+            return False, f"File is not readable (permission denied): {log_file}"
+        
+        # Check 4: File size (not empty, not too large)
+        file_size = log_file.stat().st_size
+        if file_size == 0:
+            return False, f"File is empty (0 bytes): {log_file}"
+        
+        # Warn if file is very large (>100MB) but don't fail
+        if file_size > 100 * 1024 * 1024:
+            logger.warning(f"Large file detected ({file_size / (1024*1024):.1f} MB): {log_file}")
+            console.print(f"[yellow]⚠️  Large file detected ({file_size / (1024*1024):.1f} MB), parsing may be slow[/yellow]")
+        
+        # Detect framework if not provided
+        if framework is None:
+            framework = self.detect_framework(log_file)
+            if framework == "unknown":
+                return False, f"Could not detect framework from filename or content: {log_file}"
+        
+        # Framework-specific validation
+        try:
+            if framework in ["robot", "testng"]:
+                # XML file validation
+                is_valid, error = self._validate_xml_file(log_file, framework)
+                if not is_valid:
+                    return False, error
+                    
+            elif framework in ["cypress", "playwright", "behave"]:
+                # JSON file validation
+                is_valid, error = self._validate_json_file(log_file, framework)
+                if not is_valid:
+                    return False, error
+                    
+            elif framework == "java":
+                # Java file validation
+                is_valid, error = self._validate_java_file(log_file)
+                if not is_valid:
+                    return False, error
+                    
+            else:
+                # Unknown framework - basic check passed
+                logger.warning(f"No specific validation for framework: {framework}")
+                
+        except Exception as e:
+            return False, f"Validation error: {str(e)}"
+        
+        logger.info(f"Validation passed for {log_file.name} (framework: {framework})")
+        return True, ""
+    
+    def _validate_xml_file(self, log_file: Path, framework: str) -> Tuple[bool, str]:
+        """Validate XML file structure and framework-specific schema."""
+        try:
+            # Parse XML
+            tree = ET.parse(log_file)
+            root = tree.getroot()
+            
+            # Framework-specific validation
+            if framework == "robot":
+                # Robot Framework: must have <robot> root element
+                if root.tag != "robot":
+                    return False, f"Invalid Robot Framework XML: expected <robot> root, found <{root.tag}>"
+                
+                # Check for required child elements
+                suites = root.findall(".//suite")
+                if not suites:
+                    return False, "Invalid Robot Framework XML: no <suite> elements found"
+                
+            elif framework == "testng":
+                # TestNG: must have <testng-results> root element
+                if root.tag != "testng-results":
+                    return False, f"Invalid TestNG XML: expected <testng-results> root, found <{root.tag}>"
+                
+                # Check for required child elements
+                suites = root.findall(".//suite")
+                if not suites:
+                    return False, "Invalid TestNG XML: no <suite> elements found"
+            
+            return True, ""
+            
+        except ET.ParseError as e:
+            return False, f"XML parsing error: {str(e)}"
+        except Exception as e:
+            return False, f"XML validation error: {str(e)}"
+    
+    def _validate_json_file(self, log_file: Path, framework: str) -> Tuple[bool, str]:
+        """Validate JSON file structure and framework-specific schema."""
+        try:
+            # Parse JSON
+            with open(log_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Must be dict or list
+            if not isinstance(data, (dict, list)):
+                return False, f"Invalid JSON: expected object or array, got {type(data).__name__}"
+            
+            # Framework-specific validation
+            if framework == "cypress":
+                # Cypress: must have stats or results
+                if isinstance(data, dict):
+                    if "stats" not in data and "results" not in data and "runs" not in data:
+                        return False, "Invalid Cypress JSON: missing 'stats', 'results', or 'runs' fields"
+                        
+            elif framework == "playwright":
+                # Playwright: must have entries or suites
+                if isinstance(data, dict):
+                    if "entries" not in data and "suites" not in data:
+                        return False, "Invalid Playwright JSON: missing 'entries' or 'suites' fields"
+                        
+            elif framework == "behave":
+                # Behave: must be list of features or dict with features
+                if isinstance(data, list):
+                    # List of features
+                    if data and not all(isinstance(item, dict) and "name" in item for item in data[:3]):
+                        return False, "Invalid Behave JSON: list items must be feature objects with 'name' field"
+                elif isinstance(data, dict):
+                    # Dict with features key
+                    if "features" not in data and "elements" not in data:
+                        return False, "Invalid Behave JSON: missing 'features' or 'elements' fields"
+            
+            return True, ""
+            
+        except json.JSONDecodeError as e:
+            return False, f"JSON parsing error at line {e.lineno}, column {e.colno}: {e.msg}"
+        except UnicodeDecodeError as e:
+            return False, f"File encoding error: {str(e)}"
+        except Exception as e:
+            return False, f"JSON validation error: {str(e)}"
+    
+    def _validate_java_file(self, log_file: Path) -> Tuple[bool, str]:
+        """Validate Java source file."""
+        try:
+            # Read file and check for Java syntax
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Basic Java file checks
+            if not content.strip():
+                return False, "Java file is empty"
+            
+            # Check for typical Java keywords
+            if "class " not in content and "interface " not in content:
+                return False, "Java file does not contain class or interface definition"
+            
+            # Check for BDD annotations
+            has_annotations = any(ann in content for ann in ["@Given", "@When", "@Then", "@And", "@But"])
+            if not has_annotations:
+                return False, "Java file does not contain BDD step annotations (@Given, @When, @Then)"
+            
+            return True, ""
+            
+        except UnicodeDecodeError as e:
+            return False, f"File encoding error: {str(e)}"
+        except Exception as e:
+            return False, f"Java file validation error: {str(e)}"
+        
+        return False
+    
     def detect_framework(self, log_file: Path) -> str:
         """Auto-detect framework based on filename and content."""
         filename = log_file.name.lower()
@@ -230,7 +410,7 @@ class LogParser:
             except Exception:
                 pass
             return "cypress"
-        elif filename.endswith("Steps.java") or "StepDefinitions" in filename:
+        elif filename.endswith("steps.java") or "stepdefinitions" in filename:
             return "java"
         
         # Check by content
@@ -1643,34 +1823,82 @@ def parse_multiple_log_files(
         console.print()
         
         try:
-            # Detect framework for this file
+            # Step 1: Validate file before processing
+            console.print(f"[blue][1/4][/blue] Validating file format and schema...")
+            is_valid, validation_error = parser.validate_log_file(log_file)
+            
+            if not is_valid:
+                console.print(f"[red]✗ Validation failed:[/red] {validation_error}")
+                console.print(f"[yellow]⚠️  Skipping {log_file.name} due to validation failure[/yellow]")
+                logger.warning(f"Validation failed for {log_file.name}: {validation_error}")
+                failed_files.append({
+                    "file": log_file.name, 
+                    "reason": f"Validation failed: {validation_error}",
+                    "stage": "validation"
+                })
+                console.print()
+                console.print("[dim]" + "─" * 60 + "[/dim]")
+                continue
+            
+            console.print(f"[green]✓ Validation passed[/green]")
+            
+            # Step 2: Detect framework for this file
+            console.print(f"[blue][2/4][/blue] Detecting test framework...")
             framework = parser.detect_framework(log_file)
             
             # Handle unsupported formats
             if framework in ["robot-html-unsupported", "testng-html-unsupported"]:
+                console.print(f"[red]✗ Framework detection failed[/red]")
                 console.print(f"[yellow]⚠️  Skipping {log_file.name}: HTML files are not supported[/yellow]")
                 console.print(f"[dim]   Please use XML output files instead (output.xml or testng-results.xml)[/dim]")
-                failed_files.append({"file": log_file.name, "reason": "HTML format not supported"})
+                logger.warning(f"HTML format not supported for {log_file.name}")
+                failed_files.append({
+                    "file": log_file.name, 
+                    "reason": "HTML format not supported",
+                    "stage": "framework_detection"
+                })
+                console.print()
+                console.print("[dim]" + "─" * 60 + "[/dim]")
                 continue
             
             if framework == "unknown":
+                console.print(f"[red]✗ Framework detection failed[/red]")
                 console.print(f"[yellow]⚠️  Skipping {log_file.name}: Unknown log format[/yellow]")
-                failed_files.append({"file": log_file.name, "reason": "Unknown format"})
+                logger.warning(f"Unknown format for {log_file.name}")
+                failed_files.append({
+                    "file": log_file.name, 
+                    "reason": "Unknown format",
+                    "stage": "framework_detection"
+                })
+                console.print()
+                console.print("[dim]" + "─" * 60 + "[/dim]")
                 continue
             
-            console.print(f"[green][OK][/green] Detected framework: [blue]{framework}[/blue]")
+            console.print(f"[green]✓ Detected framework:[/green] [blue]{framework}[/blue]")
             logger.info(f"Processing file {idx}/{len(log_files)}: {log_file} (framework: {framework})")
             
-            # Parse log
+            # Step 3: Parse log
+            console.print(f"[blue][3/4][/blue] Parsing test results...")
             parsed_data = parser.parse_log(log_file, framework)
             
             if not parsed_data:
-                console.print(f"[yellow]⚠️  Skipping {log_file.name}: Parsing failed[/yellow]")
+                console.print(f"[red]✗ Parsing failed[/red]")
+                console.print(f"[yellow]⚠️  Skipping {log_file.name}: Parsing returned empty result[/yellow]")
                 logger.error(f"Parsing failed for: {log_file}")
-                failed_files.append({"file": log_file.name, "reason": "Parsing failed"})
+                failed_files.append({
+                    "file": log_file.name, 
+                    "reason": "Parsing failed - empty result",
+                    "stage": "parsing"
+                })
+                console.print()
+                console.print("[dim]" + "─" * 60 + "[/dim]")
                 continue
             
+            console.print(f"[green]✓ Parsing successful[/green]")
             logger.info(f"Parsing successful for: {log_file}")
+            
+            # Step 4: Intelligence analysis
+            console.print(f"[blue][4/4][/blue] Performing intelligence analysis...")
             
             # Enrich with intelligence if not disabled
             if not no_analyze:
@@ -1683,9 +1911,11 @@ def parse_multiple_log_files(
                     app_logs=app_logs
                 )
                 analysis_duration = int(time.time() - start_time)
+                console.print(f"[green]✓ Analysis complete[/green]")
             else:
                 enriched_data = parsed_data
                 analysis_duration = 0
+                console.print(f"[dim]Skipped (--no-analyze flag)[/dim]")
             
             # Apply filters
             filters = {
@@ -1770,9 +2000,13 @@ def parse_multiple_log_files(
             console.print("[dim]" + "─" * 60 + "[/dim]")
             
         except Exception as e:
-            console.print(f"\n[red]Error processing {log_file.name}: {str(e)}[/red]")
+            console.print(f"\n[red]✗ Unexpected error:[/red] {str(e)}")
             logger.error(f"Error processing {log_file}: {e}", exc_info=True)
-            failed_files.append({"file": log_file.name, "reason": str(e)})
+            failed_files.append({
+                "file": log_file.name, 
+                "reason": f"Unexpected error: {str(e)}",
+                "stage": "processing"
+            })
             console.print()
             console.print("[dim]" + "─" * 60 + "[/dim]")
             continue
@@ -1820,8 +2054,36 @@ def parse_multiple_log_files(
         if failed_files:
             console.print()
             console.print("[yellow]⚠️  Skipped Files:[/yellow]")
-            for failed in failed_files:
-                console.print(f"   • {failed['file']}: {failed['reason']}")
+            
+            # Group by stage for better visibility
+            validation_failures = [f for f in failed_files if f.get("stage") == "validation"]
+            framework_failures = [f for f in failed_files if f.get("stage") == "framework_detection"]
+            parsing_failures = [f for f in failed_files if f.get("stage") == "parsing"]
+            other_failures = [f for f in failed_files if "stage" not in f]
+            
+            if validation_failures:
+                console.print()
+                console.print("   [red]Validation Failures:[/red]")
+                for failed in validation_failures:
+                    console.print(f"      • {failed['file']}: {failed['reason']}")
+            
+            if framework_failures:
+                console.print()
+                console.print("   [yellow]Framework Detection Failures:[/yellow]")
+                for failed in framework_failures:
+                    console.print(f"      • {failed['file']}: {failed['reason']}")
+            
+            if parsing_failures:
+                console.print()
+                console.print("   [orange]Parsing Failures:[/orange]")
+                for failed in parsing_failures:
+                    console.print(f"      • {failed['file']}: {failed['reason']}")
+            
+            if other_failures:
+                console.print()
+                console.print("   [red]Other Failures:[/red]")
+                for failed in other_failures:
+                    console.print(f"      • {failed['file']}: {failed['reason']}")
         
         console.print()
         console.print("=" * 60, style="green")
@@ -1833,9 +2095,42 @@ def parse_multiple_log_files(
         console.print("[red]❌ No files were successfully processed[/red]")
         if failed_files:
             console.print()
-            console.print("[yellow]Failed files:[/yellow]")
-            for failed in failed_files:
-                console.print(f"   • {failed['file']}: {failed['reason']}")
+            console.print("[yellow]Failed files breakdown:[/yellow]")
+            
+            # Group by stage
+            validation_failures = [f for f in failed_files if f.get("stage") == "validation"]
+            framework_failures = [f for f in failed_files if f.get("stage") == "framework_detection"]
+            parsing_failures = [f for f in failed_files if f.get("stage") == "parsing"]
+            other_failures = [f for f in failed_files if "stage" not in f or f.get("stage") == "processing"]
+            
+            if validation_failures:
+                console.print()
+                console.print("   [red]Validation Failures ({count}):[/red]".format(count=len(validation_failures)))
+                for failed in validation_failures:
+                    console.print(f"      • {failed['file']}")
+                    console.print(f"        [dim]{failed['reason']}[/dim]")
+            
+            if framework_failures:
+                console.print()
+                console.print("   [yellow]Framework Detection Failures ({count}):[/yellow]".format(count=len(framework_failures)))
+                for failed in framework_failures:
+                    console.print(f"      • {failed['file']}")
+                    console.print(f"        [dim]{failed['reason']}[/dim]")
+            
+            if parsing_failures:
+                console.print()
+                console.print("   [orange]Parsing Failures ({count}):[/orange]".format(count=len(parsing_failures)))
+                for failed in parsing_failures:
+                    console.print(f"      • {failed['file']}")
+                    console.print(f"        [dim]{failed['reason']}[/dim]")
+            
+            if other_failures:
+                console.print()
+                console.print("   [red]Processing Failures ({count}):[/red]".format(count=len(other_failures)))
+                for failed in other_failures:
+                    console.print(f"      • {failed['file']}")
+                    console.print(f"        [dim]{failed['reason']}[/dim]")
+        
         logger.error("Multi-file parsing failed: no files processed successfully")
         raise typer.Exit(1)
 

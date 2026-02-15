@@ -946,6 +946,320 @@ class TestMultiFileAnalysis:
         }
         file_path.write_text(json.dumps(cypress_data))
         return file_path
+
+
+class TestLogFileValidation:
+    """Tests for log file validation functionality."""
+    
+    def test_validate_nonexistent_file(self):
+        """Test validation fails for nonexistent file."""
+        parser = LogParser()
+        is_valid, error = parser.validate_log_file(Path("/nonexistent/file.xml"))
+        
+        assert not is_valid
+        assert "does not exist" in error
+    
+    def test_validate_empty_file(self, tmp_path):
+        """Test validation fails for empty file."""
+        parser = LogParser()
+        empty_file = tmp_path / "empty.xml"
+        empty_file.touch()
+        
+        is_valid, error = parser.validate_log_file(empty_file)
+        
+        assert not is_valid
+        assert "empty" in error.lower()
+    
+    def test_validate_valid_testng_xml(self, tmp_path):
+        """Test validation passes for valid TestNG XML."""
+        parser = LogParser()
+        testng_file = tmp_path / "testng-results.xml"
+        testng_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results>
+    <suite name="TestSuite">
+        <test name="TestCase">
+            <class name="TestClass">
+                <test-method name="testMethod" status="PASS"/>
+            </class>
+        </test>
+    </suite>
+</testng-results>""")
+        
+        is_valid, error = parser.validate_log_file(testng_file, "testng")
+        
+        assert is_valid
+        assert error == ""
+    
+    def test_validate_invalid_testng_xml_wrong_root(self, tmp_path):
+        """Test validation fails for TestNG XML with wrong root element."""
+        parser = LogParser()
+        invalid_file = tmp_path / "testng-invalid.xml"
+        invalid_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<wrong-root>
+    <suite name="TestSuite"/>
+</wrong-root>""")
+        
+        is_valid, error = parser.validate_log_file(invalid_file, "testng")
+        
+        assert not is_valid
+        assert "expected <testng-results>" in error
+    
+    def test_validate_invalid_testng_xml_no_suites(self, tmp_path):
+        """Test validation fails for TestNG XML with no suites."""
+        parser = LogParser()
+        invalid_file = tmp_path / "testng-no-suites.xml"
+        invalid_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results>
+</testng-results>""")
+        
+        is_valid, error = parser.validate_log_file(invalid_file, "testng")
+        
+        assert not is_valid
+        assert "no <suite> elements" in error
+    
+    def test_validate_corrupted_xml(self, tmp_path):
+        """Test validation fails for corrupted XML."""
+        parser = LogParser()
+        corrupted_file = tmp_path / "corrupted.xml"
+        corrupted_file.write_text("""<?xml version="1.0"?>
+<testng-results>
+    <suite name="Test"
+    <!-- Missing closing bracket -->
+</testng-results>""")
+        
+        is_valid, error = parser.validate_log_file(corrupted_file, "testng")
+        
+        assert not is_valid
+        assert "XML parsing error" in error or "parsing error" in error.lower()
+    
+    def test_validate_valid_robot_xml(self, tmp_path):
+        """Test validation passes for valid Robot Framework XML."""
+        parser = LogParser()
+        robot_file = tmp_path / "output.xml"
+        robot_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 5.0">
+    <suite name="TestSuite">
+        <test name="TestCase">
+            <status status="PASS"/>
+        </test>
+    </suite>
+</robot>""")
+        
+        is_valid, error = parser.validate_log_file(robot_file, "robot")
+        
+        assert is_valid
+        assert error == ""
+    
+    def test_validate_invalid_robot_xml_wrong_root(self, tmp_path):
+        """Test validation fails for Robot XML with wrong root element."""
+        parser = LogParser()
+        invalid_file = tmp_path / "robot-invalid.xml"
+        invalid_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results>
+    <suite name="TestSuite"/>
+</testng-results>""")
+        
+        is_valid, error = parser.validate_log_file(invalid_file, "robot")
+        
+        assert not is_valid
+        assert "expected <robot>" in error
+    
+    def test_validate_valid_cypress_json(self, tmp_path):
+        """Test validation passes for valid Cypress JSON."""
+        parser = LogParser()
+        cypress_file = tmp_path / "cypress-results.json"
+        cypress_data = {
+            "stats": {"tests": 10, "passes": 8, "failures": 2},
+            "results": []
+        }
+        cypress_file.write_text(json.dumps(cypress_data))
+        
+        is_valid, error = parser.validate_log_file(cypress_file, "cypress")
+        
+        assert is_valid
+        assert error == ""
+    
+    def test_validate_invalid_cypress_json_missing_fields(self, tmp_path):
+        """Test validation fails for Cypress JSON missing required fields."""
+        parser = LogParser()
+        invalid_file = tmp_path / "cypress-invalid.json"
+        invalid_data = {"random": "data"}
+        invalid_file.write_text(json.dumps(invalid_data))
+        
+        is_valid, error = parser.validate_log_file(invalid_file, "cypress")
+        
+        assert not is_valid
+        assert "missing" in error.lower() and ("stats" in error or "results" in error or "runs" in error)
+    
+    def test_validate_corrupted_json(self, tmp_path):
+        """Test validation fails for corrupted JSON."""
+        parser = LogParser()
+        corrupted_file = tmp_path / "corrupted.json"
+        corrupted_file.write_text('{"stats": {"tests": 10,}')  # Trailing comma
+        
+        is_valid, error = parser.validate_log_file(corrupted_file, "cypress")
+        
+        assert not is_valid
+        assert "JSON parsing error" in error or "parsing error" in error.lower()
+    
+    def test_validate_valid_behave_json(self, tmp_path):
+        """Test validation passes for valid Behave JSON."""
+        parser = LogParser()
+        behave_file = tmp_path / "behave-results.json"
+        behave_data = [
+            {
+                "name": "Feature1",
+                "elements": [
+                    {"name": "Scenario1", "type": "scenario"}
+                ]
+            }
+        ]
+        behave_file.write_text(json.dumps(behave_data))
+        
+        is_valid, error = parser.validate_log_file(behave_file, "behave")
+        
+        assert is_valid
+        assert error == ""
+    
+    def test_validate_valid_java_file(self, tmp_path):
+        """Test validation passes for valid Java step definition file."""
+        parser = LogParser()
+        java_file = tmp_path / "LoginSteps.java"
+        java_content = """
+package com.example.steps;
+
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+
+public class LoginSteps {
+    @Given("user is on login page")
+    public void userIsOnLoginPage() {
+        // implementation
+    }
+    
+    @When("user enters credentials")
+    public void userEntersCredentials() {
+        // implementation
+    }
+    
+    @Then("user should be logged in")
+    public void userShouldBeLoggedIn() {
+        // implementation
+    }
+}
+"""
+        java_file.write_text(java_content)
+        
+        is_valid, error = parser.validate_log_file(java_file, "java")
+        
+        assert is_valid
+        assert error == ""
+    
+    def test_validate_invalid_java_file_no_annotations(self, tmp_path):
+        """Test validation fails for Java file without BDD annotations."""
+        parser = LogParser()
+        java_file = tmp_path / "RegularClass.java"
+        java_content = """
+public class RegularClass {
+    public void someMethod() {
+        // no BDD annotations
+    }
+}
+"""
+        java_file.write_text(java_content)
+        
+        is_valid, error = parser.validate_log_file(java_file, "java")
+        
+        assert not is_valid
+        assert "BDD step annotations" in error
+    
+    def test_validate_large_file_warning(self, tmp_path, capsys):
+        """Test validation warns for very large files but doesn't fail."""
+        parser = LogParser()
+        large_file = tmp_path / "large-output.xml"
+        
+        # Create a file larger than 100MB by writing repeated content
+        # For test purposes, we'll just mock the stat result
+        large_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results>
+    <suite name="TestSuite">
+        <test name="TestCase">
+            <class name="TestClass">
+                <test-method name="testMethod" status="PASS"/>
+            </class>
+        </test>
+    </suite>
+</testng-results>""")
+        
+        # Mock the file size check
+        original_stat = large_file.stat
+        
+        class MockStat:
+            st_size = 150 * 1024 * 1024  # 150MB
+        
+        with patch.object(Path, 'stat', return_value=MockStat()):
+            is_valid, error = parser.validate_log_file(large_file, "testng")
+        
+        # Should still be valid, just with a warning
+        assert is_valid
+        assert error == ""
+    
+    def test_validate_auto_detect_framework(self, tmp_path):
+        """Test validation with automatic framework detection."""
+        parser = LogParser()
+        testng_file = tmp_path / "testng-results.xml"
+        testng_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results>
+    <suite name="TestSuite">
+        <test name="TestCase">
+            <class name="TestClass">
+                <test-method name="testMethod" status="PASS"/>
+            </class>
+        </test>
+    </suite>
+</testng-results>""")
+        
+        # Don't specify framework - let it auto-detect
+        is_valid, error = parser.validate_log_file(testng_file)
+        
+        assert is_valid
+        assert error == ""
+
+
+class TestMultiFileAnalysis:
+    """Tests for multi-file log analysis functionality."""
+    
+    @pytest.fixture
+    def mock_testng_file1(self, tmp_path):
+        """Create mock TestNG file 1."""
+        file_path = tmp_path / "testng-vm1.xml"
+        file_path.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results><suite name="Suite1"><test name="Test1">
+<class name="TestClass1"><test-method name="test1" status="PASS"/></class>
+</test></suite></testng-results>""")
+        return file_path
+    
+    @pytest.fixture
+    def mock_testng_file2(self, tmp_path):
+        """Create mock TestNG file 2."""
+        file_path = tmp_path / "testng-vm2.xml"
+        file_path.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<testng-results><suite name="Suite2"><test name="Test2">
+<class name="TestClass2"><test-method name="test2" status="FAIL"/></class>
+</test></suite></testng-results>""")
+        return file_path
+    
+    @pytest.fixture
+    def mock_cypress_file(self, tmp_path):
+        """Create mock Cypress file."""
+        file_path = tmp_path / "cypress-results.json"
+        cypress_data = {
+            "stats": {"tests": 5, "passes": 3, "failures": 2},
+            "results": []
+        }
+        file_path.write_text(json.dumps(cypress_data))
+        return file_path
     
     def test_generate_per_file_output_path(self, tmp_path):
         """Test generation of per-file output paths."""
@@ -1129,6 +1443,7 @@ class TestMultiFileAnalysis:
         # Setup mocks
         mock_parser = Mock()
         mock_parser.check_sidecar.return_value = True
+        mock_parser.validate_log_file.return_value = (True, None)  # Valid files
         mock_parser.detect_framework.side_effect = ["testng", "testng"]
         mock_parser.parse_log.return_value = {
             "total_tests": 10,
@@ -1184,6 +1499,7 @@ class TestMultiFileAnalysis:
         # Setup mocks - first file succeeds, second fails
         mock_parser = Mock()
         mock_parser.check_sidecar.return_value = True
+        mock_parser.validate_log_file.return_value = (True, None)  # Valid files
         mock_parser.detect_framework.side_effect = ["testng", "unknown"]
         mock_parser.parse_log.return_value = {
             "total_tests": 10,
@@ -1236,6 +1552,7 @@ class TestMultiFileAnalysis:
         # Setup mocks - all files fail
         mock_parser = Mock()
         mock_parser.check_sidecar.return_value = True
+        mock_parser.validate_log_file.return_value = (True, None)  # Valid files, but framework unknown
         mock_parser.detect_framework.side_effect = ["unknown", "unknown"]
         mock_parser_class.return_value = mock_parser
         
@@ -1265,6 +1582,7 @@ class TestMultiFileAnalysis:
         # Setup mocks with different frameworks
         mock_parser = Mock()
         mock_parser.check_sidecar.return_value = True
+        mock_parser.validate_log_file.return_value = (True, None)  # Valid files
         mock_parser.detect_framework.side_effect = ["testng", "cypress", "behave"]
         mock_parser.parse_log.return_value = {
             "total_tests": 5,
