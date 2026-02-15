@@ -532,11 +532,15 @@ class LogParser:
         
         logger.info(f"Sending parse request to sidecar: {endpoint}")
         logger.info(f"File: {log_file.name}, Size: {file_size_mb:.2f} MB, Framework: {framework}")
+        logger.info(f"POST {endpoint} - Uploading {file_size_mb:.2f} MB file for parsing")
         
         try:
             parse_start = time.time()
             with open(log_file, "rb") as f:
                 logger.debug(f"Uploading file to sidecar endpoint...")
+                logger.debug(f"Request: POST {endpoint} with binary file data")
+                logger.debug(f"Request headers: Content-Type=application/octet-stream")
+                logger.debug(f"Request timeout: 60s")
                 response = requests.post(
                     endpoint,
                     data=f,
@@ -545,14 +549,27 @@ class LogParser:
                 )
             
             parse_duration = int(time.time() - parse_start)
-            logger.info(f"Sidecar response received: HTTP {response.status_code} (took {parse_duration}s)")
+            try:
+                response_size = len(response.content) / 1024  # KB
+                logger.info(f"Sidecar POST response: HTTP {response.status_code} (took {parse_duration}s, response size: {response_size:.1f} KB)")
+            except (TypeError, AttributeError):
+                # Handle Mock objects in tests
+                logger.info(f"Sidecar POST response: HTTP {response.status_code} (took {parse_duration}s)")
+            
+            try:
+                logger.debug(f"Response headers: {dict(response.headers)}")
+            except (TypeError, AttributeError):
+                pass
             
             if response.status_code == 200:
                 result = response.json()
                 total_tests = result.get('total_tests', 0)
                 passed_tests = result.get('passed_tests', 0)
                 failed_tests = result.get('failed_tests', 0)
-                logger.info(f"Parsing successful - Total: {total_tests}, Passed: {passed_tests}, Failed: {failed_tests}")
+                skipped_tests = result.get('skipped_tests', 0)
+                logger.info(f"POST {endpoint} completed successfully")
+                logger.info(f"Parsing successful - Total: {total_tests}, Passed: {passed_tests}, Failed: {failed_tests}, Skipped: {skipped_tests}")
+                logger.debug(f"Response contains {len(result.get('tests', []))} test entries")
                 return result
             else:
                 error_detail = response.json().get("detail", "Unknown error")
@@ -603,19 +620,40 @@ class LogParser:
         else:
             endpoint = "/analyze"
         
+        # Log payload details
+        try:
+            payload_size_kb = len(json.dumps(payload)) / 1024
+            logger.info(f"POST {self.sidecar_url}{endpoint} - Payload size: {payload_size_kb:.1f} KB")
+        except (TypeError, ValueError):
+            # Handle cases where payload can't be serialized (e.g., in tests)
+            logger.info(f"POST {self.sidecar_url}{endpoint} - Payload prepared")
+        
+        failed_test_count = data.get('failed_tests', 0)
+        total_test_count = data.get('total_tests', 0)
+        logger.info(f"Preparing intelligence analysis POST request to {endpoint}")
+        logger.info(f"Analysis scope: {total_test_count} total tests, {failed_test_count} failures to analyze")
+        logger.info(f"AI mode: {'enabled' if enable_ai else 'disabled'}")
+        if app_logs:
+            logger.info(f"Including app logs from: {app_logs}")
+        logger.debug(f"Request timeout: 7200s (2 hours)")
+        
         try:
             # Simple approach: use print() with flush for spinner
             response_holder = [None]
             error_holder = [None]
+            analysis_start_time = time.time()
             
             def make_request():
                 try:
+                    logger.debug(f"Making POST request to {self.sidecar_url}{endpoint}...")
                     response_holder[0] = requests.post(
                         f"{self.sidecar_url}{endpoint}",
                         json=payload,
                         timeout=7200  # 2 hours for AI analysis
                     )
+                    logger.debug(f"POST request completed with status {response_holder[0].status_code}")
                 except Exception as e:
+                    logger.error(f"POST request failed: {e}")
                     error_holder[0] = e
             
             # Spinner frames
@@ -651,17 +689,31 @@ class LogParser:
             
             response = response_holder[0]
             
-            analysis_duration = int(time.time() - time.time())
-            logger.info(f"Intelligence analysis request completed: HTTP {response.status_code}")
+            analysis_duration = int(time.time() - analysis_start_time)
+            try:
+                response_size = len(response.content) / 1024  # KB
+                logger.info(f"POST {self.sidecar_url}{endpoint} completed: HTTP {response.status_code}")
+                logger.info(f"Intelligence analysis took {analysis_duration}s, response size: {response_size:.1f} KB)")
+            except (TypeError, AttributeError):
+                # Handle Mock objects in tests
+                logger.info(f"POST {self.sidecar_url}{endpoint} completed: HTTP {response.status_code}")
+                logger.info(f"Intelligence analysis took {analysis_duration}s")
+            
+            try:
+                logger.debug(f"Response headers: {dict(response.headers)}")
+            except (TypeError, AttributeError):
+                pass
             
             if response.status_code == 200:
                 result = response.json()
+                logger.info(f"POST {endpoint} - Successfully received and parsed JSON response")
                 
                 # Log analysis results
                 if result.get("failure_clusters"):
                     num_clusters = len(result["failure_clusters"])
                     total_failures = result.get("data", {}).get("failed_tests", 0)
                     logger.info(f"Clustering analysis complete: {num_clusters} unique issue(s) identified from {total_failures} failure(s)")
+                    logger.info(f"POST {endpoint} extracted {total_failures} failed tests for analysis, grouped into {num_clusters} cluster(s)")
                     
                     # Log cluster details
                     for idx, cluster in enumerate(result["failure_clusters"][:5], 1):  # Log first 5
@@ -670,6 +722,8 @@ class LogParser:
                         count = cluster.get("failure_count", 0)
                         root_cause = cluster.get("root_cause", "Unknown")
                         logger.debug(f"  Cluster {idx}: [{severity}/{domain}] {root_cause} (count: {count})")
+                else:
+                    logger.info(f"POST {endpoint} - No failure clusters returned (passed: {result.get('data', {}).get('passed_tests', 0)})")
                 
                 if result.get("ai_analysis") and enable_ai:
                     ai_insights = len(result["ai_analysis"].get("insights", []))
