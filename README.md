@@ -1007,7 +1007,7 @@ Results saved to: testng-vm2.parsed.20260215_143029.json
 ✅ Successfully processed: 3 file(s)
 
 📁 Output Files:
-   Merged results: merged-results.20260215_143030.json
+   Merged results: Testng_Full_Log_Analyze.20260215_143030.json
    Per-file results: 3 individual files
 
 📈 Aggregate Statistics:

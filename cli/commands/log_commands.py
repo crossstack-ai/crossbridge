@@ -2165,7 +2165,20 @@ def parse_multiple_log_files(
             merged_output = output
             logger.info(f"Using specified output path: {merged_output}")
         else:
-            merged_output = Path(f"merged-results.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+            # Generate filename based on framework(s)
+            frameworks = list(set(result["framework"] for result in all_results))
+            frameworks.sort()  # Consistent ordering
+            
+            if len(frameworks) == 1:
+                # Single framework: TestNG_Full_Log_Analyze.20260214_233841.json
+                framework_name = frameworks[0].title()
+                filename = f"{framework_name}_Full_Log_Analyze.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            else:
+                # Multiple frameworks: TestNG_Cypress_Full_Log_Analyze.20260214_233841.json
+                framework_names = "_".join(f.title() for f in frameworks)
+                filename = f"{framework_names}_Full_Log_Analyze.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            
+            merged_output = Path(filename)
             logger.info(f"Using auto-generated output path: {merged_output}")
         
         logger.debug(f"Writing merged results to: {merged_output}")

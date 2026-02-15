@@ -1623,4 +1623,101 @@ class TestMultiFileAnalysis:
         framework_calls = [call[0][1] for call in mock_parser.display_results.call_args_list]
         assert "testng" in framework_calls
         assert "cypress" in framework_calls
-        assert "behave" in framework_calls
+        assert "behave" in framework_calls    
+    @patch("cli.commands.log_commands.LogParser")
+    @patch("cli.commands.log_commands.configure_logging")
+    @patch("cli.commands.log_commands.setup_logging")
+    @patch("cli.commands.log_commands.Path")
+    def test_merged_output_filename_single_framework(self, mock_path_class, mock_setup, mock_config, mock_parser_class, tmp_path):
+        """Test that merged output uses correct filename format for single framework."""
+        from cli.commands.log_commands import parse_multiple_log_files
+        
+        # Create mock files
+        file1 = tmp_path / "test1.xml"
+        file2 = tmp_path / "test2.xml"
+        file1.touch()
+        file2.touch()
+        
+        # Setup mocks
+        mock_parser = Mock()
+        mock_parser.check_sidecar.return_value = True
+        mock_parser.validate_log_file.return_value = (True, None)
+        mock_parser.detect_framework.side_effect = ["testng", "testng"]  # Same framework
+        mock_parser.parse_log.return_value = {"total_tests": 10, "passed_tests": 8, "failed_tests": 2, "tests": []}
+        mock_parser.enrich_with_intelligence.return_value = {"total_tests": 10, "passed_tests": 8, "failed_tests": 2, "tests": []}
+        mock_parser.apply_filters.return_value = {"total_tests": 10, "passed_tests": 8, "failed_tests": 2, "tests": []}
+        mock_parser_class.return_value = mock_parser
+        
+        # Mock Path to capture the filename
+        mock_path_instance = Mock()
+        mock_path_class.return_value = mock_path_instance
+        
+        # Execute
+        with patch("cli.commands.log_commands.create_structured_output") as mock_structured:
+            mock_structured.return_value = {"total_tests": 10}
+            with patch("builtins.open", mock_open()):
+                parse_multiple_log_files(
+                    log_files=[file1, file2],
+                    enable_ai=False,
+                    no_analyze=False,
+                    output=None  # No custom output, should auto-generate
+                )
+        
+        # Verify the filename format: Testng_Full_Log_Analyze.<timestamp>.json
+        path_calls = [str(call[0][0]) for call in mock_path_class.call_args_list if call[0]]
+        merged_filename = [f for f in path_calls if "Full_Log_Analyze" in f]
+        
+        assert len(merged_filename) > 0, "Should have created merged filename with Full_Log_Analyze"
+        assert merged_filename[0].startswith("Testng_Full_Log_Analyze."), f"Filename should start with 'Testng_Full_Log_Analyze.', got: {merged_filename[0]}"
+        assert merged_filename[0].endswith(".json"), f"Filename should end with '.json', got: {merged_filename[0]}"
+    
+    @patch("cli.commands.log_commands.LogParser")
+    @patch("cli.commands.log_commands.configure_logging")
+    @patch("cli.commands.log_commands.setup_logging")
+    @patch("cli.commands.log_commands.Path")
+    def test_merged_output_filename_mixed_frameworks(self, mock_path_class, mock_setup, mock_config, mock_parser_class, tmp_path):
+        """Test that merged output uses correct filename format for mixed frameworks."""
+        from cli.commands.log_commands import parse_multiple_log_files
+        
+        # Create mock files
+        file1 = tmp_path / "test1.xml"
+        file2 = tmp_path / "test2.json"
+        file1.touch()
+        file2.touch()
+        
+        # Setup mocks
+        mock_parser = Mock()
+        mock_parser.check_sidecar.return_value = True
+        mock_parser.validate_log_file.return_value = (True, None)
+        mock_parser.detect_framework.side_effect = ["testng", "cypress"]  # Different frameworks
+        mock_parser.parse_log.return_value = {"total_tests": 5, "passed_tests": 5, "failed_tests": 0, "tests": []}
+        mock_parser.enrich_with_intelligence.return_value = {"total_tests": 5, "passed_tests": 5, "failed_tests": 0, "tests": []}
+        mock_parser.apply_filters.return_value = {"total_tests": 5, "passed_tests": 5, "failed_tests": 0, "tests": []}
+        mock_parser_class.return_value = mock_parser
+        
+        # Mock Path to capture the filename
+        mock_path_instance = Mock()
+        mock_path_class.return_value = mock_path_instance
+        
+        # Execute
+        with patch("cli.commands.log_commands.create_structured_output") as mock_structured:
+            mock_structured.return_value = {"total_tests": 5}
+            with patch("builtins.open", mock_open()):
+                parse_multiple_log_files(
+                    log_files=[file1, file2],
+                    enable_ai=False,
+                    no_analyze=False,
+                    output=None  # No custom output, should auto-generate
+                )
+        
+        # Verify the filename format: Cypress_Testng_Full_Log_Analyze.<timestamp>.json
+        # (frameworks are sorted alphabetically)
+        path_calls = [str(call[0][0]) for call in mock_path_class.call_args_list if call[0]]
+        merged_filename = [f for f in path_calls if "Full_Log_Analyze" in f]
+        
+        assert len(merged_filename) > 0, "Should have created merged filename with Full_Log_Analyze"
+        # Should contain both framework names
+        assert "Cypress" in merged_filename[0], f"Filename should contain 'Cypress', got: {merged_filename[0]}"
+        assert "Testng" in merged_filename[0], f"Filename should contain 'Testng', got: {merged_filename[0]}"
+        assert "Full_Log_Analyze" in merged_filename[0], f"Filename should contain 'Full_Log_Analyze', got: {merged_filename[0]}"
+        assert merged_filename[0].endswith(".json"), f"Filename should end with '.json', got: {merged_filename[0]}"
