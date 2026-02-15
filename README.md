@@ -626,6 +626,81 @@ crossbridge log test-output/testng-results.xml --output json > results.json
 
 **Output Example:**
 ```
+=========================================
+           TestNG Test Results
+=========================================
+
+Status: FAIL
+
+Test Statistics:
+  Total:    24
+  Passed:   18
+  Failed:   6
+  Pass Rate: 75.0%
+
+Root Cause Analysis: 3 unique issues (deduplicated from 6 failures)
+Deduplication saved 3 duplicate entries (50% reduction)
+Domain breakdown: 2 Product, 1 Infra
+
+⚠️  Systemic Patterns Detected:
+   ⚠️  Multiple assertion failures suggests possible systemic regression
+
+╭────────────────┬────────────┬──────────────────────────────────────────────┬─────────┬─────────────────────────╮
+│ Severity       │ Domain     │ Root Cause                                   │   Count │ Affected Tests          │
+├────────────────┼────────────┼──────────────────────────────────────────────┼─────────┼─────────────────────────┤
+│ ⚠️  HIGH       │ 🔧 INFRA   │ Session not created - WebDriver timeout      │       3 │ LoginTest, +2 more      │
+│ ⚠️  HIGH       │ 🐛 PROD    │ Expected 200 but was 500                     │       2 │ ApiTest, StatusTest     │
+│ ⚠️  HIGH       │ 🐛 PROD    │ Assertion failed: Element not visible        │       1 │ UI_ValidationTest       │
+╰────────────────┴────────────┴──────────────────────────────────────────────┴─────────┴─────────────────────────╯
+
+━━━ Detailed Failure Analysis ━━━
+
+1. ⚠️  HIGH - Session not created - WebDriver timeout
+   Occurrences: 3
+   Affected Tests:
+      • LoginTest.testValidCredentials
+      • LoginTest.testInvalidCredentials
+      • ProfileTest.testLoadProfile
+   💡 Suggested Fix:
+      Check WebDriver/browser compatibility and driver version
+
+2. ⚠️  HIGH - Expected 200 but was 500
+   Occurrences: 2
+   Affected Tests:
+      • ApiTest.testGetEndpoint
+      • StatusTest.testHealthCheck
+   💡 Suggested Fix:
+      Review test expectations and actual application behavior
+
+⏱️  Slowest Tests (Top 5):
+╭─────────────────────────────────────────┬──────────────╮
+│ Test Case                               │     Duration │
+├─────────────────────────────────────────┼──────────────┤
+│ com.example.SlowTest.testLongOperation  │        2m 30s│
+│ com.example.ApiTest.testIntegration     │        1m 45s│
+│ com.example.UITest.testCompleteFlow     │        1m 20s│
+╰─────────────────────────────────────────┴──────────────╯
+```
+
+**Features:**
+- ✅ Comprehensive test statistics and pass rate
+- ✅ Intelligent failure clustering and deduplication (powered by `core.log_analysis.clustering`)
+- ✅ Domain classification (Product, Infrastructure, Environment, Test)
+- ✅ Severity-based prioritization (Critical, High, Medium, Low)
+- ✅ Root cause analysis with suggested fixes
+- ✅ Systemic pattern detection (identifies widespread issues)
+- ✅ Slowest tests profiling for performance optimization
+- ✅ Detailed error messages with stack traces
+- ✅ Rich console output with tables and formatting (powered by Rich library)
+
+**AI-Enhanced Analysis:**
+```bash
+# Enable AI for deeper failure analysis
+crossbridge log test-output/testng-results.xml --enable-ai
+```
+
+**Legacy Output Example (pre-clustering):**
+```
 🔍 Parsing TestNG results: test-output/testng-results.xml
 ✅ Parsed 24 tests: 18 passed, 6 failed
 

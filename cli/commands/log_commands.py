@@ -826,19 +826,19 @@ class LogParser:
             
             # Sort clusters by severity and count
             sorted_clusters = sorted(
-                clusters,
+                clusters.values(),
                 key=lambda c: (
-                    {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(c.get("severity", "low"), 4),
-                    -len(c.get("members", []))
+                    {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(c.severity.value, 4),
+                    -c.failure_count
                 )
             )
             
             # Display top clusters
             for cluster in sorted_clusters[:10]:
-                severity = cluster.get("severity", "low")
-                domain = cluster.get("domain", "unknown")
-                root_cause = cluster.get("root_cause", "Unknown error")
-                count = len(cluster.get("members", []))
+                severity = cluster.severity.value
+                domain = cluster.domain.value
+                root_cause = cluster.root_cause
+                count = cluster.failure_count
                 
                 # Get severity and domain display
                 sev_style, sev_label = severity_display.get(severity, ("dim", "❓ UNKNOWN"))
@@ -849,15 +849,15 @@ class LogParser:
                     root_cause = root_cause[:57] + "..."
                 
                 # Get affected test names
-                members = cluster.get("members", [])
-                if members:
-                    first_test = members[0].get("test_name", members[0].get("name", "Unknown"))
+                failures = cluster.failures
+                if failures:
+                    first_test = failures[0].test_name
                     # Shorten test names
                     if len(first_test) > 30:
                         first_test = first_test[:27] + "..."
                     
-                    if len(members) > 1:
-                        affected = f"{first_test}, +{len(members)-1} more"
+                    if len(failures) > 1:
+                        affected = f"{first_test}, +{len(failures)-1} more"
                     else:
                         affected = first_test
                 else:
@@ -879,33 +879,36 @@ class LogParser:
             console.print()
             
             for idx, cluster in enumerate(sorted_clusters[:3], 1):
-                severity = cluster.get("severity", "low")
+                severity = cluster.severity.value
                 sev_style, sev_label = severity_display.get(severity, ("dim", "❓ UNKNOWN"))
-                root_cause = cluster.get("root_cause", "Unknown error")
-                count = len(cluster.get("members", []))
+                root_cause = cluster.root_cause
+                count = cluster.failure_count
                 
                 console.print(f"[bold]{idx}. [{sev_style}]{sev_label}[/{sev_style}] - {root_cause}[/bold]")
                 console.print(f"   Occurrences: {count}")
                 
                 # Show affected tests
-                members = cluster.get("members", [])
-                if members:
+                failures = cluster.failures
+                if failures:
                     console.print(f"   [dim]Affected Tests:[/dim]")
-                    for member in members[:5]:
-                        test_name = member.get("test_name", member.get("name", "Unknown"))
+                    for failure in failures[:5]:
+                        test_name = failure.test_name
                         console.print(f"      • {test_name}")
-                    if len(members) > 5:
-                        console.print(f"      [dim]... and {len(members)-5} more[/dim]")
+                    if len(failures) > 5:
+                        console.print(f"      [dim]... and {len(failures)-5} more[/dim]")
                 
                 # Show patterns if available
-                patterns = cluster.get("patterns", [])
+                patterns = cluster.error_patterns
                 if patterns:
                     console.print(f"   [yellow]Patterns:[/yellow] {', '.join(patterns)}")
                 
-                # Suggested fix
-                if "assertion" in root_cause.lower() or "expected" in root_cause.lower():
+                # Show suggested fix if available
+                if cluster.suggested_fix:
                     console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
-                    console.print(f"      Review test expectations and actual application behavior. Update assertions if requirements changed or fix application logic.")
+                    console.print(f"      {cluster.suggested_fix}")
+                elif "assertion" in root_cause.lower() or "expected" in root_cause.lower():
+                    console.print(f"   [cyan]💡 Suggested Fix:[/cyan]")
+                    console.print(f"      Review test expectations and actual application behavior")
                 
                 console.print()
             

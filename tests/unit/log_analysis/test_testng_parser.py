@@ -161,8 +161,10 @@ class TestTestNGParser:
         malformed_file.write_text("<testng-results><unclosed>")
         
         parser = TestNGParser()
-        failures = parser.parse(malformed_file)
-        assert len(failures) == 0
+        # Should raise ValueError on malformed XML
+        with pytest.raises(ValueError) as exc_info:
+            parser.parse(malformed_file)
+        assert "Invalid TestNG XML format" in str(exc_info.value)
     
     def test_categorization_infrastructure(self):
         """Test infrastructure failure categorization"""
@@ -275,3 +277,119 @@ class TestTestNGParser:
         summary = parser.get_summary()
         assert summary['total_tests'] == 0
         assert summary['pass_rate'] == 0.0
+
+
+class TestTestNGParserGetAll:
+    """Test get_all() method that returns all tests"""
+    
+    @pytest.fixture
+    def mixed_results_xml(self, tmp_path):
+        """Create TestNG XML with passed, failed, and skipped tests"""
+        xml_content = dedent('''
+            <?xml version="1.0" encoding="UTF-8"?>
+            <testng-results>
+                <suite name="Mixed Results Suite" duration-ms="10000">
+                    <test name="All States Test" duration-ms="10000">
+                        <class name="com.example.MixedTest">
+                            <test-method status="PASS" name="testPassed1" 
+                                        duration-ms="1000" started-at="2024-01-15T10:00:00">
+                            </test-method>
+                            <test-method status="PASS" name="testPassed2" 
+                                        duration-ms="2000" started-at="2024-01-15T10:00:01">
+                            </test-method>
+                            <test-method status="FAIL" name="testFailed1" 
+                                        duration-ms="500" started-at="2024-01-15T10:00:02">
+                                <exception class="java.lang.AssertionError">
+                                    <message>Test failed</message>
+                                </exception>
+                            </test-method>
+                            <test-method status="SKIP" name="testSkipped1" 
+                                        duration-ms="0" started-at="2024-01-15T10:00:03">
+                            </test-method>
+                            <test-method status="FAIL" name="testFailed2" 
+                                        duration-ms="1500" started-at="2024-01-15T10:00:04">
+                                <exception class="java.lang.NullPointerException">
+                                    <message>NPE occurred</message>
+                                </exception>
+                            </test-method>
+                        </class>
+                    </test>
+                </suite>
+            </testng-results>
+        ''').strip()
+        
+        xml_file = tmp_path / "mixed.xml"
+        xml_file.write_text(xml_content)
+        return xml_file
+    
+    def test_get_all_returns_all_tests(self, mixed_results_xml):
+        """Test that get_all() returns all tests regardless of status"""
+        parser = TestNGParser()
+        parser.parse(mixed_results_xml)
+        
+        all_tests = parser.get_all()
+        
+        # Should return all 5 tests
+        assert len(all_tests) == 5
+        
+        # Verify we have each status
+        statuses = [t.status for t in all_tests]
+        assert statuses.count("PASS") == 2
+        assert statuses.count("FAIL") == 2
+        assert statuses.count("SKIP") == 1
+    
+    def test_get_all_vs_get_failures(self, mixed_results_xml):
+        """Test that get_all() returns more than just failures"""
+        parser = TestNGParser()
+        parser.parse(mixed_results_xml)
+        
+        all_tests = parser.get_all()
+        failures = parser.get_failures()
+        passed = parser.get_passed()
+        
+        # get_all() should return all tests
+        assert len(all_tests) == 5
+        
+        # get_failures() should only return failed tests
+        assert len(failures) == 2
+        
+        # get_passed() should only return passed tests
+        assert len(passed) == 2
+        
+        # Combined failures + passed should be less than all (missing skipped)
+        assert len(failures) + len(passed) < len(all_tests)
+    
+    def test_get_all_includes_duration(self, mixed_results_xml):
+        """Test that all tests include duration information"""
+        parser = TestNGParser()
+        parser.parse(mixed_results_xml)
+        
+        all_tests = parser.get_all()
+        
+        # Check that all tests have duration
+        for test in all_tests:
+            assert hasattr(test, 'duration_ms')
+            assert isinstance(test.duration_ms, int)
+        
+        # Verify durations are correct
+        durations = sorted([t.duration_ms for t in all_tests])
+        assert durations == [0, 500, 1000, 1500, 2000]
+    
+    def test_get_all_preserves_test_details(self, mixed_results_xml):
+        """Test that get_all() preserves all test details"""
+        parser = TestNGParser()
+        parser.parse(mixed_results_xml)
+        
+        all_tests = parser.get_all()
+        
+        # Check first passed test
+        passed_test = [t for t in all_tests if t.status == "PASS"][0]
+        assert passed_test.class_name == "com.example.MixedTest"
+        assert passed_test.method_name in ["testPassed1", "testPassed2"]
+        assert passed_test.test_name.startswith("com.example.MixedTest.")
+        
+        # Check failed test has error details
+        failed_test = [t for t in all_tests if t.status == "FAIL"][0]
+        assert failed_test.error_message is not None
+        assert failed_test.failure_type is not None
+

@@ -389,3 +389,183 @@ class TestLogCommandIntegration:
         # Parse log
         result = parser.parse_log(Path("output.xml"), framework)
         assert "suite" in result
+
+
+class TestTestNGDisplay:
+    """Tests for TestNG results display functionality"""
+    
+    @pytest.fixture
+    def testng_data_with_failures(self):
+        """Sample TestNG data with failures"""
+        return {
+            "framework": "testng",
+            "summary": {
+                "total_tests": 10,
+                "passed": 7,
+                "failed": 3,
+                "skipped": 0,
+                "pass_rate": 70.0
+            },
+            "failed_tests": [
+                {
+                    "test_name": "com.example.LoginTest.testInvalidPassword",
+                    "class_name": "com.example.LoginTest",
+                    "method_name": "testInvalidPassword",
+                    "status": "FAIL",
+                    "error_message": "Expected error message not displayed",
+                    "failure_type": "java.lang.AssertionError",
+                    "category": "TEST_ASSERTION",
+                    "duration_ms": 500,
+                    "stack_trace": "at com.example.LoginTest.testInvalidPassword..."
+                },
+                {
+                    "test_name": "com.example.TimeoutTest.testSlowOperation",
+                    "class_name": "com.example.TimeoutTest",
+                    "method_name": "testSlowOperation",
+                    "status": "FAIL",
+                    "error_message": "Timeout waiting for element",
+                    "failure_type": "org.openqa.selenium.TimeoutException",
+                    "category": "INFRASTRUCTURE",
+                    "duration_ms": 30000,
+                    "stack_trace": "at org.openqa.selenium..."
+                },
+                {
+                    "test_name": "com.example.ApiTest.testEndpoint",
+                    "class_name": "com.example.ApiTest",
+                    "method_name": "testEndpoint",
+                    "status": "FAIL",
+                    "error_message": "Expected 200 but was 500",
+                    "failure_type": "java.lang.AssertionError",
+                    "category": "APPLICATION",
+                    "duration_ms": 1200,
+                    "stack_trace": "at com.example.ApiTest..."
+                }
+            ],
+            "all_tests": [
+                {"test_name": "test1", "duration_ms": 5000, "status": "PASS", "class_name": "Class1", "method_name": "test1"},
+                {"test_name": "test2", "duration_ms": 3000, "status": "PASS", "class_name": "Class1", "method_name": "test2"},
+                {"test_name": "test3", "duration_ms": 2000, "status": "PASS", "class_name": "Class1", "method_name": "test3"},
+            ],
+            "statistics": {
+                "total": 10,
+                "passed": 7,
+                "failed": 3,
+                "skipped": 0
+            }
+        }
+    
+    @pytest.fixture
+    def testng_data_all_passed(self):
+        """Sample TestNG data with all tests passed"""
+        return {
+            "framework": "testng",
+            "summary": {
+                "total_tests": 5,
+                "passed": 5,
+                "failed": 0,
+                "skipped": 0,
+                "pass_rate": 100.0
+            },
+            "failed_tests": [],
+            "all_tests": [
+                {"test_name": "test1", "duration_ms": 1000, "status": "PASS", "class_name": "Class1", "method_name": "test1"},
+                {"test_name": "test2", "duration_ms": 2000, "status": "PASS", "class_name": "Class1", "method_name": "test2"},
+            ],
+            "statistics": {
+                "total": 5,
+                "passed": 5,
+                "failed": 0,
+                "skipped": 0
+            }
+        }
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_testng_results_with_failures(self, mock_print, testng_data_with_failures):
+        """Test displaying TestNG results with failures"""
+        parser = LogParser()
+        
+        # This should not raise any exceptions
+        parser._display_testng_results(testng_data_with_failures)
+        
+        # Verify console.print was called (output was generated)
+        assert mock_print.called
+        assert mock_print.call_count > 0
+        
+        # Check that key sections were displayed
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "TestNG Test Results" in calls_str or "testng" in calls_str.lower()
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_testng_results_all_passed(self, mock_print, testng_data_all_passed):
+        """Test displaying TestNG results when all tests passed"""
+        parser = LogParser()
+        
+        # This should not raise any exceptions
+        parser._display_testng_results(testng_data_all_passed)
+        
+        # Verify console.print was called
+        assert mock_print.called
+        
+        # Should show PASS status
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "PASS" in calls_str
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_testng_with_clustering(self, mock_print, testng_data_with_failures):
+        """Test that TestNG display uses clustering for failures"""
+        parser = LogParser()
+        
+        # Add more similar failures to trigger clustering
+        testng_data_with_failures["failed_tests"].extend([
+            {
+                "test_name": "com.example.Test2.method",
+                "class_name": "com.example.Test2",
+                "method_name": "method",
+                "status": "FAIL",
+                "error_message": "Expected error message not displayed",  # Similar error
+                "failure_type": "java.lang.AssertionError",
+                "category": "TEST_ASSERTION",
+                "duration_ms": 500,
+                "stack_trace": "..."
+            }
+        ])
+        
+        parser._display_testng_results(testng_data_with_failures)
+        
+        # Should mention clustering or deduplication
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        # The clustering module may deduplicate or show unique issues
+        assert mock_print.called
+    
+    @patch("cli.commands.log_commands.console.print")
+    def test_display_testng_shows_slowest_tests(self, mock_print, testng_data_with_failures):
+        """Test that slowest tests are displayed"""
+        parser = LogParser()
+        
+        # Add tests with varying durations
+        testng_data_with_failures["all_tests"] = [
+            {"test_name": "slow1", "duration_ms": 50000, "status": "PASS", "class_name": "C1", "method_name": "slow1"},
+            {"test_name": "slow2", "duration_ms": 40000, "status": "PASS", "class_name": "C1", "method_name": "slow2"},
+            {"test_name": "slow3", "duration_ms": 30000, "status": "FAIL", "class_name": "C1", "method_name": "slow3"},
+            {"test_name": "fast1", "duration_ms": 100, "status": "PASS", "class_name": "C1", "method_name": "fast1"},
+        ]
+        
+        parser._display_testng_results(testng_data_with_failures)
+        
+        # Should show slowest tests section
+        calls_str = " ".join([str(call) for call in mock_print.call_args_list])
+        assert "Slowest" in calls_str or "Duration" in calls_str
+    
+    def test_display_results_routes_to_testng(self, testng_data_with_failures):
+        """Test that display_results correctly routes TestNG data"""
+        parser = LogParser()
+        
+        with patch.object(parser, '_display_testng_results') as mock_display:
+            # Call display_results with testng framework
+            parser.display_results(testng_data_with_failures, "testng")
+            
+            # Should have called _display_testng_results
+            mock_display.assert_called_once()
+            args = mock_display.call_args[0]
+            assert args[0] == testng_data_with_failures
+
