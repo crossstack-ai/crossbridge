@@ -2202,6 +2202,30 @@ def parse_multiple_log_files(
         if failed_files:
             console.print(f"[yellow]⚠️  Failed/Skipped:[/yellow] {len(failed_files)} file(s)")
         
+        # Display per-file summary with headers
+        console.print()
+        console.print("[bold cyan]📋 Individual File Results:[/bold cyan]")
+        console.print()
+        for file_info in all_file_info:
+            file_name = file_info["file"]
+            framework = file_info["framework"]
+            total = file_info["total_tests"]
+            passed = file_info["passed_tests"]
+            failed = file_info["failed_tests"]
+            pass_rate = (passed / total * 100) if total > 0 else 0
+            
+            status_icon = "✅" if failed == 0 else "⚠️" if failed < total // 2 else "❌"
+            
+            console.print(f"[bold cyan]{'─' * 80}[/bold cyan]")
+            console.print(f"[bold cyan]=== {file_name} log analysis ===[/bold cyan]")
+            console.print(f"[bold cyan]{'─' * 80}[/bold cyan]")
+            console.print(f"   Framework:  [blue]{framework.upper()}[/blue]")
+            console.print(f"   Total:      {total} tests")
+            console.print(f"   Passed:     [green]{passed}[/green] ({pass_rate:.1f}%)")
+            console.print(f"   Failed:     [red]{failed}[/red]")
+            console.print(f"   Status:     {status_icon}")
+            console.print()
+        
         console.print()
         console.print("[blue]📁 Output Files:[/blue]")
         console.print(f"   Merged results: [cyan]{merged_output}[/cyan]")
