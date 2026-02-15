@@ -2199,29 +2199,46 @@ def parse_multiple_log_files(
             logger.debug(f"Available keys in test_data: {list(test_data.keys())}")
             
             # Get test counts, handling both integer counts and lists
-            total_tests = test_data.get("total_tests", 0)
-            if isinstance(total_tests, list):
-                total_tests = len(total_tests)
+            total_tests_raw = test_data.get("total_tests", 0)
+            passed_tests_raw = test_data.get("passed_tests", 0)
+            failed_tests_raw = test_data.get("failed_tests", 0)
             
-            passed_tests = test_data.get("passed_tests", 0)
-            if isinstance(passed_tests, list):
-                passed_tests = len(passed_tests)
+            # Debug: Log raw values and types
+            logger.debug(f"Raw values - total_tests: {type(total_tests_raw).__name__} ({total_tests_raw if not isinstance(total_tests_raw, list) else f'list[{len(total_tests_raw)}]'})")
+            logger.debug(f"Raw values - passed_tests: {type(passed_tests_raw).__name__} ({passed_tests_raw if not isinstance(passed_tests_raw, list) else f'list[{len(passed_tests_raw)}]'})")
+            logger.debug(f"Raw values - failed_tests: {type(failed_tests_raw).__name__} ({failed_tests_raw if not isinstance(failed_tests_raw, list) else f'list[{len(failed_tests_raw)}]'})")
             
-            failed_tests = test_data.get("failed_tests", 0)
-            if isinstance(failed_tests, list):
-                failed_tests = len(failed_tests)
+            # Extract counts or lengths
+            total_tests = len(total_tests_raw) if isinstance(total_tests_raw, list) else total_tests_raw
+            passed_tests = len(passed_tests_raw) if isinstance(passed_tests_raw, list) else passed_tests_raw
+            failed_tests = len(failed_tests_raw) if isinstance(failed_tests_raw, list) else failed_tests_raw
             
-            # If total_tests is 0 but we have failed tests, calculate from test list
-            if total_tests == 0 and "tests" in test_data:
-                tests_list = test_data.get("tests", [])
-                if isinstance(tests_list, list):
-                    total_tests = len(tests_list)
-                    # Recalculate passed/failed from test list if needed
-                    if passed_tests == 0:
-                        passed_tests = sum(1 for t in tests_list if t.get("status") in ["PASS", "passed", "success"])
-                    if failed_tests == 0:
-                        failed_tests = sum(1 for t in tests_list if t.get("status") in ["FAIL", "failed", "failure"])
-                    logger.debug(f"Calculated from tests list: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
+            # If total_tests is 0, try to calculate from available data
+            if total_tests == 0:
+                # Option 1: Calculate from tests list
+                if "tests" in test_data:
+                    tests_list = test_data.get("tests", [])
+                    if isinstance(tests_list, list):
+                        total_tests = len(tests_list)
+                        # Recalculate passed/failed from test list if needed
+                        if passed_tests == 0:
+                            passed_tests = sum(1 for t in tests_list if t.get("status") in ["PASS", "passed", "success"])
+                        if failed_tests == 0:
+                            failed_tests = sum(1 for t in tests_list if t.get("status") in ["FAIL", "failed", "failure"])
+                        logger.debug(f"Calculated from tests list: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
+                
+                # Option 2: Calculate from passed_tests_raw and failed_tests_raw if they are lists
+                elif isinstance(passed_tests_raw, list) or isinstance(failed_tests_raw, list):
+                    total_tests = passed_tests + failed_tests
+                    logger.debug(f"Calculated total from passed + failed lists: Total={total_tests}")
+                
+                # Option 3: If we have failed tests but no passed, check for passed_tests list
+                elif failed_tests > 0 and passed_tests == 0:
+                    # Try to find passed tests from other fields
+                    if "passed_tests" in test_data and isinstance(test_data["passed_tests"], list):
+                        passed_tests = len(test_data["passed_tests"])
+                        total_tests = passed_tests + failed_tests
+                        logger.debug(f"Calculated from separate lists: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
             
             logger.info(f"File {log_file.name} results: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}")
             
@@ -2338,29 +2355,36 @@ def parse_multiple_log_files(
                 result_data = result_data.get("data", result_data)
                 logger.debug(f"Unwrapped intelligence structure for aggregate calculation")
             
-            # Handle both integer counts and lists
-            tests = result_data.get("total_tests", 0)
-            if isinstance(tests, list):
-                tests = len(tests)
+            # Extract counts or lengths from raw data
+            tests_raw = result_data.get("total_tests", 0)
+            passed_raw = result_data.get("passed_tests", 0)
+            failed_raw = result_data.get("failed_tests", 0)
             
-            passed = result_data.get("passed_tests", 0)
-            if isinstance(passed, list):
-                passed = len(passed)
+            tests = len(tests_raw) if isinstance(tests_raw, list) else tests_raw
+            passed = len(passed_raw) if isinstance(passed_raw, list) else passed_raw
+            failed = len(failed_raw) if isinstance(failed_raw, list) else failed_raw
             
-            failed = result_data.get("failed_tests", 0)
-            if isinstance(failed, list):
-                failed = len(failed)
-            
-            # If total_tests is 0 but we have test data, calculate from test list
-            if tests == 0 and "tests" in result_data:
-                tests_list = result_data.get("tests", [])
-                if isinstance(tests_list, list):
-                    tests = len(tests_list)
-                    # Recalculate passed/failed from test list if needed
-                    if passed == 0:
-                        passed = sum(1 for t in tests_list if t.get("status") in ["PASS", "passed", "success"])
-                    if failed == 0:
-                        failed = sum(1 for t in tests_list if t.get("status") in ["FAIL", "failed", "failure"])
+            # If total tests is 0, try to calculate from available data
+            if tests == 0:
+                # Option 1: Calculate from tests list
+                if "tests" in result_data:
+                    tests_list = result_data.get("tests", [])
+                    if isinstance(tests_list, list):
+                        tests = len(tests_list)
+                        if passed == 0:
+                            passed = sum(1 for t in tests_list if t.get("status") in ["PASS", "passed", "success"])
+                        if failed == 0:
+                            failed = sum(1 for t in tests_list if t.get("status") in ["FAIL", "failed", "failure"])
+                
+                # Option 2: Calculate from passed + failed if they are lists
+                elif isinstance(passed_raw, list) or isinstance(failed_raw, list):
+                    tests = passed + failed
+                
+                # Option 3: If we have failed but no passed, try to get passed from list
+                elif failed > 0 and passed == 0:
+                    if "passed_tests" in result_data and isinstance(result_data["passed_tests"], list):
+                        passed = len(result_data["passed_tests"])
+                        tests = passed + failed
             
             total_tests += tests
             total_passed += passed
