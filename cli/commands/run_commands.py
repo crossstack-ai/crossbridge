@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 run_app = typer.Typer(
     name="run",
-    help="Execute tests with CrossBridge monitoring"
+    help="Execute tests with CrossBridge monitoring - Universal test wrapper that automatically injects monitoring into any supported framework"
 )
 
 
@@ -296,7 +296,27 @@ class CrossBridgeRunner:
 @run_app.callback(invoke_without_command=True)
 def run_callback(
     ctx: typer.Context,
-    command: Optional[List[str]] = typer.Argument(None, help="Test command and arguments")
+    command: Optional[List[str]] = typer.Argument(None, help="Test command and arguments"),
+    sidecar_host: Optional[str] = typer.Option(
+        None,
+        "--sidecar-host",
+        help="CrossBridge sidecar API host (default: localhost or CROSSBRIDGE_SIDECAR_HOST env var)"
+    ),
+    sidecar_port: Optional[int] = typer.Option(
+        None,
+        "--sidecar-port",
+        help="CrossBridge sidecar API port (default: 8765 or CROSSBRIDGE_SIDECAR_PORT env var)"
+    ),
+    enabled: Optional[bool] = typer.Option(
+        None,
+        "--enabled/--no-enabled",
+        help="Enable/disable CrossBridge monitoring (default: true or CROSSBRIDGE_ENABLED env var)"
+    ),
+    adapter_dir: Optional[str] = typer.Option(
+        None,
+        "--adapter-dir",
+        help="Adapter cache directory (default: ~/.crossbridge/adapters or CROSSBRIDGE_ADAPTER_DIR env var)"
+    ),
 ):
     """
     Execute tests with CrossBridge monitoring.
@@ -310,6 +330,8 @@ def run_callback(
         crossbridge run jest tests/
         crossbridge run mocha tests/
         crossbridge run mvn test
+        crossbridge run --sidecar-host 192.168.1.100 pytest tests/
+        crossbridge run --no-enabled pytest tests/  # Run without monitoring
     
     \b
     Supported Frameworks:
@@ -325,17 +347,49 @@ def run_callback(
         CROSSBRIDGE_SIDECAR_PORT   - Sidecar API port (default: 8765)
         CROSSBRIDGE_ENABLED        - Enable/disable CrossBridge (default: true)
         CROSSBRIDGE_ADAPTER_DIR    - Adapter cache directory (default: ~/.crossbridge/adapters)
+    
+    Note: Command-line options take precedence over environment variables.
     """
     if not command:
         console.print(Panel(
-            "[yellow]Usage: crossbridge run <test-command> [args...][/yellow]\n\n"
-            "Run 'crossbridge run --help' for more information",
-            title="CrossBridge Test Runner"
+            "[yellow]Usage: crossbridge run [OPTIONS] <test-command> [args...][/yellow]\n\n"
+            "Run 'crossbridge run --help' for more information\n\n"
+            "[cyan]Examples:[/cyan]\n"
+            "  crossbridge run robot tests/\n"
+            "  crossbridge run pytest tests/\n"
+            "  crossbridge run jest tests/\n"
+            "  crossbridge run mocha tests/\n"
+            "  crossbridge run mvn test\n\n"
+            "[cyan]Supported Frameworks:[/cyan]\n"
+            "  • Robot Framework (robot, pybot)\n"
+            "  • Pytest (pytest, py.test)\n"
+            "  • Jest (jest, npm test)\n"
+            "  • Mocha (mocha)\n"
+            "  • JUnit/Maven (mvn test)",
+            title="CrossBridge Universal Test Wrapper",
+            border_style="blue"
         ))
         raise typer.Exit(0)
     
     logger.info(f"Starting test execution: {' '.join(command)}")
+    
+    # Create runner and apply CLI options (which override env vars)
     runner = CrossBridgeRunner()
+    
+    if sidecar_host is not None:
+        runner.sidecar_host = sidecar_host
+        runner.sidecar_url = f"http://{runner.sidecar_host}:{runner.sidecar_port}"
+    
+    if sidecar_port is not None:
+        runner.sidecar_port = str(sidecar_port)
+        runner.sidecar_url = f"http://{runner.sidecar_host}:{runner.sidecar_port}"
+    
+    if enabled is not None:
+        runner.enabled = enabled
+    
+    if adapter_dir is not None:
+        runner.adapter_dir = adapter_dir
+    
     exit_code = runner.run_tests(command)
     logger.info(f"Test execution completed with exit code: {exit_code}")
     raise typer.Exit(exit_code)

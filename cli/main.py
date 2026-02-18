@@ -577,64 +577,116 @@ def _run_selenium_java(args):
 def cmd_run(args):
     """Handle the run command."""
     try:
-        # Special handling for selenium-java (uses new runner adapter)
-        if args.framework == "selenium-java":
-            return _run_selenium_java(args)
-        
-        # Check if this is an extractor (extractors don't support run)
-        if AdapterRegistry.is_extractor(args.framework):
-            print(f"Error: {args.framework} is an extractor and does not support test execution.", file=sys.stderr)
-            print(f"Extractors only support the 'discover' command.", file=sys.stderr)
-            print(f"To run {args.framework} tests, use Maven/Gradle directly.", file=sys.stderr)
+        # Check if using classic mode (--framework specified) or universal wrapper mode (command specified)
+        if hasattr(args, 'command') and args.command:
+            # Universal wrapper mode - like old crossbridge-run
+            return _run_universal_wrapper(args)
+        elif args.framework:
+            # Classic mode - framework-specific execution
+            return _run_classic_mode(args)
+        else:
+            print("Error: Either --framework or a test command must be specified", file=sys.stderr)
+            print("Examples:", file=sys.stderr)
+            print("  crossbridge run --framework pytest --tests test_login.py", file=sys.stderr)
+            print("  crossbridge run pytest tests/", file=sys.stderr)
+            print("  crossbridge run robot tests/", file=sys.stderr)
             return 1
-        
-        # Load adapter
-        adapter = AdapterRegistry.get_adapter(args.framework, args.project_root)
-        
-        # Parse test names
-        test_names = [tid.strip() for tid in args.tests.split(',')]
-        
-        print(f"Running {len(test_names)} test(s) using {args.framework}...")
-        print()
-        
-        # Parse tags if provided
-        tags = [tag.strip() for tag in args.tags.split(',')] if hasattr(args, 'tags') and args.tags else None
-        
-        # Run tests (new interface: tests and tags parameters)
-        results = adapter.run_tests(tests=test_names, tags=tags)
-        
-        # Print results
-        passed = 0
-        failed = 0
-        skipped = 0
-        
-        for result in results:
-            status_symbol = "[PASS]" if result.status == "pass" else "[FAIL]"
-            print(f"{status_symbol} {result.name} - {result.status.upper()} ({result.duration_ms}ms)")
-            
-            if result.status == "pass":
-                passed += 1
-            elif result.status == "fail":
-                failed += 1
-            else:
-                skipped += 1
-            
-            # Print message if verbose or test failed
-            if hasattr(args, 'verbose') and args.verbose or result.status != "pass":
-                if result.message:
-                    print(f"  Message: {result.message[:200]}")
-            print()
-        
-        # Print summary
-        print("-" * 50)
-        print(f"Results: {passed} passed, {failed} failed, {skipped} skipped")
-        print("-" * 50)
-        
-        return 0 if failed == 0 and errors == 0 else 1
-        
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
+        import traceback
+        if hasattr(args, 'verbose') and args.verbose:
+            traceback.print_exc()
         return 1
+
+
+def _run_universal_wrapper(args):
+    """Run tests using universal wrapper (like old crossbridge-run)."""
+    # Import the runner here to avoid circular imports
+    from cli.commands.run_commands import CrossBridgeRunner
+    
+    # Create runner with CLI options
+    runner = CrossBridgeRunner()
+    
+    # Apply CLI overrides
+    if hasattr(args, 'sidecar_host') and args.sidecar_host:
+        runner.sidecar_host = args.sidecar_host
+        runner.sidecar_url = f"http://{runner.sidecar_host}:{runner.sidecar_port}"
+    
+    if hasattr(args, 'sidecar_port') and args.sidecar_port:
+        runner.sidecar_port = str(args.sidecar_port)
+        runner.sidecar_url = f"http://{runner.sidecar_host}:{runner.sidecar_port}"
+    
+    if hasattr(args, 'enabled') and args.enabled is not None:
+        runner.enabled = args.enabled
+    
+    if hasattr(args, 'adapter_dir') and args.adapter_dir:
+        runner.adapter_dir = args.adapter_dir
+    
+    # Run tests with the provided command
+    exit_code = runner.run_tests(args.command)
+    return exit_code
+
+
+def _run_classic_mode(args):
+    """Run tests using classic mode (framework-specific)."""
+    # Special handling for selenium-java (uses new runner adapter)
+    if args.framework == "selenium-java":
+        return _run_selenium_java(args)
+    
+    # Check if this is an extractor (extractors don't support run)
+    if AdapterRegistry.is_extractor(args.framework):
+        print(f"Error: {args.framework} is an extractor and does not support test execution.", file=sys.stderr)
+        print(f"Extractors only support the 'discover' command.", file=sys.stderr)
+        print(f"To run {args.framework} tests, use Maven/Gradle directly.", file=sys.stderr)
+        return 1
+    
+    # Load adapter
+    adapter = AdapterRegistry.get_adapter(args.framework, args.project_root if hasattr(args, 'project_root') else ".")
+    
+    # Parse test names
+    if not hasattr(args, 'tests') or not args.tests:
+        print("Error: --tests is required when using --framework", file=sys.stderr)
+        return 1
+    
+    test_names = [tid.strip() for tid in args.tests.split(',')]
+    
+    print(f"Running {len(test_names)} test(s) using {args.framework}...")
+    print()
+    
+    # Parse tags if provided
+    tags = [tag.strip() for tag in args.tags.split(',')] if hasattr(args, 'tags') and args.tags else None
+    
+    # Run tests (new interface: tests and tags parameters)
+    results = adapter.run_tests(tests=test_names, tags=tags)
+    
+    # Print results
+    passed = 0
+    failed = 0
+    skipped = 0
+    
+    for result in results:
+        status_symbol = "[PASS]" if result.status == "pass" else "[FAIL]"
+        print(f"{status_symbol} {result.name} - {result.status.upper()} ({result.duration_ms}ms)")
+        
+        if result.status == "pass":
+            passed += 1
+        elif result.status == "fail":
+            failed += 1
+        else:
+            skipped += 1
+        
+        # Print message if verbose or test failed
+        if hasattr(args, 'verbose') and args.verbose or result.status != "pass":
+            if result.message:
+                print(f"  Message: {result.message[:200]}")
+        print()
+    
+    # Print summary
+    print("-" * 50)
+    print(f"Results: {passed} passed, {failed} failed, {skipped} skipped")
+    print("-" * 50)
+    
+    return 0 if failed == 0 else 1
 
 
 def cmd_extract(args):
@@ -999,18 +1051,76 @@ def main():
     # Run command
     run_parser = subparsers.add_parser(
         "run",
-        help="Run specified tests"
+        help="Execute tests with CrossBridge monitoring - Universal test wrapper for any supported framework",
+        description="""
+CrossBridge Universal Test Wrapper
+Automatically injects CrossBridge monitoring into any supported test framework.
+
+Examples:
+  crossbridge run robot tests/
+  crossbridge run pytest tests/
+  crossbridge run jest tests/
+  crossbridge run mocha tests/
+  crossbridge run mvn test
+  crossbridge run --sidecar-host 192.168.1.100 pytest tests/
+
+Supported Frameworks:
+  - Robot Framework (robot, pybot)
+  - Pytest (pytest, py.test)
+  - Jest (jest, npm test)
+  - Mocha (mocha)
+  - JUnit/Maven (mvn test)
+  - Selenium Java
+  - Selenium BDD Java
+
+Environment Variables:
+  CROSSBRIDGE_SIDECAR_HOST   - Sidecar API host (default: localhost)
+  CROSSBRIDGE_SIDECAR_PORT   - Sidecar API port (default: 8765)
+  CROSSBRIDGE_ENABLED        - Enable/disable CrossBridge (default: true)
+  CROSSBRIDGE_ADAPTER_DIR    - Adapter cache directory (default: ~/.cross bridge/adapters)
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     run_parser.add_argument(
         "--framework",
-        required=True,
-        choices=AdapterRegistry.list_frameworks(),
-        help="Test framework to use"
+        required=False,
+        choices=["pytest", "robot", "selenium-java", "selenium-bdd-java", "jest", "mocha", "junit"],
+        help="Test framework to use (auto-detected if not specified)"
+    )
+    run_parser.add_argument(
+        "command",
+        nargs="*",
+        help="Test command and arguments (e.g., 'pytest tests/' or 'robot tests/')"
+    )
+    run_parser.add_argument(
+        "--sidecar-host",
+        help="CrossBridge sidecar API host (overrides CROSSBRIDGE_SIDECAR_HOST env var)"
+    )
+    run_parser.add_argument(
+        "--sidecar-port",
+        type=int,
+        help="CrossBridge sidecar API port (overrides CROSSBRIDGE_SIDECAR_PORT env var)"
+    )
+    run_parser.add_argument(
+        "--enabled",
+        action="store_true",
+        default=None,
+        help="Enable CrossBridge monitoring"
+    )
+    run_parser.add_argument(
+        "--no-enabled",
+        dest="enabled",
+        action="store_false",
+        help="Disable CrossBridge monitoring"
+    )
+    run_parser.add_argument(
+        "--adapter-dir",
+        help="Adapter cache directory (overrides CROSSBRIDGE_ADAPTER_DIR env var)"
     )
     run_parser.add_argument(
         "--tests",
         required=False,
-        help="Comma-separated list of test IDs to run (e.g., com.example.LoginTest,com.example.OrderTest#testCheckout). If not specified, runs all tests."
+        help="[Java only] Comma-separated list of test IDs to run (e.g., com.example.LoginTest,com.example.OrderTest#testCheckout). If not specified, runs all tests."
     )
     run_parser.add_argument(
         "--dry-run",
@@ -1019,29 +1129,29 @@ def main():
     )
     run_parser.add_argument(
         "--tags",
-        help="Comma-separated list of JUnit 5 tags to run (e.g., smoke,integration)"
+        help="[Java only] Comma-separated list of JUnit 5 tags to run (e.g., smoke,integration)"
     )
     run_parser.add_argument(
         "--groups",
-        help="Comma-separated list of TestNG groups to run (e.g., smoke,regression)"
+        help="[Java only] Comma-separated list of TestNG groups to run (e.g., smoke,regression)"
     )
     run_parser.add_argument(
         "--categories",
-        help="Comma-separated list of JUnit 4 categories to run"
+        help="[Java only] Comma-separated list of JUnit 4 categories to run"
     )
     run_parser.add_argument(
         "--parallel",
         action="store_true",
-        help="Enable parallel test execution (Java only)"
+        help="[Java only] Enable parallel test execution"
     )
     run_parser.add_argument(
         "--threads",
         type=int,
-        help="Number of parallel threads (Java only)"
+        help="[Java only] Number of parallel threads"
     )
     run_parser.add_argument(
         "--properties",
-        help="Additional system properties as key=value,key2=value2 (Java only)"
+        help="[Java only] Additional system properties as key=value,key2=value2"
     )
     run_parser.add_argument(
         "--verbose",
