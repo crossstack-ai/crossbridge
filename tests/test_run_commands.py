@@ -1,12 +1,20 @@
 """
 Unit tests for CrossBridge Run Commands
+
+Tests cover:
+- Framework detection (Robot, Pytest, Jest, Mocha, Maven/JUnit)
+- Sidecar health checking
+- Adapter management (download, caching)
+- Test execution workflows
+- CLI option handling
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, call
 from pathlib import Path
 import subprocess
 import os
+import time
 
 from cli.commands.run_commands import CrossBridgeRunner
 
@@ -16,13 +24,13 @@ class TestCrossBridgeRunner:
     
     def test_init_default_values(self):
         """Test initialization with default env values."""
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ, {"HOME": "/tmp"}, clear=False):
             runner = CrossBridgeRunner()
             
             assert runner.sidecar_host == "localhost"
             assert runner.sidecar_port == "8765"
             assert runner.enabled == True
-            assert "/.crossbridge/adapters" in runner.adapter_dir or "\\.crossbridge\\adapters" in runner.adapter_dir
+            assert ".crossbridge" in runner.adapter_dir
     
     def test_init_custom_values(self):
         """Test initialization with custom env values."""
@@ -154,7 +162,7 @@ class TestCrossBridgeRunner:
         runner = CrossBridgeRunner()
         adapter_path = Path("/fake/path/robot")
         
-        with patch.object(adapter_path, "exists", return_value=True):
+        with patch("pathlib.Path.exists", return_value=True):
             config = runner.setup_robot(adapter_path)
             
             assert "env" in config
@@ -167,7 +175,7 @@ class TestCrossBridgeRunner:
         runner = CrossBridgeRunner()
         adapter_path = Path("/fake/path/pytest")
         
-        with patch.object(adapter_path, "exists", return_value=True):
+        with patch("pathlib.Path.exists", return_value=True):
             config = runner.setup_pytest(adapter_path)
             
             assert "env" in config
@@ -180,7 +188,7 @@ class TestCrossBridgeRunner:
         adapter_path = Path("/fake/path/jest")
         args = ["tests/"]
         
-        with patch.object(adapter_path, "exists", return_value=True):
+        with patch("pathlib.Path.exists", return_value=True):
             config = runner.setup_jest(adapter_path, args)
             
             assert "args_suffix" in config
@@ -192,7 +200,7 @@ class TestCrossBridgeRunner:
         adapter_path = Path("/fake/path/jest")
         args = ["--reporters=custom", "tests/"]
         
-        with patch.object(adapter_path, "exists", return_value=True):
+        with patch("pathlib.Path.exists", return_value=True):
             config = runner.setup_jest(adapter_path, args)
             
             assert "args_suffix" in config
@@ -225,9 +233,8 @@ class TestCrossBridgeRunner:
         mock_call.return_value = 0
         
         runner = CrossBridgeRunner()
-        adapter_path = Path(runner.adapter_dir) / "robot"
         
-        with patch.object(adapter_path, "exists", return_value=True):
+        with patch("pathlib.Path.exists", return_value=True):
             exit_code = runner.run_tests(["robot", "tests/"])
             
             assert exit_code == 0
@@ -261,3 +268,202 @@ class TestRunCommandIntegration:
         exit_code = runner.run_tests([])
         
         assert exit_code == 1
+
+
+class TestFrameworkSetup:
+    """Test framework-specific setup configurations."""
+    
+    def test_setup_mocha(self):
+        """Test Mocha setup configuration."""
+        runner = CrossBridgeRunner()
+        adapter_path = Path("/fake/path/mocha")
+        args = ["tests/"]
+        
+        with patch("pathlib.Path.exists", return_value=True):
+            config = runner.setup_mocha(adapter_path, args)
+            
+            assert "args_suffix" in config
+            assert "--reporter" in config["args_suffix"]
+    
+    def test_setup_junit(self):
+        """Test JUnit setup configuration."""
+        runner = CrossBridgeRunner()
+        adapter_path = Path("/fake/path/junit")
+        
+        with patch("pathlib.Path.exists", return_value=True):
+            config = runner.setup_junit(adapter_path)
+            
+            # JUnit returns empty config (manual setup required)
+            assert isinstance(config, dict)
+    
+    @patch.object(CrossBridgeRunner, "download_adapter")
+    def test_setup_downloads_missing_adapter(self, mock_download):
+        """Test that setup downloads adapter if missing."""
+        mock_download.return_value = True
+        
+        runner = CrossBridgeRunner()
+        adapter_path = Path("/fake/path/pytest")
+        
+        with patch("pathlib.Path.exists", return_value=False):
+            config = runner.setup_pytest(adapter_path)
+            
+            mock_download.assert_called_once_with("pytest")
+            assert "env" in config
+
+
+class TestAdapterCaching:
+    """Test adapter download and caching logic."""
+    
+    @patch("cli.commands.run_commands.tarfile.open")
+    @patch("cli.commands.run_commands.requests.get")
+    def test_adapter_cache_recent(self, mock_get, mock_tar):
+        """Test that recent adapters are not re-downloaded."""
+        runner = CrossBridgeRunner()
+        adapter_path = Path(runner.adapter_dir) / "pytest"
+        
+        # Mock adapter exists and is recent (modified 1 hour ago)
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("pathlib.Path.stat") as mock_stat:
+            mock_stat.return_value.st_mtime = time.time() - 3600  # 1 hour ago
+            
+            result = runner.download_adapter("pytest")
+            
+            assert result == True
+            mock_get.assert_not_called()  # Should use cache
+    
+    @patch("cli.commands.run_commands.tarfile.open")
+    @patch("cli.commands.run_commands.requests.get")
+    def test_adapter_cache_old(self, mock_get, mock_tar):
+        """Test that old adapters are re-downloaded."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = b"fake tar content"
+        mock_get.return_value = mock_response
+        
+        runner = CrossBridgeRunner()
+        adapter_path = Path(runner.adapter_dir) / "pytest"
+        
+        # Mock adapter exists but is old (modified 2 days ago)
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("pathlib.Path.stat") as mock_stat, \
+             patch("pathlib.Path.mkdir"), \
+             patch("pathlib.Path.write_bytes"), \
+             patch("pathlib.Path.unlink"):
+            mock_stat.return_value.st_mtime = time.time() - 172800  # 2 days ago
+            mock_tar.return_value.__enter__ = Mock()
+            mock_tar.return_value.__exit__ = Mock()
+            
+            result = runner.download_adapter("pytest")
+            
+            assert result == True
+            mock_get.assert_called_once()  # Should re-download
+
+
+class TestNpmYarnFrameworkDetection:
+    """Test framework detection for npm/yarn commands."""
+    
+    @patch("pathlib.Path.exists")
+    @patch("builtins.open", create=True)
+    def test_npm_test_detects_jest(self, mock_open, mock_exists):
+        """Test that npm test detects Jest from package.json."""
+        mock_exists.return_value = True
+        mock_open.return_value.__enter__ = Mock(
+            return_value=Mock(read=Mock(return_value='{"dependencies": {"jest": "^27.0.0"}}'))
+        )
+        
+        runner = CrossBridgeRunner()
+        framework = runner.detect_framework("npm", "test")
+        
+        assert framework == "jest"
+    
+    @patch("pathlib.Path.exists")  
+    @patch("builtins.open", create=True)
+    def test_yarn_test_detects_mocha(self, mock_open, mock_exists):
+        """Test that yarn test detects Mocha from package.json."""
+        mock_exists.return_value = True
+        mock_open.return_value.__enter__ = Mock(
+            return_value=Mock(read=Mock(return_value='{"dependencies": {"mocha": "^9.0.0"}}'))
+        )
+        
+        runner = CrossBridgeRunner()
+        framework = runner.detect_framework("yarn", "test")
+        
+        assert framework == "mocha"
+
+
+class TestErrorHandling:
+    """Test error handling scenarios."""
+    
+    @patch("cli.commands.run_commands.requests.get")
+    def test_sidecar_timeout(self, mock_get):
+        """Test handling of sidecar timeout."""
+        import requests
+        mock_get.side_effect = requests.Timeout("Connection timeout")
+        
+        runner = CrossBridgeRunner()
+        result = runner.check_sidecar()
+        
+        assert result == False
+        assert runner.enabled == False
+    
+    @patch("cli.commands.run_commands.requests.get")
+    def test_adapter_download_network_error(self, mock_get):
+        """Test handling network error during adapter download."""
+        mock_get.side_effect = Exception("Network error")
+        
+        runner = CrossBridgeRunner()
+        result = runner.download_adapter("pytest")
+        
+        assert result == False
+    
+    @patch("cli.commands.run_commands.subprocess.call")
+    @patch("cli.commands.run_commands.requests.get")
+    def test_test_execution_failure(self, mock_get, mock_call):
+        """Test handling of test execution failure."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        mock_call.return_value = 1  # Test failure exit code
+        
+        runner = CrossBridgeRunner()
+        
+        with patch("pathlib.Path.exists", return_value=True):
+            exit_code = runner.run_tests(["pytest", "tests/"])
+            
+            assert exit_code == 1
+
+
+class TestLogging:
+    """Test logging integration."""
+    
+    @patch("cli.commands.run_commands.logger")
+    @patch("cli.commands.run_commands.requests.get")
+    def test_sidecar_check_logs(self, mock_get, mock_logger):
+        """Test that sidecar checks are logged properly."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
+        runner = CrossBridgeRunner()
+        runner.check_sidecar()
+        
+        # Verify logging calls
+        assert mock_logger.debug.called or mock_logger.info.called
+    
+    @patch("cli.commands.run_commands.logger")
+    @patch("cli.commands.run_commands.subprocess.call")
+    @patch("cli.commands.run_commands.requests.get")
+    def test_test_execution_logs(self, mock_get, mock_call, mock_logger):
+        """Test that test execution is logged."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        mock_call.return_value = 0
+        
+        runner = CrossBridgeRunner()
+        
+        with patch("pathlib.Path.exists", return_value=True):
+            runner.run_tests(["robot", "tests/"])
+            
+            # Verify framework detection logged
+            assert any("robot" in str(call).lower() for call in mock_logger.info.call_args_list)

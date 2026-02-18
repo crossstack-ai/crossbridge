@@ -91,6 +91,24 @@ crossbridge run jest tests/
 
 # Instead of: mvn test
 crossbridge run mvn test
+
+# With custom sidecar host
+crossbridge run --sidecar-host 192.168.1.100 pytest tests/
+
+# Disable monitoring for this run
+crossbridge run --no-enabled pytest tests/
+
+# Use custom adapter directory
+crossbridge run --adapter-dir /path/to/adapters robot tests/
+```
+
+**Available Options:**
+```
+--sidecar-host HOST     Sidecar API host (default: localhost)
+--sidecar-port PORT     Sidecar API port (default: 8765)
+--enabled/--no-enabled  Enable/disable CrossBridge monitoring
+--adapter-dir PATH      Adapter cache directory
+-h, --help              Show help message
 ```
 
 **Parse and analyze logs:**
@@ -379,19 +397,40 @@ crossbridge log output.xml
 
 ### How It Works
 
-1. 🔍 **Auto-detects** your test framework (Robot, Pytest, Jest, JUnit, Mocha)
-2. 📥 **Downloads** the appropriate adapter from CrossBridge sidecar
-3. ⚙️ **Configures** monitoring automatically via environment variables
-4. ▶️ **Runs** your tests with CrossBridge observability enabled
+1. 🔍 **Auto-detects** your test framework (Robot, Pytest, Jest, JUnit, Mocha, Cypress)
+2. 📡 **Checks sidecar** health and connectivity (falls back gracefully if unavailable)
+3. 📥 **Downloads adapters** from sidecar (cached locally for 24 hours)
+4. ⚙️ **Configures** monitoring automatically via environment variables & listeners
+5. ▶️ **Runs** your tests with CrossBridge observability enabled
+6. 📊 **Logs** all operations using CrossBridge logger (debug, info, warning, error)
+
+**Smart Features:**
+- ✅ **Fail-open design** - Tests run even if sidecar is unavailable
+- ✅ **Adapter caching** - Downloads only when needed or every 24 hours  
+- ✅ **Zero performance impact** - Monitoring runs asynchronously
+- ✅ **Comprehensive logging** - All operations logged for troubleshooting
+- ✅ **Environment variable support** - Configure via `.env` or CI/CD
+- ✅ **CLI options override** - Command-line flags take precedence
 
 All adapters are cached locally (`~/.crossbridge/adapters/`) and auto-refresh every 24 hours.
 
 **Supported Frameworks:**
-- 🤖 Robot Framework
-- 🧪 Pytest
-- 🃏 Jest
-- ☕ JUnit/Maven
-- ☕ Mocha
+- 🤖 Robot Framework (`robot`, `pybot`)
+- 🧪 Pytest (`pytest`, `py.test`)
+- 🃏 Jest (`jest`)
+- ☕ JUnit/Maven (`mvn`, `maven`)
+- ☕ Mocha (`mocha`)
+- 🎭 Cypress (via sidecar)
+- 🎪 Playwright (via sidecar)
+
+**Environment Variables:**
+```bash
+CROSSBRIDGE_SIDECAR_HOST=localhost  # Sidecar API host
+CROSSBRIDGE_SIDECAR_PORT=8765       # Sidecar API port
+CROSSBRIDGE_ENABLED=true            # Enable/disable monitoring
+CROSSBRIDGE_ADAPTER_DIR=~/.crossbridge/adapters  # Adapter cache
+CROSSBRIDGE_LOG_LEVEL=INFO          # Logging level (DEBUG, INFO, WARNING, ERROR)
+```
 
 📖 **Full Documentation:** [Universal Wrapper Guide](docs/UNIVERSAL_WRAPPER.md)
 

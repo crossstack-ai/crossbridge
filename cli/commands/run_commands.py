@@ -11,15 +11,17 @@ import os
 import subprocess
 import requests
 import json
+import tarfile
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict
 from rich.console import Console
 from rich.panel import Panel
 
-from core.logging import get_logger
+from core.logging import get_logger, LogCategory
+from core.sidecar.config import SidecarConfig
 
 console = Console()
-logger = get_logger(__name__)
+logger = get_logger(__name__, category=LogCategory.CLI)
 
 run_app = typer.Typer(
     name="run",
@@ -59,21 +61,26 @@ class CrossBridgeRunner:
     def check_sidecar(self) -> bool:
         """Check if sidecar is reachable."""
         try:
+            logger.debug(f"Checking sidecar health at {self.sidecar_url}/health")
             response = requests.get(f"{self.sidecar_url}/health", timeout=2)
             if response.status_code == 200:
                 console.print(
                     f"[green]✅ Connected to CrossBridge sidecar at "
                     f"{self.sidecar_host}:{self.sidecar_port}[/green]"
                 )
+                logger.info(f"Sidecar health check successful: {self.sidecar_host}:{self.sidecar_port}")
                 return True
-        except Exception:
-            pass
+            else:
+                logger.warning(f"Sidecar health check failed with status {response.status_code}")
+        except Exception as e:
+            logger.warning(f"Sidecar health check failed: {e}")
         
         console.print(
             f"[yellow]⚠️  Cannot reach CrossBridge sidecar at "
             f"{self.sidecar_host}:{self.sidecar_port}[/yellow]"
         )
         console.print("[yellow]Tests will run without CrossBridge monitoring[/yellow]")
+        logger.info("Disabling CrossBridge monitoring due to sidecar unavailability")
         self.enabled = False
         return False
     
@@ -107,50 +114,56 @@ class CrossBridgeRunner:
         
         # Skip if adapter exists and is recent (< 24 hours)
         if adapter_path.exists():
-            age_seconds = (
-                Path().stat().st_mtime - adapter_path.stat().st_mtime
-                if adapter_path.stat().st_mtime else 86400
-            )
+            import time
+            age_seconds = time.time() - adapter_path.stat().st_mtime
             if age_seconds < 86400:
                 console.print(f"[green]Using cached {framework} adapter[/green]")
+                logger.debug(f"Using cached adapter for {framework} (age: {age_seconds:.0f}s)")
                 return True
         
         console.print(f"[blue]Downloading {framework} adapter from sidecar...[/blue]")
+        logger.info(f"Downloading {framework} adapter from {self.sidecar_url}")
         
         adapter_path.parent.mkdir(parents=True, exist_ok=True)
         
         try:
-            response = requests.get(
-                f"{self.sidecar_url}/adapters/{framework}",
-                timeout=30
-            )
+            url = f"{self.sidecar_url}/adapters/{framework}"
+            logger.debug(f"Requesting adapter from: {url}")
+            response = requests.get(url, timeout=30)
             
             if response.status_code == 200:
                 tar_file = adapter_path.parent / f"{framework}.tar.gz"
                 tar_file.write_bytes(response.content)
+                logger.debug(f"Downloaded {len(response.content)} bytes to {tar_file}")
                 
                 # Extract tar
-                import tarfile
                 with tarfile.open(tar_file) as tar:
                     tar.extractall(adapter_path.parent)
+                    logger.debug(f"Extracted adapter to {adapter_path.parent}")
                 
                 tar_file.unlink()
                 console.print(f"[green]✅ {framework} adapter downloaded[/green]")
+                logger.info(f"Successfully downloaded and installed {framework} adapter")
                 return True
             else:
                 console.print(f"[red]Failed to download {framework} adapter[/red]")
+                logger.error(f"Adapter download failed with status {response.status_code}")
                 return False
         except Exception as e:
             console.print(f"[red]Failed to download {framework} adapter: {e}[/red]")
+            logger.error(f"Adapter download exception: {e}", exc_info=True)
             return False
     
-    def setup_robot(self, adapter_path: Path) -> dict:
+    def setup_robot(self, adapter_path: Path) -> Dict:
         """Setup Robot Framework integration."""
         if not adapter_path.exists():
+            logger.info("Robot adapter not found, downloading...")
             if not self.download_adapter("robot"):
+                logger.error("Failed to download Robot adapter")
                 return {}
         
         console.print("[green]Robot Framework configured with CrossBridge listener[/green]")
+        logger.info("Robot Framework configured with CrossBridge listener")
         
         return {
             "env": {
@@ -159,13 +172,16 @@ class CrossBridgeRunner:
             "args_prefix": ["--listener", "crossbridge_listener.CrossBridgeListener"]
         }
     
-    def setup_pytest(self, adapter_path: Path) -> dict:
+    def setup_pytest(self, adapter_path: Path) -> Dict:
         """Setup Pytest integration."""
         if not adapter_path.exists():
+            logger.info("Pytest adapter not found, downloading...")
             if not self.download_adapter("pytest"):
+                logger.error("Failed to download Pytest adapter")
                 return {}
         
         console.print("[green]Pytest configured with CrossBridge plugin[/green]")
+        logger.info("Pytest configured with CrossBridge plugin")
         
         return {
             "env": {
@@ -174,13 +190,16 @@ class CrossBridgeRunner:
             }
         }
     
-    def setup_jest(self, adapter_path: Path, args: List[str]) -> dict:
+    def setup_jest(self, adapter_path: Path, args: List[str]) -> Dict:
         """Setup Jest integration."""
         if not adapter_path.exists():
+            logger.info("Jest adapter not found, downloading...")
             if not self.download_adapter("jest"):
+                logger.error("Failed to download Jest adapter")
                 return {}
         
         console.print("[green]Jest configured with CrossBridge reporter[/green]")
+        logger.info("Jest configured with CrossBridge reporter")
         
         # Add reporter if not already present
         extra_args = []
@@ -190,29 +209,36 @@ class CrossBridgeRunner:
                 "--reporters=default",
                 f"--reporters={reporter_path}"
             ]
+            logger.debug(f"Adding Jest reporters: {extra_args}")
         
         return {"args_suffix": extra_args}
     
-    def setup_mocha(self, adapter_path: Path, args: List[str]) -> dict:
+    def setup_mocha(self, adapter_path: Path, args: List[str]) -> Dict:
         """Setup Mocha integration."""
         if not adapter_path.exists():
+            logger.info("Mocha adapter not found, downloading...")
             if not self.download_adapter("mocha"):
+                logger.error("Failed to download Mocha adapter")
                 return {}
         
         console.print("[green]Mocha configured with CrossBridge reporter[/green]")
+        logger.info("Mocha configured with CrossBridge reporter")
         
         # Add reporter if not already present
         extra_args = []
         if "--reporter" not in " ".join(args):
             reporter_path = adapter_path / "crossbridge_reporter.js"
             extra_args = ["--reporter", str(reporter_path)]
+            logger.debug(f"Adding Mocha reporter: {reporter_path}")
         
         return {"args_suffix": extra_args}
     
-    def setup_junit(self, adapter_path: Path) -> dict:
+    def setup_junit(self, adapter_path: Path) -> Dict:
         """Setup JUnit/Maven integration."""
         if not adapter_path.exists():
+            logger.info("JUnit adapter not found, downloading...")
             if not self.download_adapter("junit"):
+                logger.error("Failed to download JUnit adapter")
                 return {}
         
         console.print(f"[yellow]JUnit adapter downloaded to {adapter_path}[/yellow]")
@@ -220,6 +246,8 @@ class CrossBridgeRunner:
             f"[yellow]Please add CrossBridgeListener to your test configuration[/yellow]"
         )
         console.print(f"[yellow]See: {adapter_path}/README.md for instructions[/yellow]")
+        logger.info(f"JUnit adapter ready at {adapter_path}")
+        logger.info("Manual configuration required for JUnit integration")
         
         return {}
     
