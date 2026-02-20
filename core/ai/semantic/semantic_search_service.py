@@ -143,17 +143,33 @@ class SemanticSearchService:
         try:
             # Generate query embedding
             logger.debug(f"Generating embedding for query: {query_text[:100]}...")
-            query_embedding = self.embedding_provider.embed(query_text)
+            query_embeddings = self.embedding_provider.embed([query_text])
+            query_embedding = query_embeddings[0]  # Extract single embedding from list
             
-            # Perform vector search
+            # Prepare filters for vector store
+            search_filters = filters or {}
+            if entity_type:
+                search_filters["type"] = entity_type
+            
+            # Perform vector search using the standard query() method
             logger.debug(f"Searching vector store (top_k={top_k}, type={entity_type})...")
-            similarity_results = self.vector_store.similarity_search(
-                query_embedding=query_embedding,
+            raw_results = self.vector_store.query(
+                vector=query_embedding,
                 top_k=top_k * 2,  # Get more results for filtering
-                entity_type=entity_type,
-                filters=filters,
-                min_score=0.0  # Filter after calibration
+                filters=search_filters
             )
+            
+            # Convert raw results to similarity results format
+            from dataclasses import dataclass
+            @dataclass
+            class SimilarityResult:
+                record: Any
+                score: float
+            
+            similarity_results = [
+                SimilarityResult(record=r["record"], score=r["score"])
+                for r in raw_results
+            ]
             
             # Convert to semantic results with confidence and explanations
             semantic_results = []
