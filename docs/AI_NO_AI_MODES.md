@@ -1,0 +1,55 @@
+# AI and Semantic Search Modes in CrossBridge CLI
+
+CrossBridge supports both AI-powered and deterministic (no-AI) operation modes for all supported frameworks and CLI commands.
+
+## How It Works
+
+- **AI/semantic features enabled:**
+  - Set `ai.enabled: true` and `semantic_search.enabled: true` in your `crossbridge.yml`.
+  - All semantic search, duplicate detection, and embedding features are available.
+  - CLI commands like `search query`, `search duplicates`, and `search similar` will use the configured AI provider (OpenAI, local, etc.).
+
+- **AI/semantic features disabled:**
+  - Set `ai.enabled: false` or `semantic_search.enabled: false` in your `crossbridge.yml`.
+  - CLI commands that require AI/semantic features will print a friendly message and exit gracefully.
+  - All other CLI features (ingestion, stats, log parsing, etc.) continue to work as before.
+
+## Example Configuration
+
+```yaml
+crossbridge:
+  ai:
+    enabled: false  # disables all AI features
+  semantic_engine:
+    enabled: false  # disables semantic search/embedding
+```
+
+## CLI Behavior
+
+- If you run a semantic command (e.g., `crossbridge search duplicates`) with AI/semantic disabled, you will see:
+
+```
+AI and/or semantic search features are disabled in your configuration. To enable semantic search, set ai.enabled: true and semantic_search.enabled: true in crossbridge.yml.
+```
+
+- All output and warnings are logged using the CrossBridge logger for traceability.
+
+## Supported Frameworks
+
+- Robot Framework
+- Pytest
+- JUnit/Maven
+- Cypress
+- Playwright
+- Mocha
+- Jest
+- ...and more
+
+## See Also
+- [README.md](../README.md)
+- [docs/UNIFIED_CLI.md](../docs/UNIFIED_CLI.md)
+- [docs/frameworks/README.md](../docs/frameworks/README.md)
+
+---
+
+For more details, see the main README and CLI documentation.

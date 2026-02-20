@@ -16,6 +16,7 @@ CrossBridge AI is an open-source platform by **CrossStack AI** that helps organi
 
 ---
 
+
 ## 🚀 Mission
 
 Modern test automation ecosystems are fragmented, brittle, and expensive to maintain.  
@@ -27,6 +28,21 @@ CrossBridge AI enables teams to:
 - 🚀 **Accelerate QA velocity with AI-infused insights**
 
 Whether you have Selenium, Cypress, Robot, or pytest suites — CrossBridge works **with or without migration changes**.
+
+---
+
+## ⚙️ AI and No-AI Modes (Semantic Search)
+
+CrossBridge CLI supports both AI-powered and deterministic (no-AI) operation for all frameworks and commands.
+
+- **To enable AI/semantic features:**
+  - Set `ai.enabled: true` and `semantic_search.enabled: true` in your `crossbridge.yml`.
+  - Semantic search, duplicate detection, and embedding features are available.
+- **To disable AI/semantic features:**
+  - Set `ai.enabled: false` or `semantic_search.enabled: false` in your config.
+  - CLI commands that require AI/semantic features will print a friendly message and exit gracefully. All other features work as before.
+
+See [docs/AI_NO_AI_MODES.md](docs/AI_NO_AI_MODES.md) for details and configuration examples.
 
 ---
 

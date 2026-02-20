@@ -18,6 +18,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 
+
 from core.memory import (
     MemoryIngestionPipeline,
     SemanticSearchEngine,
@@ -25,6 +26,25 @@ from core.memory import (
     create_vector_store,
 )
 from core.memory.models import MemoryType
+from core.config.loader import get_config
+from core.logging import get_logger, LogCategory
+
+def _check_ai_semantic_enabled():
+    config = get_config()
+    logger = get_logger("cli.memory", category=LogCategory.CLI)
+    ai_enabled = getattr(config.ai, "enabled", False)
+    semantic_enabled = getattr(config.semantic_search, "enabled", False)
+    # Support 'auto' (enable in migration mode)
+    if isinstance(semantic_enabled, str) and semantic_enabled == "auto":
+        semantic_enabled = config.mode == "migration"
+    if not ai_enabled or not semantic_enabled:
+        msg = (
+            "[yellow]AI and/or semantic search features are disabled in your configuration. "
+            "To enable semantic search, set [bold]ai.enabled: true[/bold] and [bold]semantic_search.enabled: true[/bold] in crossbridge.yml.[/yellow]"
+        )
+        logger.warning("Semantic/AI features are disabled. Skipping command.")
+        console.print(msg)
+        raise typer.Exit(0)
 
 console = Console()
 
@@ -37,6 +57,7 @@ def get_pipeline():
     try:
         import yaml
 
+
         config_path = Path("crossbridge.yml")
         if not config_path.exists():
             console.print(
@@ -47,22 +68,51 @@ def get_pipeline():
         with open(config_path) as f:
             config = yaml.safe_load(f)
 
-        memory_config = config.get("memory", {})
+        # New: Read embedding/vector config from crossbridge -> ai -> semantic_engine
+        cb_config = config.get("crossbridge", {})
+        ai_config = cb_config.get("ai", {})
+        sem_config = ai_config.get("semantic_engine", {})
+        embedding_config = sem_config.get("embedding", {})
+        vector_store_config = sem_config.get("vector_store", {})
 
-        # Create embedding provider
-        provider_type = memory_config.get("embedding_provider", {}).get(
-            "type", "openai"
-        )
-        provider_config = memory_config.get("embedding_provider", {})
-        provider = create_embedding_provider(provider_type, **provider_config)
+        # Embedding provider selection
+        provider_type = embedding_config.get("provider", "openai")
+        provider_args = {}
+        # Map config keys to provider args
+        if "model" in embedding_config:
+            provider_args["model"] = embedding_config["model"]
+        if "api_key" in embedding_config:
+            provider_args["api_key"] = embedding_config["api_key"]
+        if "batch_size" in embedding_config:
+            provider_args["batch_size"] = embedding_config["batch_size"]
+        if provider_type == "local":
+            # For local/ollama, support base_url
+            ollama_cfg = ai_config.get("ollama", {})
+            if "base_url" in ollama_cfg:
+                provider_args["base_url"] = ollama_cfg["base_url"]
+            if "model" in ollama_cfg:
+                provider_args["model"] = ollama_cfg["model"]
 
-        # Create vector store
-        store_type = memory_config.get("vector_store", {}).get("type", "pgvector")
-        store_config = memory_config.get("vector_store", {})
-        store = create_vector_store(store_type, **store_config)
+        provider = create_embedding_provider(provider_type, **provider_args)
 
-        # Create pipeline
-        batch_size = memory_config.get("batch_size", 100)
+        # Vector store selection
+        store_type = vector_store_config.get("type", "pgvector")
+        store_args = {}
+        if "storage_path" in vector_store_config:
+            store_args["storage_path"] = vector_store_config["storage_path"]
+        if "index_type" in vector_store_config:
+            store_args["index_type"] = vector_store_config["index_type"]
+        if "distance_metric" in vector_store_config:
+            store_args["distance_metric"] = vector_store_config["distance_metric"]
+        if "probes" in vector_store_config:
+            store_args["probes"] = vector_store_config["probes"]
+        if "maintenance_interval" in vector_store_config:
+            store_args["maintenance_interval"] = vector_store_config["maintenance_interval"]
+
+        store = create_vector_store(store_type, **store_args)
+
+        # Batch size
+        batch_size = embedding_config.get("batch_size", 100)
         pipeline = MemoryIngestionPipeline(provider, store, batch_size=batch_size)
 
         return pipeline, provider, store
@@ -239,6 +289,8 @@ def search_query(
     """
     console.print(f'[bold blue]🔍 Searching for: "{query}"[/bold blue]\n')
 
+
+    _check_ai_semantic_enabled()
     _, provider, store = get_pipeline()
     engine = SemanticSearchEngine(provider, store)
 
@@ -293,8 +345,9 @@ def search_query(
             f"[cyan]Score:[/cyan] {top_result.score:.3f}",
         ]
 
+
         if metadata := top_result.record.metadata:
-            details.append(f"[cyan]Metadata:[/cyan]")
+            details.append("[cyan]Metadata:[/cyan]")
             for key, value in metadata.items():
                 if value:
                     details.append(f"  • {key}: {value}")
@@ -338,6 +391,8 @@ def search_similar(
     """
     console.print(f'[bold blue]🔍 Finding records similar to: "{record_id}"[/bold blue]\n')
 
+
+    _check_ai_semantic_enabled()
     _, provider, store = get_pipeline()
     engine = SemanticSearchEngine(provider, store)
 
@@ -434,6 +489,8 @@ def search_duplicates(
         - For other frameworks: Ensure your test files or result files are in their standard locations, or update your configuration accordingly.
         - If no tests are found, check your test directory structure, file locations, and that any required result files (like output.xml) are present.
     """
+
+    _check_ai_semantic_enabled()
     from core.ai.semantic.duplicate_detection import DuplicateDetector
     from core.ai.semantic.semantic_search_service import SemanticSearchService
     from core.memory import create_embedding_provider, create_vector_store
