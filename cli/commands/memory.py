@@ -414,6 +414,13 @@ def search_duplicates(
 
     Example:
         crossbridge search duplicates --framework pytest --threshold 0.95
+
+    Notes:
+        - For pytest: Test files should be in the default 'tests' directory or match 'test_*.py' or '*_test.py' patterns. If using a custom location, ensure it is discoverable.
+        - For Robot Framework: .robot files should be in the 'tests' directory (or configured location). The command expects output.xml to be generated after a test run for analysis.
+        - For Java/Selenium: Test sources should be in 'src/test/java' (for Java) or the standard Maven/Gradle test directory structure.
+        - For other frameworks: Ensure your test files or result files are in their standard locations, or update your configuration accordingly.
+        - If no tests are found, check your test directory structure, file locations, and that any required result files (like output.xml) are present.
     """
     from core.ai.semantic.duplicate_detection import DuplicateDetector
     from core.ai.semantic.semantic_search_service import SemanticSearchService
