@@ -100,28 +100,16 @@ class AdapterRegistry:
         Args:
             framework: Framework name (e.g., 'pytest', 'robot').
             project_root: Root directory of the test project.
-            
         Returns:
             BaseTestAdapter: Initialized adapter instance.
-            
         Raises:
             ValueError: If framework is not supported.
         """
         adapter_class = cls._adapters.get(framework)
-        
         if adapter_class is None:
             supported = ', '.join(cls._adapters.keys())
             raise ValueError(f"Unsupported framework: {framework}. Supported frameworks: {supported}")
-        
-        # Special handling for Robot adapter which needs config
-        if framework == "robot":
-            return adapter_class(
-                RobotConfig(
-                    tests_path=project_root,
-                    pythonpath="."
-                )
-            )
-        
+        # Always pass project_root as string; let adapter handle config if needed
         return adapter_class(project_root)
     
     @classmethod
