@@ -413,17 +413,23 @@ def search_duplicates(
         "--test-dir",
         help="Root directory to search for tests (default: current directory). Use to specify a custom test folder.",
     ),
+    output_file: Optional[str] = typer.Option(
+        None,
+        "--output-file",
+        help="Path to Robot output.xml file (default: output.xml in current directory). Use to specify a custom location.",
+    ),
 ):
     """
     Find potential duplicate tests using semantic similarity.
 
     Example:
+        crossbridge search duplicates --framework robot --test-dir /path/to/robot/tests --output-file /path/to/output.xml
         crossbridge search duplicates --framework pytest --threshold 0.95 --test-dir path/to/tests
 
     Notes:
         - Use --test-dir to specify the root directory for test discovery (default: current directory).
+        - For Robot Framework: .robot files should be in the specified directory. Use --output-file to specify the location of output.xml if it is not in the current directory.
         - For pytest: Test files should be in the specified directory or match 'test_*.py' or '*_test.py' patterns.
-        - For Robot Framework: .robot files should be in the specified directory. The command expects output.xml to be generated after a test run for analysis.
         - For Java/Selenium: Test sources should be in 'src/test/java' under the specified directory or the standard Maven/Gradle test directory structure.
         - For other frameworks: Ensure your test files or result files are in their standard locations, or update your configuration accordingly.
         - If no tests are found, check your test directory structure, file locations, and that any required result files (like output.xml) are present.
@@ -447,6 +453,7 @@ def search_duplicates(
     # Step 1: Discover frameworks
     project_root = test_dir or "."
     frameworks = [framework] if framework else AdapterRegistry.auto_detect_frameworks(project_root)
+    robot_output_path = output_file if output_file else "output.xml"
     if not frameworks:
         console.print("[red]No supported test frameworks found in project.[/red]")
         raise typer.Exit(1)
@@ -455,7 +462,10 @@ def search_duplicates(
     for fw in frameworks:
         try:
             if AdapterRegistry.is_extractor(fw):
-                extractor = AdapterRegistry.get_extractor(fw, project_root)
+                if fw == "robot":
+                    extractor = AdapterRegistry.get_extractor(fw, project_root, output_path=robot_output_path)
+                else:
+                    extractor = AdapterRegistry.get_extractor(fw, project_root)
                 tests = extractor.extract_tests()
             else:
                 adapter = AdapterRegistry.get_adapter(fw, project_root)
