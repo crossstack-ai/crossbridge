@@ -56,6 +56,7 @@ def get_pipeline():
     """Get configured memory ingestion pipeline from config."""
     try:
         import yaml
+        from core.repo.test_credentials import _get_test_creds_manager
 
 
         config_path = Path("crossbridge.yml")
@@ -75,23 +76,51 @@ def get_pipeline():
         embedding_config = sem_config.get("embedding", {})
         vector_store_config = sem_config.get("vector_store", {})
 
-        # Embedding provider selection
-        provider_type = embedding_config.get("provider", "openai")
+        # PRIORITY 1: Check for cached AI credentials first
+        provider_type = None
         provider_args = {}
-        # Map config keys to provider args
-        if "model" in embedding_config:
-            provider_args["model"] = embedding_config["model"]
-        if "api_key" in embedding_config:
-            provider_args["api_key"] = embedding_config["api_key"]
-        if "batch_size" in embedding_config:
-            provider_args["batch_size"] = embedding_config["batch_size"]
-        if provider_type == "local":
-            # For local/ollama, support base_url
-            ollama_cfg = ai_config.get("ollama", {})
-            if "base_url" in ollama_cfg:
-                provider_args["base_url"] = ollama_cfg["base_url"]
-            if "model" in ollama_cfg:
-                provider_args["model"] = ollama_cfg["model"]
+        
+        manager = _get_test_creds_manager()
+        if manager:
+            manager._load_credentials()
+            for key, cred in manager._credentials.items():
+                if cred.repo == "_ai_cache_":
+                    # Found cached AI credentials - use them!
+                    if cred.provider == "selfhosted":
+                        provider_type = "local"  # selfhosted uses local embeddings
+                        if cred.url:
+                            provider_args["base_url"] = cred.url
+                        if cred.source_branch:  # model stored in source_branch
+                            provider_args["model"] = cred.source_branch
+                        logger.info(f"Using cached self-hosted AI: {cred.url} / {cred.source_branch}")
+                    elif cred.provider == "openai":
+                        provider_type = "openai"
+                        provider_args["api_key"] = cred.token
+                        logger.info("Using cached OpenAI credentials")
+                    elif cred.provider == "anthropic":
+                        provider_type = "anthropic"
+                        provider_args["api_key"] = cred.token
+                        logger.info("Using cached Anthropic credentials")
+                    break
+        
+        # PRIORITY 2: Fall back to config file if no cached credentials
+        if provider_type is None:
+            provider_type = embedding_config.get("provider", "openai")
+            # Map config keys to provider args
+            if "model" in embedding_config:
+                provider_args["model"] = embedding_config["model"]
+            if "api_key" in embedding_config:
+                provider_args["api_key"] = embedding_config["api_key"]
+            if "batch_size" in embedding_config:
+                provider_args["batch_size"] = embedding_config["batch_size"]
+            if provider_type == "local":
+                # For local/ollama, support base_url
+                ollama_cfg = ai_config.get("ollama", {})
+                if "base_url" in ollama_cfg:
+                    provider_args["base_url"] = ollama_cfg["base_url"]
+                if "model" in ollama_cfg:
+                    provider_args["model"] = ollama_cfg["model"]
+            logger.info(f"Using config-based provider: {provider_type}")
 
         provider = create_embedding_provider(provider_type, **provider_args)
 
