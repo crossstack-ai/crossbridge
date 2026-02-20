@@ -165,19 +165,30 @@ def get_pipeline():
         embedding_config = sem_config.get("embedding", {})
         vector_store_config = sem_config.get("vector_store", {})
 
-        # Vector store selection
-        store_type = vector_store_config.get("type", "pgvector")
-        store_args = {}
-        if "storage_path" in vector_store_config:
-            store_args["storage_path"] = vector_store_config["storage_path"]
-        if "index_type" in vector_store_config:
-            store_args["index_type"] = vector_store_config["index_type"]
-        if "distance_metric" in vector_store_config:
-            store_args["distance_metric"] = vector_store_config["distance_metric"]
-        if "probes" in vector_store_config:
-            store_args["probes"] = vector_store_config["probes"]
-        if "maintenance_interval" in vector_store_config:
-            store_args["maintenance_interval"] = vector_store_config["maintenance_interval"]
+        # Vector store selection (default to FAISS for simplicity - no database required)
+        store_type = vector_store_config.get("type", "faiss")
+        store_args = {"dimension": provider.get_dimension()}
+        
+        if store_type == "faiss":
+            if "storage_path" in vector_store_config:
+                store_args["storage_path"] = vector_store_config["storage_path"]
+            if "index_type" in vector_store_config:
+                store_args["index_type"] = vector_store_config["index_type"]
+            if "distance_metric" in vector_store_config:
+                store_args["distance_metric"] = vector_store_config["distance_metric"]
+        elif store_type == "pgvector":
+            # PgVector requires connection_string
+            if "connection_string" in vector_store_config:
+                store_args["connection_string"] = vector_store_config["connection_string"]
+            else:
+                # Fall back to FAISS if no connection string provided
+                logger.warning(
+                    "PgVector requires connection_string, falling back to FAISS", 
+                    category=LogCategory.CLI
+                )
+                store_type = "faiss"
+                # Remove connection_string from args if it was added
+                store_args.pop("connection_string", None)
 
         store = create_vector_store(store_type, **store_args)
 
@@ -188,6 +199,7 @@ def get_pipeline():
         return pipeline, provider, store
 
     except Exception as e:
+        logger.error(f"Failed to initialize memory system: {e}", category=LogCategory.CLI)
         console.print(f"[red]Failed to initialize memory system: {e}[/red]")
         raise typer.Exit(1)
 
@@ -635,49 +647,14 @@ def search_duplicates(
 
     # Step 3: Set up semantic search and duplicate detector
     try:
-        # Use credential priority: cached credentials > config file
-        import yaml
-        config_path = Path("crossbridge.yml")
-        if not config_path.exists():
-            console.print("[red]Error: crossbridge.yml not found. Please configure memory system.[/red]")
-            raise typer.Exit(1)
-        
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
-        
-        # Get AI provider configuration with credential priority
-        provider_type, provider_args = get_ai_provider_config(config)
-        provider = create_embedding_provider(provider_type, **provider_args)
-        
-        # Extract vector store config
-        cb_config = config.get("crossbridge", {})
-        ai_config = cb_config.get("ai", {})
-        sem_config = ai_config.get("semantic_engine", {})
-        vector_store_config = sem_config.get("vector_store", {})
-        
-        # Vector store selection
-        store_type = vector_store_config.get("type", "faiss")  # Default to faiss for simplicity
-        store_args = {"dimension": provider.get_dimension()}
-        
-        if store_type == "faiss":
-            if "storage_path" in vector_store_config:
-                store_args["storage_path"] = vector_store_config["storage_path"]
-            if "index_type" in vector_store_config:
-                store_args["index_type"] = vector_store_config["index_type"]
-            if "distance_metric" in vector_store_config:
-                store_args["distance_metric"] = vector_store_config["distance_metric"]
-        elif store_type == "pgvector":
-            # PgVector requires connection_string
-            if "connection_string" in vector_store_config:
-                store_args["connection_string"] = vector_store_config["connection_string"]
-            else:
-                # Fall back to FAISS if no connection string provided
-                logger.warning("PgVector requires connection_string, falling back to FAISS", category=LogCategory.CLI)
-                store_type = "faiss"
-        
-        store = create_vector_store(store_type, **store_args)
+        # Use get_pipeline() to avoid code duplication and ensure consistent configuration
+        _, provider, store = get_pipeline()
         semantic_search = SemanticSearchService(provider, store)
         detector = DuplicateDetector(semantic_search, similarity_threshold=threshold)
+        logger.info(
+            f"Initialized semantic search with {provider.model_name} and {type(store).__name__}",
+            category=LogCategory.CLI
+        )
     except Exception as e:
         if logger:
             logger.error(f"Failed to initialize semantic search: {e}\n{traceback.format_exc()}", category=LogCategory.CLI)

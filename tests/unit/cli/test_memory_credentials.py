@@ -464,3 +464,166 @@ class TestSearchDuplicatesCredentialPriority:
         # OpenAI should not be checked since selfhosted was found first
         mock_get_ai_creds.assert_not_called()
 
+
+class TestVectorStoreConfiguration:
+    """Test vector store configuration in get_pipeline()."""
+    
+    @patch('cli.commands.memory.create_vector_store')
+    @patch('cli.commands.memory.create_embedding_provider')
+    @patch('cli.commands.memory.get_ai_provider_config')
+    @patch('builtins.open')
+    @patch('cli.commands.memory.Path')
+    def test_faiss_default_configuration(
+        self,
+        mock_path,
+        mock_open,
+        mock_get_ai_config,
+        mock_create_provider,
+        mock_create_store
+    ):
+        """Test that FAISS is the default vector store."""
+        import yaml
+        from unittest.mock import MagicMock, mock_open as mock_open_func
+        
+        # Setup
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = True
+        mock_path.return_value = mock_path_instance
+        
+        config_content = """
+        crossbridge:
+          ai:
+            semantic_engine:
+              embedding:
+                provider: local
+        """
+        mock_open.return_value.__enter__.return_value.read.return_value = config_content
+        
+        mock_get_ai_config.return_value = ('local', {'model': 'test-model'})
+        
+        mock_provider = MagicMock()
+        mock_provider.get_dimension.return_value = 768
+        mock_create_provider.return_value = mock_provider
+        
+        mock_store = MagicMock()
+        mock_create_store.return_value = mock_store
+        
+        # Execute
+        from cli.commands.memory import get_pipeline
+        with patch('yaml.safe_load', return_value=yaml.safe_load(config_content)):
+            pipeline, provider, store = get_pipeline()
+        
+        # Verify: FAISS is created with dimension
+        mock_create_store.assert_called_once()
+        call_args = mock_create_store.call_args
+        assert call_args[0][0] == 'faiss'  # First positional arg is store_type
+        assert 'dimension' in call_args[1]
+        assert call_args[1]['dimension'] == 768
+    
+    @patch('cli.commands.memory.create_vector_store')
+    @patch('cli.commands.memory.create_embedding_provider')
+    @patch('cli.commands.memory.get_ai_provider_config')
+    @patch('builtins.open')
+    @patch('cli.commands.memory.Path')
+    def test_pgvector_fallback_to_faiss(
+        self,
+        mock_path,
+        mock_open,
+        mock_get_ai_config,
+        mock_create_provider,
+        mock_create_store
+    ):
+        """Test that PgVector falls back to FAISS when no connection_string."""
+        import yaml
+        from unittest.mock import MagicMock
+        
+        # Setup
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = True
+        mock_path.return_value = mock_path_instance
+        
+        config_content = """
+        crossbridge:
+          ai:
+            semantic_engine:
+              embedding:
+                provider: local
+              vector_store:
+                type: pgvector
+        """
+        mock_open.return_value.__enter__.return_value.read.return_value = config_content
+        
+        mock_get_ai_config.return_value = ('local', {'model': 'test-model'})
+        
+        mock_provider = MagicMock()
+        mock_provider.get_dimension.return_value = 1536
+        mock_create_provider.return_value = mock_provider
+        
+        mock_store = MagicMock()
+        mock_create_store.return_value = mock_store
+        
+        # Execute
+        from cli.commands.memory import get_pipeline
+        with patch('yaml.safe_load', return_value=yaml.safe_load(config_content)):
+            pipeline, provider, store = get_pipeline()
+        
+        # Verify: FAISS is created instead of PgVector (fallback happened)
+        call_args = mock_create_store.call_args
+        assert call_args[0][0] == 'faiss', "Should fall back to FAISS when PgVector has no connection_string"
+        assert 'dimension' in call_args[1]
+    
+    @patch('cli.commands.memory.create_vector_store')
+    @patch('cli.commands.memory.create_embedding_provider')
+    @patch('cli.commands.memory.get_ai_provider_config')
+    @patch('builtins.open')
+    @patch('cli.commands.memory.Path')
+    def test_pgvector_with_connection_string(
+        self,
+        mock_path,
+        mock_open,
+        mock_get_ai_config,
+        mock_create_provider,
+        mock_create_store
+    ):
+        """Test that PgVector is used when connection_string is provided."""
+        import yaml
+        from unittest.mock import MagicMock
+        
+        # Setup
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = True
+        mock_path.return_value = mock_path_instance
+        
+        config_content = """
+        crossbridge:
+          ai:
+            semantic_engine:
+              embedding:
+                provider: openai
+              vector_store:
+                type: pgvector
+                connection_string: postgresql://user:pass@localhost/db
+        """
+        mock_open.return_value.__enter__.return_value.read.return_value = config_content
+        
+        mock_get_ai_config.return_value = ('openai', {'api_key': 'test-key'})
+        
+        mock_provider = MagicMock()
+        mock_provider.get_dimension.return_value = 1536
+        mock_create_provider.return_value = mock_provider
+        
+        mock_store = MagicMock()
+        mock_create_store.return_value = mock_store
+        
+        # Execute
+        from cli.commands.memory import get_pipeline
+        with patch('yaml.safe_load', return_value=yaml.safe_load(config_content)):
+            pipeline, provider, store = get_pipeline()
+        
+        # Verify: PgVector is created with connection string
+        call_args = mock_create_store.call_args
+        assert call_args[0][0] == 'pgvector'
+        assert 'connection_string' in call_args[1]
+        assert call_args[1]['connection_string'] == 'postgresql://user:pass@localhost/db'
+        assert call_args[1]['dimension'] == 1536
+

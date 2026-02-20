@@ -52,12 +52,53 @@ crossbridge:
         provider: local  # or "openai", "anthropic"
         model: your-model-name
         api_key: your-api-key  # optional, for OpenAI/Anthropic
+      vector_store:
+        type: faiss  # Default: FAISS (no database required)
+        storage_path: ./faiss_index  # Optional: where to persist FAISS index
+        # For PostgreSQL with pgvector extension:
+        # type: pgvector
+        # connection_string: postgresql://user:pass@localhost/dbname
     ollama:
       base_url: http://localhost:11434
       model: deepseek-coder:6.7b
   semantic_search:
     enabled: true
 ```
+
+### Vector Store Configuration
+
+CrossBridge supports two vector store backends:
+
+**FAISS (Default - Recommended)**
+- No external database required
+- Fast in-memory similarity search
+- Optional persistence to disk
+- Ideal for local development and testing
+
+```yaml
+crossbridge:
+  ai:
+    semantic_engine:
+      vector_store:
+        type: faiss
+        storage_path: ./faiss_index  # Optional
+```
+
+**PostgreSQL with pgvector**
+- Production-grade persistent storage
+- Requires PostgreSQL 12+ with pgvector extension
+- Supports distributed/shared vector storage
+
+```yaml
+crossbridge:
+  ai:
+    semantic_engine:
+      vector_store:
+        type: pgvector
+        connection_string: postgresql://user:pass@localhost:5432/crossbridge
+```
+
+**Note:** If `pgvector` is specified but no `connection_string` is provided, CrossBridge automatically falls back to FAISS.
 
 ### Checking Cached Credentials
 
