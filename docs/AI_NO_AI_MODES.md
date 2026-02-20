@@ -14,6 +14,68 @@ CrossBridge supports both AI-powered and deterministic (no-AI) operation modes f
   - CLI commands that require AI/semantic features will print a friendly message and exit gracefully.
   - All other CLI features (ingestion, stats, log parsing, etc.) continue to work as before.
 
+## Authentication and Credential Priority
+
+CrossBridge prioritizes AI credentials in the following order:
+
+### Priority 1: Cached Credentials (Recommended)
+
+Use the `crossbridge auth login` command to cache credentials securely:
+
+```bash
+# For self-hosted/Ollama
+crossbridge auth login --provider selfhosted \
+    --url http://localhost:11434 \
+    --model deepseek-coder:6.7b
+
+# For OpenAI
+crossbridge auth login --provider openai \
+    --token YOUR_OPENAI_API_KEY
+
+# For Anthropic
+crossbridge auth login --provider anthropic \
+    --token YOUR_ANTHROPIC_API_KEY
+```
+
+Cached credentials are stored securely and take priority over config file settings.
+
+### Priority 2: Config File
+
+If no cached credentials are found, CrossBridge falls back to the `crossbridge.yml` configuration:
+
+```yaml
+crossbridge:
+  ai:
+    enabled: true
+    semantic_engine:
+      embedding:
+        provider: local  # or "openai", "anthropic"
+        model: your-model-name
+        api_key: your-api-key  # optional, for OpenAI/Anthropic
+    ollama:
+      base_url: http://localhost:11434
+      model: deepseek-coder:6.7b
+  semantic_search:
+    enabled: true
+```
+
+### Checking Cached Credentials
+
+To view your cached credentials:
+
+```bash
+crossbridge auth list
+```
+
+This will show all configured AI providers, including self-hosted endpoints, models, and authentication status.
+
+### Why Cached Credentials?
+
+- **Security:** Credentials are not stored in plain text config files
+- **Flexibility:** Switch between providers without editing config files
+- **Portability:** Works across different environments and CI/CD systems
+- **Priority:** Cached credentials always override config file settings
+
 ## Example Configuration
 
 ```yaml

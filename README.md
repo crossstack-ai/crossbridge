@@ -37,12 +37,15 @@ CrossBridge CLI supports both AI-powered and deterministic (no-AI) operation for
 
 - **To enable AI/semantic features:**
   - Set `ai.enabled: true` and `semantic_search.enabled: true` in your `crossbridge.yml`.
+  - Optionally cache credentials using `crossbridge auth login` (recommended for security).
   - Semantic search, duplicate detection, and embedding features are available.
 - **To disable AI/semantic features:**
   - Set `ai.enabled: false` or `semantic_search.enabled: false` in your config.
   - CLI commands that require AI/semantic features will print a friendly message and exit gracefully. All other features work as before.
 
-See [docs/AI_NO_AI_MODES.md](docs/AI_NO_AI_MODES.md) for details and configuration examples.
+**Credential Priority:** CrossBridge prioritizes cached credentials (from `crossbridge auth login`) over config file settings. This allows secure credential management and easy provider switching.
+
+See [docs/AI_NO_AI_MODES.md](docs/AI_NO_AI_MODES.md) for details, configuration examples, and authentication workflows.
 
 ---
 

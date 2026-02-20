@@ -28,6 +28,11 @@ from core.memory import (
 from core.memory.models import MemoryType
 from core.config.loader import get_config
 from core.logging import get_logger, LogCategory
+from core.repo.test_credentials import (
+    get_ai_credentials,
+    get_selfhosted_ai_config,
+    _get_test_creds_manager,
+)
 
 def _check_ai_semantic_enabled():
     config = get_config()
@@ -42,22 +47,102 @@ def _check_ai_semantic_enabled():
             "[yellow]AI and/or semantic search features are disabled in your configuration. "
             "To enable semantic search, set [bold]ai.enabled: true[/bold] and [bold]semantic_search.enabled: true[/bold] in crossbridge.yml.[/yellow]"
         )
-        logger.warning("Semantic/AI features are disabled. Skipping command.")
+        logger.warning("Semantic/AI features are disabled. Skipping command.", category=LogCategory.CLI)
         console.print(msg)
         raise typer.Exit(0)
 
 console = Console()
+logger = get_logger(__name__, LogCategory.CLI)
 
 memory_app = typer.Typer(help="Memory and embeddings management")
 search_app = typer.Typer(help="Semantic search for tests")
+
+
+def get_ai_provider_config(config: dict) -> tuple:
+    """
+    Get AI provider configuration with priority: cached credentials > config file.
+    
+    Args:
+        config: Loaded crossbridge.yml config dict
+        
+    Returns:
+        Tuple of (provider_type, provider_args) ready for create_embedding_provider()
+        
+    Priority:
+        1. Cached credentials from 'crossbridge auth login'
+        2. Config file settings from crossbridge.yml
+    """
+    provider_type = None
+    provider_args = {}
+    
+    # Extract config sections
+    cb_config = config.get("crossbridge", {})
+    ai_config = cb_config.get("ai", {})
+    sem_config = ai_config.get("semantic_engine", {})
+    embedding_config = sem_config.get("embedding", {})
+    
+    # PRIORITY 1: Check for cached AI credentials first
+    logger.debug("Checking for cached AI credentials...")
+    
+    # Check for self-hosted/ollama credentials
+    selfhosted_config = get_selfhosted_ai_config()
+    if selfhosted_config:
+        provider_type = "local"
+        provider_args["base_url"] = selfhosted_config["endpoint_url"]
+        provider_args["model"] = selfhosted_config["model_name"]
+        if selfhosted_config["api_key"]:
+            provider_args["api_key"] = selfhosted_config["api_key"]
+        logger.info(
+            f"Using cached self-hosted AI: {selfhosted_config['endpoint_url']} / "
+            f"{selfhosted_config['model_name']}",
+            category=LogCategory.CLI
+        )
+        return provider_type, provider_args
+    
+    # Check for OpenAI credentials
+    openai_key = get_ai_credentials("openai", auto_cache=False)
+    if openai_key:
+        provider_type = "openai"
+        provider_args["api_key"] = openai_key
+        logger.info("Using cached OpenAI credentials", category=LogCategory.CLI)
+        return provider_type, provider_args
+    
+    # Check for Anthropic credentials
+    anthropic_key = get_ai_credentials("anthropic", auto_cache=False)
+    if anthropic_key:
+        provider_type = "anthropic"
+        provider_args["api_key"] = anthropic_key
+        logger.info("Using cached Anthropic credentials", category=LogCategory.CLI)
+        return provider_type, provider_args
+    
+    # PRIORITY 2: Fall back to config file
+    logger.debug("No cached credentials found, using config file...")
+    provider_type = embedding_config.get("provider", "openai")
+    
+    # Map config keys to provider args
+    if "model" in embedding_config:
+        provider_args["model"] = embedding_config["model"]
+    if "api_key" in embedding_config:
+        provider_args["api_key"] = embedding_config["api_key"]
+    if "batch_size" in embedding_config:
+        provider_args["batch_size"] = embedding_config["batch_size"]
+    
+    if provider_type == "local":
+        # For local/ollama, support base_url from config
+        ollama_cfg = ai_config.get("ollama", {})
+        if "base_url" in ollama_cfg:
+            provider_args["base_url"] = ollama_cfg["base_url"]
+        if "model" in ollama_cfg:
+            provider_args["model"] = ollama_cfg["model"]
+    
+    logger.info(f"Using config-based provider: {provider_type}", category=LogCategory.CLI)
+    return provider_type, provider_args
 
 
 def get_pipeline():
     """Get configured memory ingestion pipeline from config."""
     try:
         import yaml
-        from core.repo.test_credentials import _get_test_creds_manager
-
 
         config_path = Path("crossbridge.yml")
         if not config_path.exists():
@@ -69,60 +154,16 @@ def get_pipeline():
         with open(config_path) as f:
             config = yaml.safe_load(f)
 
-        # New: Read embedding/vector config from crossbridge -> ai -> semantic_engine
+        # Get AI provider configuration (prioritizes cached credentials)
+        provider_type, provider_args = get_ai_provider_config(config)
+        provider = create_embedding_provider(provider_type, **provider_args)
+
+        # Extract vector store config
         cb_config = config.get("crossbridge", {})
         ai_config = cb_config.get("ai", {})
         sem_config = ai_config.get("semantic_engine", {})
         embedding_config = sem_config.get("embedding", {})
         vector_store_config = sem_config.get("vector_store", {})
-
-        # PRIORITY 1: Check for cached AI credentials first
-        provider_type = None
-        provider_args = {}
-        
-        manager = _get_test_creds_manager()
-        if manager:
-            manager._load_credentials()
-            for key, cred in manager._credentials.items():
-                if cred.repo == "_ai_cache_":
-                    # Found cached AI credentials - use them!
-                    if cred.provider == "selfhosted":
-                        provider_type = "local"  # selfhosted uses local embeddings
-                        if cred.url:
-                            provider_args["base_url"] = cred.url
-                        if cred.source_branch:  # model stored in source_branch
-                            provider_args["model"] = cred.source_branch
-                        logger.info(f"Using cached self-hosted AI: {cred.url} / {cred.source_branch}")
-                    elif cred.provider == "openai":
-                        provider_type = "openai"
-                        provider_args["api_key"] = cred.token
-                        logger.info("Using cached OpenAI credentials")
-                    elif cred.provider == "anthropic":
-                        provider_type = "anthropic"
-                        provider_args["api_key"] = cred.token
-                        logger.info("Using cached Anthropic credentials")
-                    break
-        
-        # PRIORITY 2: Fall back to config file if no cached credentials
-        if provider_type is None:
-            provider_type = embedding_config.get("provider", "openai")
-            # Map config keys to provider args
-            if "model" in embedding_config:
-                provider_args["model"] = embedding_config["model"]
-            if "api_key" in embedding_config:
-                provider_args["api_key"] = embedding_config["api_key"]
-            if "batch_size" in embedding_config:
-                provider_args["batch_size"] = embedding_config["batch_size"]
-            if provider_type == "local":
-                # For local/ollama, support base_url
-                ollama_cfg = ai_config.get("ollama", {})
-                if "base_url" in ollama_cfg:
-                    provider_args["base_url"] = ollama_cfg["base_url"]
-                if "model" in ollama_cfg:
-                    provider_args["model"] = ollama_cfg["model"]
-            logger.info(f"Using config-based provider: {provider_type}")
-
-        provider = create_embedding_provider(provider_type, **provider_args)
 
         # Vector store selection
         store_type = vector_store_config.get("type", "pgvector")
@@ -567,7 +608,7 @@ def search_duplicates(
             all_tests.extend(tests)
         except Exception as e:
             if logger:
-                logger.error(f"Failed to discover tests for {fw}: {e}\n{traceback.format_exc()}")
+                logger.error(f"Failed to discover tests for {fw}: {e}\n{traceback.format_exc()}", category=LogCategory.CLI)
             console.print(f"[yellow]Warning: Could not discover tests for {fw}: {e}[/yellow]")
 
     if not all_tests:
@@ -601,7 +642,7 @@ def search_duplicates(
         detector = DuplicateDetector(semantic_search, similarity_threshold=threshold)
     except Exception as e:
         if logger:
-            logger.error(f"Failed to initialize semantic search: {e}\n{traceback.format_exc()}")
+            logger.error(f"Failed to initialize semantic search: {e}\n{traceback.format_exc()}", category=LogCategory.CLI)
         console.print(f"[red]Failed to initialize semantic search: {e}[/red]")
         raise typer.Exit(1)
 
@@ -635,7 +676,7 @@ def search_duplicates(
     console.print(table)
     console.print(f"[yellow]⚠️  {len(duplicates)} duplicate pairs found (threshold: {threshold})[/yellow]")
     if logger:
-        logger.info(f"Duplicate detection complete: {len(duplicates)} pairs found.")
+        logger.info(f"Duplicate detection complete: {len(duplicates)} pairs found.", category=LogCategory.CLI)
 
 
 # Register subcommands
