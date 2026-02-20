@@ -111,30 +111,39 @@ crossbridge run --adapter-dir /path/to/adapters robot tests/
 -h, --help              Show help message
 ```
 
+
 **Find duplicate tests (NEW!):**
 
-Detect and report potential duplicate or highly similar tests across all supported frameworks using semantic AI:
+Detect and report potential duplicate or highly similar tests across all supported frameworks using semantic AI. The command supports custom test directories and works for all 13+ frameworks:
 
 ```bash
-# Find duplicates in all frameworks (auto-detect)
+# Find duplicates in all frameworks (auto-detect, default test directory)
 crossbridge search duplicates
 
-# Only for pytest, with custom similarity threshold
-crossbridge search duplicates --framework pytest --threshold 0.92
+# Specify a custom test directory (all frameworks auto-detected)
+crossbridge search duplicates --test-dir ./my-tests/
 
-# Only for Robot Framework
-crossbridge search duplicates --framework robot
+# Only for pytest, with custom similarity threshold and test directory
+crossbridge search duplicates --framework pytest --threshold 0.92 --test-dir ./tests/pytest/
+
+# Only for Robot Framework (custom directory)
+crossbridge search duplicates --framework robot --test-dir ./robot_tests/
+
+# For Java/JUnit (custom directory)
+crossbridge search duplicates --framework junit --test-dir ./src/test/java/
 ```
 
 **Options:**
 ```
---framework, -f   Filter by framework (pytest, robot, selenium-java, etc.)
+--framework, -f   Filter by framework (pytest, robot, selenium-java, cypress, etc.)
 --threshold, -t   Similarity threshold for duplicates (default: 0.9)
+--test-dir        Custom test directory or project root (all frameworks)
 --help            Show help message
 ```
 
 **Output:**
-Results are shown in a table with test pairs, similarity, confidence, type, and explanation. Example:
+
+Results are shown in a table with test pairs, similarity, confidence, type, and explanation. All output is also logged using the CrossBridge logger for traceability. Example:
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -147,7 +156,20 @@ Results are shown in a table with test pairs, similarity, confidence, type, and 
 └──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────────────────────────┘
 ```
 
-All output is also logged using the CrossBridge logger for traceability.
+
+**Supported Frameworks:**
+- 🤖 Robot Framework (`robot`, `pybot`)
+- 🧪 Pytest (`pytest`, `py.test`)
+- 🃏 Jest (`jest`)
+- ☕ JUnit/Maven (`mvn`, `maven`)
+- ☕ Mocha (`mocha`)
+- 🎭 Cypress (via sidecar)
+- 🎪 Playwright (via sidecar)
+- ...and more (see full list below)
+
+The `--test-dir` option works for all supported frameworks and configurations. The CLI will auto-detect the framework if not specified, and all output is logged using the CrossBridge logger interface.
+
+For more details, see the [Framework Support](docs/frameworks/README.md) and [Unified CLI Guide](docs/UNIFIED_CLI.md).
 
 **Parse and analyze logs:**
 ```bash
@@ -826,8 +848,10 @@ for failure in result.structured_failures:
 - 🔗 **Full Context** - Test + framework + driver logs united
 - 🚀 **CI/CD Ready** - JSON output, deterministic results
 
-**Unit Test Coverage:**
+
+**Unit/Integration Test Coverage:**
 - ✅ 150+ unit tests covering all parsers and correlation engine
+- ✅ [Memory, Embeddings, and Duplicate Detection Test Coverage](tests/TEST_COVERAGE_MEMORY_AND_DUPLICATES.md) — covers all frameworks, ingestion, search, and duplicate logic
 - ✅ TestNG XML parsing: malformed XML, empty suites, all status types
 - ✅ Framework log parsing: multiple formats, multi-line stack traces
 - ✅ Correlation engine: confidence scoring, categorization, edge cases
