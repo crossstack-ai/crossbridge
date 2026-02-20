@@ -111,6 +111,44 @@ crossbridge run --adapter-dir /path/to/adapters robot tests/
 -h, --help              Show help message
 ```
 
+**Find duplicate tests (NEW!):**
+
+Detect and report potential duplicate or highly similar tests across all supported frameworks using semantic AI:
+
+```bash
+# Find duplicates in all frameworks (auto-detect)
+crossbridge search duplicates
+
+# Only for pytest, with custom similarity threshold
+crossbridge search duplicates --framework pytest --threshold 0.92
+
+# Only for Robot Framework
+crossbridge search duplicates --framework robot
+```
+
+**Options:**
+```
+--framework, -f   Filter by framework (pytest, robot, selenium-java, etc.)
+--threshold, -t   Similarity threshold for duplicates (default: 0.9)
+--help            Show help message
+```
+
+**Output:**
+Results are shown in a table with test pairs, similarity, confidence, type, and explanation. Example:
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Duplicate Tests Detected                                                                                    ┃
+┡━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Test 1       │ Test 2       │ Similarity   │ Confidence   │ Type         │ Reason(s)                        │
+├──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────────────────────────┤
+│ test_login   │ test_login_2 │ 0.96         │ 0.91         │ exact        │ ⚠️ Exact duplicate detected ...  │
+│ ...          │ ...          │ ...          │ ...          │ ...          │ ...                              │
+└──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────────────────────────┘
+```
+
+All output is also logged using the CrossBridge logger for traceability.
+
 **Parse and analyze logs:**
 ```bash
 # Parse Robot Framework output

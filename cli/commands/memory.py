@@ -400,24 +400,133 @@ def search_duplicates(
         None,
         "--framework",
         "-f",
-        help="Filter by framework",
+        help="Filter by framework (pytest, robot, selenium-java, etc.)",
     ),
     threshold: float = typer.Option(
         0.9,
         "--threshold",
         "-t",
-        help="Similarity threshold for duplicates",
+        help="Similarity threshold for duplicates (default: 0.9)",
     ),
 ):
     """
-    Find potential duplicate tests.
-    
+    Find potential duplicate tests using semantic similarity.
+
     Example:
         crossbridge search duplicates --framework pytest --threshold 0.95
     """
+    from core.ai.semantic.duplicate_detection import DuplicateDetector
+    from core.ai.semantic.semantic_search_service import SemanticSearchService
+    from core.memory import create_embedding_provider, create_vector_store
+    from core.memory.models import convert_test_to_text, MemoryType
+    from cli.main import AdapterRegistry
+    from adapters.common.models import TestMetadata
+    import traceback
+
     console.print("[bold blue]🔍 Searching for duplicate tests...[/bold blue]\n")
-    console.print("[yellow]⚠️  Duplicate detection not yet fully implemented[/yellow]")
-    console.print("[dim]Use 'search similar' for individual test comparison[/dim]")
+    logger = None
+    try:
+        from core.logging import get_logger, LogCategory
+        logger = get_logger("search_duplicates", category=LogCategory.AI)
+    except Exception:
+        pass
+
+    # Step 1: Discover frameworks
+    project_root = "."
+    frameworks = [framework] if framework else AdapterRegistry.auto_detect_frameworks(project_root)
+    if not frameworks:
+        console.print("[red]No supported test frameworks found in project.[/red]")
+        raise typer.Exit(1)
+
+    all_tests = []
+    for fw in frameworks:
+        try:
+            if AdapterRegistry.is_extractor(fw):
+                extractor = AdapterRegistry.get_extractor(fw, project_root)
+                tests = extractor.extract_tests()
+            else:
+                adapter = AdapterRegistry.get_adapter(fw, project_root)
+                # Try to get rich metadata if possible
+                if hasattr(adapter, "extract_tests"):
+                    tests = adapter.extract_tests()
+                elif hasattr(adapter, "discover_tests"):
+                    # Only test names, wrap as TestMetadata
+                    test_names = adapter.discover_tests()
+                    tests = [TestMetadata(framework=fw, test_name=name, file_path="", tags=[]) for name in test_names]
+                else:
+                    tests = []
+            all_tests.extend(tests)
+        except Exception as e:
+            if logger:
+                logger.error(f"Failed to discover tests for {fw}: {e}\n{traceback.format_exc()}")
+            console.print(f"[yellow]Warning: Could not discover tests for {fw}: {e}[/yellow]")
+
+    if not all_tests:
+        console.print("[yellow]No tests found to analyze for duplicates.[/yellow]")
+        raise typer.Exit(0)
+
+    # Step 2: Prepare test data for duplicate detection
+    test_dicts = []
+    for t in all_tests:
+        # t may be TestMetadata or dict
+        test_dicts.append({
+            "id": getattr(t, "id", getattr(t, "test_name", str(t))),
+            "name": getattr(t, "name", getattr(t, "test_name", str(t))),
+            "framework": getattr(t, "framework", None),
+            "tags": getattr(t, "tags", []),
+            "file": getattr(t, "file_path", None),
+            "text": convert_test_to_text({
+                "name": getattr(t, "name", getattr(t, "test_name", str(t))),
+                "framework": getattr(t, "framework", None),
+                "tags": getattr(t, "tags", []),
+                "file": getattr(t, "file_path", None),
+            })
+        })
+
+    # Step 3: Set up semantic search and duplicate detector
+    try:
+        # Use memory config for embedding/vector store
+        provider = create_embedding_provider()
+        store = create_vector_store()
+        semantic_search = SemanticSearchService(provider, store)
+        detector = DuplicateDetector(semantic_search, similarity_threshold=threshold)
+    except Exception as e:
+        if logger:
+            logger.error(f"Failed to initialize semantic search: {e}\n{traceback.format_exc()}")
+        console.print(f"[red]Failed to initialize semantic search: {e}[/red]")
+        raise typer.Exit(1)
+
+    # Step 4: Run duplicate detection
+    console.print(f"[dim]Analyzing {len(test_dicts)} tests for duplicates (threshold: {threshold})...[/dim]")
+    duplicates = detector.find_all_duplicates(test_dicts, entity_type=MemoryType.TEST.value)
+
+    if not duplicates:
+        console.print("[green]No duplicates found above the threshold.[/green]")
+        return
+
+    # Step 5: Output results
+    table = Table(title="Duplicate Tests Detected", box=box.ROUNDED, show_lines=True)
+    table.add_column("Test 1", style="cyan")
+    table.add_column("Test 2", style="cyan")
+    table.add_column("Similarity", style="green")
+    table.add_column("Confidence", style="yellow")
+    table.add_column("Type", style="magenta")
+    table.add_column("Reason(s)", style="white")
+
+    for dup in duplicates:
+        table.add_row(
+            dup.entity_id_1,
+            dup.entity_id_2,
+            f"{dup.similarity_score:.3f}",
+            f"{dup.confidence:.2f}",
+            dup.duplicate_type.value,
+            "; ".join(dup.reasons)
+        )
+
+    console.print(table)
+    console.print(f"[yellow]⚠️  {len(duplicates)} duplicate pairs found (threshold: {threshold})[/yellow]")
+    if logger:
+        logger.info(f"Duplicate detection complete: {len(duplicates)} pairs found.")
 
 
 # Register subcommands
