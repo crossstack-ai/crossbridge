@@ -99,13 +99,13 @@ class SemanticSearchService:
         
         # Get current version info
         self.version_info = get_current_version_info(
-            model=embedding_provider.model_name(),
-            dimensions=embedding_provider.dimensions(),
+            model=embedding_provider.model_name,
+            dimensions=embedding_provider.get_dimension(),
             ast_augmented=text_builder.enable_ast_augmentation if text_builder else True
         )
         
         logger.info(
-            f"Initialized semantic search with {embedding_provider.model_name()} "
+            f"Initialized semantic search with {embedding_provider.model_name} "
             f"(version: {EMBEDDING_VERSION})"
         )
     
