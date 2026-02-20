@@ -23,10 +23,16 @@ CrossBridge prioritizes AI credentials in the following order:
 Use the `crossbridge auth login` command to cache credentials securely:
 
 ```bash
-# For self-hosted/Ollama
+# For self-hosted/Ollama (use embedding-specific models)
 crossbridge auth login --provider selfhosted \
     --url http://localhost:11434 \
-    --model deepseek-coder:6.7b
+    --model nomic-embed-text
+
+# Other supported Ollama embedding models:
+# - nomic-embed-text (recommended, 768 dimensions)
+# - mxbai-embed-large (1024 dimensions)
+# - all-minilm (384 dimensions)
+# Note: Text generation models like deepseek-coder or llama cannot be used for embeddings
 
 # For OpenAI
 crossbridge auth login --provider openai \
@@ -35,6 +41,13 @@ crossbridge auth login --provider openai \
 # For Anthropic
 crossbridge auth login --provider anthropic \
     --token YOUR_ANTHROPIC_API_KEY
+```
+
+**Important:** Ollama's embedding endpoint requires embedding-specific models. Text generation models (e.g., `deepseek-coder`, `llama3`, `mistral`) cannot generate embeddings. Pull an embedding model first:
+
+```bash
+# Pull an embedding model
+ollama pull nomic-embed-text
 ```
 
 Cached credentials are stored securely and take priority over config file settings.
@@ -50,11 +63,20 @@ crossbridge:
     semantic_engine:
       embedding:
         provider: local  # or "openai", "anthropic"
-        model: your-model-name
+        model: nomic-embed-text  # For Ollama: use embedding-specific models
         api_key: your-api-key  # optional, for OpenAI/Anthropic
       vector_store:
         type: faiss  # Default: FAISS (no database required)
         storage_path: ./faiss_index  # Optional: where to persist FAISS index
+        # For PostgreSQL with pgvector extension:
+        # type: pgvector
+        # connection_string: postgresql://user:pass@localhost/dbname
+    ollama:
+      base_url: http://localhost:11434
+      model: nomic-embed-text  # Must be an embedding model, not a text generation model
+  semantic_search:
+    enabled: true
+```
         # For PostgreSQL with pgvector extension:
         # type: pgvector
         # connection_string: postgresql://user:pass@localhost/dbname

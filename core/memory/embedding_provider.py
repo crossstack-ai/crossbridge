@@ -165,7 +165,16 @@ class LocalEmbeddingProvider(EmbeddingProvider):
         self.client = ollama.Client(host=base_url)
         self._dimension = 768  # Default for most local models
 
-        logger.info(f"Initialized local embedding provider with model: {model}")
+        logger.info(
+            f"Initialized local embedding provider with model: '{model}' at {base_url}",
+            category=LogCategory.AI
+        )
+        
+        # Validate model is not empty
+        if not model or model.isspace():
+            raise EmbeddingProviderError(
+                f"Model name cannot be empty. Received: '{model}'"
+            )
 
     def embed(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings using local Ollama model."""
@@ -175,14 +184,32 @@ class LocalEmbeddingProvider(EmbeddingProvider):
         try:
             embeddings = []
             for text in texts:
+                logger.debug(
+                    f"Generating embedding with model='{self._model}' for text of length {len(text)}",
+                    category=LogCategory.AI
+                )
                 response = self.client.embeddings(model=self._model, prompt=text)
                 embeddings.append(response["embedding"])
 
-            logger.info(f"Generated {len(embeddings)} embeddings using local model")
+            logger.info(
+                f"Generated {len(embeddings)} embeddings using local model '{self._model}'",
+                category=LogCategory.AI
+            )
             return embeddings
 
         except Exception as e:
-            logger.error(f"Failed to generate embeddings: {e}")
+            logger.error(
+                f"Failed to generate embeddings with model '{self._model}': {e}",
+                category=LogCategory.AI
+            )
+            # Check if it's a model-specific error
+            if "model is required" in str(e).lower() or "400" in str(e):
+                raise EmbeddingProviderError(
+                    f"Failed to generate embeddings. Model '{self._model}' may not support embeddings. "
+                    f"Ollama requires embedding-specific models like 'nomic-embed-text', 'mxbai-embed-large', "
+                    f"or 'all-minilm'. Text generation models like 'deepseek-coder' cannot be used for embeddings. "
+                    f"Original error: {e}"
+                )
             raise EmbeddingProviderError(f"Local embedding failed: {e}")
 
     def get_dimension(self) -> int:
