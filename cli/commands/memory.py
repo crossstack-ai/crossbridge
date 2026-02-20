@@ -119,11 +119,14 @@ def get_ai_provider_config(config: dict) -> tuple:
     logger.debug("No cached credentials found, using config file...")
     provider_type = embedding_config.get("provider", "openai")
     
-    # Map config keys to provider args
+    # Map config keys to provider args based on provider type
     if "model" in embedding_config:
         provider_args["model"] = embedding_config["model"]
-    if "api_key" in embedding_config:
+    
+    # Only add api_key for providers that need it (not local/ollama)
+    if provider_type != "local" and "api_key" in embedding_config:
         provider_args["api_key"] = embedding_config["api_key"]
+    
     if "batch_size" in embedding_config:
         provider_args["batch_size"] = embedding_config["batch_size"]
     
@@ -156,6 +159,13 @@ def get_pipeline():
 
         # Get AI provider configuration (prioritizes cached credentials)
         provider_type, provider_args = get_ai_provider_config(config)
+        
+        # Filter out parameters not supported by local providers
+        if provider_type == "local":
+            # LocalEmbeddingProvider only accepts base_url and model
+            provider_args = {k: v for k, v in provider_args.items() 
+                           if k in ["base_url", "model"] and v}
+        
         provider = create_embedding_provider(provider_type, **provider_args)
 
         # Extract vector store config
