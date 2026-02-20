@@ -648,7 +648,34 @@ def search_duplicates(
         # Get AI provider configuration with credential priority
         provider_type, provider_args = get_ai_provider_config(config)
         provider = create_embedding_provider(provider_type, **provider_args)
-        store = create_vector_store()
+        
+        # Extract vector store config
+        cb_config = config.get("crossbridge", {})
+        ai_config = cb_config.get("ai", {})
+        sem_config = ai_config.get("semantic_engine", {})
+        vector_store_config = sem_config.get("vector_store", {})
+        
+        # Vector store selection
+        store_type = vector_store_config.get("type", "faiss")  # Default to faiss for simplicity
+        store_args = {"dimension": provider.get_dimension()}
+        
+        if store_type == "faiss":
+            if "storage_path" in vector_store_config:
+                store_args["storage_path"] = vector_store_config["storage_path"]
+            if "index_type" in vector_store_config:
+                store_args["index_type"] = vector_store_config["index_type"]
+            if "distance_metric" in vector_store_config:
+                store_args["distance_metric"] = vector_store_config["distance_metric"]
+        elif store_type == "pgvector":
+            # PgVector requires connection_string
+            if "connection_string" in vector_store_config:
+                store_args["connection_string"] = vector_store_config["connection_string"]
+            else:
+                # Fall back to FAISS if no connection string provided
+                logger.warning("PgVector requires connection_string, falling back to FAISS", category=LogCategory.CLI)
+                store_type = "faiss"
+        
+        store = create_vector_store(store_type, **store_args)
         semantic_search = SemanticSearchService(provider, store)
         detector = DuplicateDetector(semantic_search, similarity_threshold=threshold)
     except Exception as e:
