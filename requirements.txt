@@ -86,16 +86,17 @@ faiss-cpu>=1.7.4,<2.0.0           # FAISS vector similarity search (CPU)
 # TEST AUTOMATION FRAMEWORKS (Optional - for translation)
 # ============================================================================
 
-playwright>=1.40.0                # Modern browser automation (Chromium/Firefox/WebKit)
 
-# Note: Framework-specific dependencies installed as needed:
-# - selenium>=4.0.0              # For Selenium translation/analysis (Java, Python, .NET)
-# - robotframework>=6.0          # For Robot Framework support (adapters/robot/)
-# - robotframework-requests>=0.9 # For Robot + RequestsLibrary API testing
-# - robotframework-seleniumlibrary>=6.0  # For Robot + Selenium UI testing
-# - cypress (via npm)            # npm install cypress
-# - pytest plugins               # pytest-bdd, pytest-selenium, etc.
-# - dotnet SDK 6.0+              # For Selenium .NET adapter (adapters/selenium_dotnet/)
+# === Test Automation Frameworks (Required for all supported frameworks) ===
+pytest>=9.0.0                     # Python testing framework (required for CLI and adapters)
+robotframework>=6.0                # Robot Framework support (required for CLI and adapters)
+selenium>=4.0.0                    # Selenium WebDriver (Java, Python, .NET)
+playwright>=1.40.0                 # Modern browser automation (Chromium/Firefox/WebKit)
+robotframework-requests>=0.9       # Robot + RequestsLibrary API testing
+robotframework-seleniumlibrary>=6.0 # Robot + Selenium UI testing
+# Note: For Cypress, install via npm: npm install cypress
+# Note: For .NET/Java adapters, ensure .NET SDK 6.0+ and Java 11+ are installed
+# Note: For pytest plugins, install as needed: pytest-bdd, pytest-selenium, etc.
 
 # ============================================================================
 # SOURCE CONTROL & REPOSITORY INTEGRATION (Optional)
