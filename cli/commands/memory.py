@@ -635,8 +635,19 @@ def search_duplicates(
 
     # Step 3: Set up semantic search and duplicate detector
     try:
-        # Use memory config for embedding/vector store
-        provider = create_embedding_provider()
+        # Use credential priority: cached credentials > config file
+        import yaml
+        config_path = Path("crossbridge.yml")
+        if not config_path.exists():
+            console.print("[red]Error: crossbridge.yml not found. Please configure memory system.[/red]")
+            raise typer.Exit(1)
+        
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+        
+        # Get AI provider configuration with credential priority
+        provider_type, provider_args = get_ai_provider_config(config)
+        provider = create_embedding_provider(provider_type, **provider_args)
         store = create_vector_store()
         semantic_search = SemanticSearchService(provider, store)
         detector = DuplicateDetector(semantic_search, similarity_threshold=threshold)

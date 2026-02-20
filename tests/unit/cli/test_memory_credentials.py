@@ -388,3 +388,79 @@ class TestMemoryCommandsFrameworkSupport:
         # Verify correct provider returned
         assert result_type == provider_type
         assert all(key in result_args for key in provider_config.keys())
+
+
+class TestSearchDuplicatesCredentialPriority:
+    """Test that search_duplicates command uses credential priority logic."""
+    
+    def test_get_ai_provider_config_is_used_correctly(self):
+        """Test that get_ai_provider_config helper is properly defined and returns expected format."""
+        from cli.commands.memory import get_ai_provider_config
+        
+        # Simple test: ensure the function returns the expected tuple format
+        # even with minimal config
+        config = {
+            'crossbridge': {
+                'ai': {
+                    'semantic_engine': {
+                        'embedding': {
+                            'provider': 'local',
+                            'model': 'test-model'
+                        }
+                    }
+                }
+            }
+        }
+        
+        with patch('cli.commands.memory.get_selfhosted_ai_config', return_value=None):
+            with patch('cli.commands.memory.get_ai_credentials', return_value=None):
+                provider_type, provider_args = get_ai_provider_config(config)
+                
+                # Verify returns tuple with correct types
+                assert isinstance(provider_type, str)
+                assert isinstance(provider_args, dict)
+                assert provider_type == 'local'
+                assert 'model' in provider_args
+    
+    @patch('cli.commands.memory.get_selfhosted_ai_config')
+    @patch('cli.commands.memory.get_ai_credentials')
+    def test_search_duplicates_code_path_uses_priority(
+        self,
+        mock_get_ai_creds,
+        mock_get_selfhosted
+    ):
+        """Verify that when called, the function would prioritize cached credentials."""
+        # Setup: Simulate cached selfhosted credentials
+        mock_get_selfhosted.return_value = {
+            'endpoint_url': 'http://10.60.75.145:11434',
+            'model_name': 'deepseek-coder:6.7b',
+            'api_key': None
+        }
+        
+        config = {
+            'crossbridge': {
+                'ai': {
+                    'semantic_engine': {
+                        'embedding': {
+                            'provider': 'openai',  # Different from cached
+                            'api_key': 'sk-config-key'
+                        }
+                    }
+                }
+            }
+        }
+        
+        from cli.commands.memory import get_ai_provider_config
+        
+        provider_type, provider_args = get_ai_provider_config(config)
+        
+        # Verify: Uses cached selfhosted, NOT config openai
+        assert provider_type == 'local'
+        assert provider_args['base_url'] == 'http://10.60.75.145:11434'
+        assert provider_args['model'] == 'deepseek-coder:6.7b'
+        
+        # Verify: get_selfhosted was called (showing priority check happened)
+        mock_get_selfhosted.assert_called_once()
+        # OpenAI should not be checked since selfhosted was found first
+        mock_get_ai_creds.assert_not_called()
+
