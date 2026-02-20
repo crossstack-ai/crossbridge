@@ -71,9 +71,9 @@ tabulate>=0.9.0                   # Table formatting for console output
 openai>=1.0.0,<2.0.0              # OpenAI GPT models and embeddings
 anthropic>=0.7.0,<1.0.0           # Anthropic Claude models
 
-# Local & Open Source AI (Optional)
-# ollama>=0.1.0                   # Uncomment for local Ollama embeddings
-# sentence-transformers>=2.2.0    # Uncomment for HuggingFace embeddings
+# Local & Open Source AI (Optional - enabled for credential priority support)
+ollama>=0.1.0,<1.0.0              # Local Ollama embeddings (for selfhosted AI)
+sentence-transformers>=2.2.0,<3.0.0  # HuggingFace local embeddings
 
 # ============================================================================
 # VECTOR STORES & EMBEDDINGS (Optional - for semantic search)
