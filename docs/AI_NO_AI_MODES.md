@@ -77,15 +77,6 @@ crossbridge:
   semantic_search:
     enabled: true
 ```
-        # For PostgreSQL with pgvector extension:
-        # type: pgvector
-        # connection_string: postgresql://user:pass@localhost/dbname
-    ollama:
-      base_url: http://localhost:11434
-      model: deepseek-coder:6.7b
-  semantic_search:
-    enabled: true
-```
 
 ### Vector Store Configuration
 

@@ -159,17 +159,18 @@ class SemanticSearchService:
                 filters=search_filters
             )
             
-            # Convert raw results to similarity results format
-            from dataclasses import dataclass
-            @dataclass
-            class SimilarityResult:
-                record: Any
-                score: float
-            
-            similarity_results = [
-                SimilarityResult(record=r["record"], score=r["score"])
-                for r in raw_results
-            ]
+            # Convert MemoryRecord results to SimilarityResult format
+            similarity_results = []
+            for r in raw_results:
+                record = r["record"]
+                similarity_results.append(SimilarityResult(
+                    id=record.id,
+                    entity_type=record.type.value,
+                    score=r["score"],
+                    text=record.text,
+                    metadata=record.metadata,
+                    embedding=record.embedding
+                ))
             
             # Convert to semantic results with confidence and explanations
             semantic_results = []
