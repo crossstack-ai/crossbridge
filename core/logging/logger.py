@@ -112,6 +112,40 @@ class CrossBridgeLogger:
         
         if enable_file and log_dir:
             self._add_file_handler(log_dir)
+        
+        # Auto-enable sidecar handler if sidecar is available
+        self._try_add_sidecar_handler()
+    
+    def _try_add_sidecar_handler(self) -> None:
+        """Add sidecar handler if sidecar is available (auto-detection)."""
+        import os
+        
+        # Check if sidecar is configured
+        sidecar_host = os.getenv('CROSSBRIDGE_API_HOST')
+        sidecar_port = os.getenv('CROSSBRIDGE_API_PORT', '8765')
+        
+        if not sidecar_host:
+            return  # No sidecar configured
+        
+        sidecar_url = f"http://{sidecar_host}:{sidecar_port}"
+        
+        try:
+            from .handlers import SidecarLogHandler
+            
+            # Only forward INFO+ logs for AI and CLI categories to reduce noise
+            handler = SidecarLogHandler(
+                sidecar_url=sidecar_url,
+                min_level=logging.INFO,
+                categories=['ai', 'cli'],  # Only AI and CLI logs
+                timeout=0.5  # Fast timeout to avoid blocking
+            )
+            
+            if handler._enabled:  # Only add if sidecar is reachable
+                self._logger.addHandler(handler)
+                self._handlers.append(handler)
+        except Exception:
+            # Silently fail - sidecar handler is optional
+            pass
     
     def _add_console_handler(self) -> None:
         """Add console handler with colored output."""
@@ -167,37 +201,49 @@ class CrossBridgeLogger:
                 return f"{message} [{ctx_str}]"
         return message
     
+    def _log(self, level: int, message: str, exc_info: bool = False, **kwargs) -> None:
+        """Internal logging method that attaches category to record."""
+        # Create extra dict for logger
+        extra = {'category': self.category}
+        
+        # Add any additional kwargs as record attributes
+        for key, value in kwargs.items():
+            if key not in ['category', 'brand']:
+                extra[key] = value
+        
+        self._logger.log(level, self._format_message(message, **kwargs), exc_info=exc_info, extra=extra)
+    
     def trace(self, message: str, **kwargs) -> None:
         """Log trace message (most detailed)."""
-        self._logger.log(LogLevel.TRACE.value, self._format_message(message, **kwargs))
+        self._log(LogLevel.TRACE.value, message, **kwargs)
     
     def debug(self, message: str, **kwargs) -> None:
         """Log debug message."""
-        self._logger.debug(self._format_message(message, **kwargs))
+        self._log(logging.DEBUG, message, **kwargs)
     
     def info(self, message: str, **kwargs) -> None:
         """Log info message."""
-        self._logger.info(self._format_message(message, **kwargs))
+        self._log(logging.INFO, message, **kwargs)
     
     def success(self, message: str, **kwargs) -> None:
         """Log success message (custom level)."""
-        self._logger.log(LogLevel.SUCCESS.value, self._format_message(message, **kwargs))
+        self._log(LogLevel.SUCCESS.value, message, **kwargs)
     
     def warning(self, message: str, **kwargs) -> None:
         """Log warning message."""
-        self._logger.warning(self._format_message(message, **kwargs))
+        self._log(logging.WARNING, message, **kwargs)
     
     def error(self, message: str, exc_info: bool = False, **kwargs) -> None:
         """Log error message."""
-        self._logger.error(self._format_message(message, **kwargs), exc_info=exc_info)
+        self._log(logging.ERROR, message, exc_info=exc_info, **kwargs)
     
     def critical(self, message: str, exc_info: bool = False, **kwargs) -> None:
         """Log critical message."""
-        self._logger.critical(self._format_message(message, **kwargs), exc_info=exc_info)
+        self._log(logging.CRITICAL, message, exc_info=exc_info, **kwargs)
     
     def exception(self, message: str, **kwargs) -> None:
         """Log exception with traceback."""
-        self._logger.exception(self._format_message(message, **kwargs))
+        self._log(logging.ERROR, message, exc_info=True, **kwargs)
     
     # AI-specific logging methods
     def ai_operation(self, operation: str, status: str, **kwargs) -> None:

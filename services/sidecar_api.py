@@ -99,6 +99,16 @@ class BatchEventsPayload(BaseModel):
     compression: Optional[str] = None  # 'gzip', 'zstd'
 
 
+class CLILogRecord(BaseModel):
+    """CLI log record for forwarding to sidecar"""
+    level: str  # INFO, DEBUG, WARNING, ERROR, etc.
+    message: str
+    category: str  # ai, cli, adapter, etc.
+    timestamp: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat() + 'Z')
+    logger_name: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+
+
 # ============================================================================
 # Sidecar API Server
 # ============================================================================
@@ -353,6 +363,42 @@ class SidecarAPIServer:
                 
             except Exception as e:
                 logger.error(f"Failed to process batch: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.post("/cli-logs")
+        async def receive_cli_logs(payload: CLILogRecord):
+            """
+            Receive and log CLI log records from remote CLI processes.
+            
+            This allows CLI operations (especially AI interactions) to be
+            visible in sidecar logs even when CLI runs on different machines.
+            """
+            try:
+                # Map log level to logger method
+                level_method_map = {
+                    'DEBUG': logger.debug,
+                    'INFO': logger.info,
+                    'WARNING': logger.warning,
+                    'ERROR': logger.error,
+                    'CRITICAL': logger.critical,
+                }
+                
+                log_method = level_method_map.get(payload.level.upper(), logger.info)
+                
+                # Format message with category and context
+                formatted_msg = f"[CLI:{payload.category}] {payload.message}"
+                if payload.context:
+                    ctx_parts = [f"{k}={v}" for k, v in payload.context.items()]
+                    if ctx_parts:
+                        formatted_msg += f" [{', '.join(ctx_parts)}]"
+                
+                # Log it using sidecar's logger (will appear in docker logs)
+                log_method(formatted_msg)
+                
+                return {"status": "logged", "level": payload.level}
+                
+            except Exception as e:
+                logger.error(f"Failed to process CLI log: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
         
         @self.app.get("/stats")

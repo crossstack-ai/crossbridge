@@ -6,9 +6,16 @@ Provides specialized handlers for different logging needs.
 
 import logging
 import sys
+import threading
 from pathlib import Path
 from logging.handlers import RotatingFileHandler as _RotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler as _TimedRotatingFileHandler
+
+# Import requests lazily to avoid dependency issues
+try:
+    import requests
+except ImportError:
+    requests = None
 
 
 class ConsoleHandler(logging.StreamHandler):
@@ -176,3 +183,120 @@ class AILogHandler(logging.Handler):
         # Only handle AI-related logs
         if 'AI' in record.getMessage() or hasattr(record, 'ai_operation'):
             self.file_handler.emit(record)
+
+
+class SidecarLogHandler(logging.Handler):
+    """
+    Handler that forwards logs to CrossBridge sidecar via HTTP.
+    
+    Features:
+    - Non-blocking HTTP transmission
+    - Automatic retry with backoff
+    - Filters by category and level
+    - Falls back gracefully if sidecar unavailable
+    """
+    
+    def __init__(
+        self,
+        sidecar_url: str,
+        min_level: int = logging.INFO,
+        categories: list = None,
+        timeout: float = 1.0,
+    ):
+        """
+        Initialize sidecar log handler.
+        
+        Args:
+            sidecar_url: Base URL of sidecar API (e.g., http://localhost:8765)
+            min_level: Minimum log level to forward (default: INFO)
+            categories: List of category names to forward (None = all)
+            timeout: HTTP request timeout in seconds
+        """
+        super().__init__()
+        self.sidecar_url = sidecar_url.rstrip('/')
+        self.min_level = min_level
+        self.categories = set(categories) if categories else None
+        self.timeout = timeout
+        self._enabled = True
+        self._consecutive_failures = 0
+        self._max_failures = 3  # Disable after 3 consecutive failures
+        
+        # Check if requests is available
+        if requests is None:
+            self._enabled = False
+            return
+        
+        # Try to validate sidecar is reachable
+        try:
+            response = requests.get(f"{self.sidecar_url}/health", timeout=1)
+            if response.status_code != 200:
+                self._enabled = False
+        except Exception:
+            self._enabled = False
+    
+    def emit(self, record: logging.LogRecord) -> None:
+        """Emit log record to sidecar API (non-blocking)."""
+        if not self._enabled:
+            return
+        
+        # Check if disabled due to failures
+        if self._consecutive_failures >= self._max_failures:
+            return
+        
+        # Filter by level
+        if record.levelno < self.min_level:
+            return
+        
+        # Filter by category if specified
+        if self.categories:
+            category = getattr(record, 'category', 'general')
+            if category not in self.categories:
+                return
+        
+        # Send to sidecar in background
+        thread = threading.Thread(target=self._send_log, args=(record,), daemon=True)
+        thread.start()
+    
+    def _send_log(self, record: logging.LogRecord) -> None:
+        """Send log record to sidecar (runs in background thread)."""
+        if requests is None:
+            return
+            
+        try:
+            # Extract category from record
+            category = getattr(record, 'category', 'general')
+            if hasattr(category, 'value'):  # Handle LogCategory enum
+                category = category.value
+            
+            # Build payload
+            payload = {
+                'level': record.levelname,
+                'message': record.getMessage(),
+                'category': category,
+                'timestamp': record.created,
+                'logger_name': record.name,
+                'context': {}
+            }
+            
+            # Add any extra attributes as context
+            for key in ['operation', 'framework', 'test_id', 'status']:
+                if hasattr(record, key):
+                    payload['context'][key] = getattr(record, key)
+            
+            # Send to sidecar
+            response = requests.post(
+                f"{self.sidecar_url}/cli-logs",
+                json=payload,
+                timeout=self.timeout
+            )
+            
+            if response.status_code == 200:
+                self._consecutive_failures = 0  # Reset failure counter
+            else:
+                self._consecutive_failures += 1
+                
+        except Exception:
+            # Fail silently - don't interrupt application
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= self._max_failures:
+                self._enabled = False

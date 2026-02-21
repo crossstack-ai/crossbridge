@@ -150,6 +150,91 @@ AI and/or semantic search features are disabled in your configuration. To enable
 
 - All output and warnings are logged using the CrossBridge logger for traceability.
 
+## Sidecar Log Forwarding 🆕
+
+When running CLI commands with a sidecar configured, AI operation logs are automatically forwarded to the sidecar for centralized visibility.
+
+### Configuration
+
+Set environment variables to enable sidecar log forwarding:
+
+```bash
+export CROSSBRIDGE_API_HOST=localhost  # Your sidecar hostname
+export CROSSBRIDGE_API_PORT=8765        # Sidecar API port (default: 8765)
+```
+
+### How It Works
+
+1. **Auto-Detection**: CrossBridge CLI automatically detects if a sidecar is available by checking `CROSSBRIDGE_API_HOST`
+2. **Health Check**: Validates sidecar is reachable via `/health` endpoint
+3. **Non-Blocking**: Log forwarding happens in background threads, never blocks CLI operations
+4. **Selective:** Only forwards INFO+ level logs from AI and CLI categories
+5. **Fail-Safe**: If sidecar becomes unavailable, forwarding automatically disables after 3 failures
+
+### What Gets Forwarded
+
+✅ **AI Operations:**
+```
+INFO | [CLI:ai] HTTP Request: POST http://10.60.75.145:11434/api/embeddings (model='nomic-embed-text', text_length=150)
+INFO | [CLI:ai] Generated 45 embeddings using local model 'nomic-embed-text'
+```
+
+✅ **CLI Commands:**
+```
+INFO | [CLI:cli] Found 8 potential duplicates (threshold=0.95)
+INFO | [CLI:cli] Search completed in 2.3s
+```
+
+❌ **Not Forwarded:**
+- DEBUG level logs (too verbose)
+- Adapter/framework execution logs (test-specific)
+- General application logs
+
+### Example: Viewing Sidecar Logs
+
+```bash
+# Start sidecar
+docker-compose -f docker-compose-remote-sidecar.yml up -d
+
+# Run CLI command
+crossbridge search duplicates --framework robot --threshold 0.95 \
+    --test-dir ./tests --output-file output.xml
+
+# View forwarded logs in sidecar
+docker logs crossbridge-sidecar --tail 50 | grep -E "\[CLI:(ai|cli)\]"
+```
+
+**Sample Output:**
+```
+INFO:     127.0.0.1:52130 - "GET /health HTTP/1.1" 200 OK
+INFO | [CLI:ai] HTTP Request: POST http://10.60.75.145:11434/api/embeddings (model='nomic-embed-text', text_length=150)
+INFO | [CLI:ai] HTTP Request: POST http://10.60.75.145:11434/api/embeddings (model='nomic-embed-text', text_length=142)
+INFO | [CLI:ai] Generated 45 embeddings using local model 'nomic-embed-text'
+INFO | [CLI:cli] Found 8 potential duplicates (threshold=0.95)
+```
+
+### Benefits
+
+- 🔄 **Centralized Logging**: All CLI operations visible in sidecar logs
+- 🤖 **AI Transparency**: See exactly what requests are sent to AI services (Ollama, OpenAI, etc.)
+- 🏗️ **Distributed Architecture**: CLI can run on different machines, logs centralized in sidecar
+- 🐳 **Docker-Friendly**: Perfect for containerized CI/CD pipelines
+- 📊 **Non-Blocking**: Log forwarding never blocks CLI operations (fail-safe design)
+
+### Framework Support
+
+Sidecar log forwarding works for all supported frameworks:
+- Robot Framework
+- Pytest
+- JUnit/Maven
+- Cypress
+- Playwright
+- Jest
+- Mocha
+- All other CrossBridge-supported frameworks
+
+The feature is **framework-agnostic** and operates at the core logging layer.
+
 ## Supported Frameworks
 
 - Robot Framework

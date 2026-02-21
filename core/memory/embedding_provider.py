@@ -112,8 +112,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             for i in range(0, len(texts), self.batch_size):
                 batch = texts[i : i + self.batch_size]
                 logger.info(
-                    f"HTTP Request: POST https://api.openai.com/v1/embeddings (model='{self._model}', batch_size={len(batch)})",
-                    category=LogCategory.AI
+                    f"HTTP Request: POST https://api.openai.com/v1/embeddings (model='{self._model}', batch_size={len(batch)})"
                 )
                 response = self.client.embeddings.create(
                     model=self._model, input=batch
@@ -170,8 +169,7 @@ class LocalEmbeddingProvider(EmbeddingProvider):
         self._dimension = 768  # Default for most local models
 
         logger.info(
-            f"Initialized local embedding provider with model: '{model}' at {base_url}",
-            category=LogCategory.AI
+            f"Initialized local embedding provider with model: '{model}' at {base_url}"
         )
         
         # Validate model is not empty
@@ -189,26 +187,22 @@ class LocalEmbeddingProvider(EmbeddingProvider):
             embeddings = []
             for text in texts:
                 logger.info(
-                    f"HTTP Request: POST {self.base_url}/api/embeddings (model='{self._model}', text_length={len(text)})",
-                    category=LogCategory.AI
+                    f"HTTP Request: POST {self.base_url}/api/embeddings (model='{self._model}', text_length={len(text)})"
                 )
                 logger.debug(
-                    f"Generating embedding with model='{self._model}' for text of length {len(text)}",
-                    category=LogCategory.AI
+                    f"Generating embedding with model='{self._model}' for text of length {len(text)}"
                 )
                 response = self.client.embeddings(model=self._model, prompt=text)
                 embeddings.append(response["embedding"])
 
             logger.info(
-                f"Generated {len(embeddings)} embeddings using local model '{self._model}'",
-                category=LogCategory.AI
+                f"Generated {len(embeddings)} embeddings using local model '{self._model}'"
             )
             return embeddings
 
         except Exception as e:
             logger.error(
-                f"Failed to generate embeddings with model '{self._model}': {e}",
-                category=LogCategory.AI
+                f"Failed to generate embeddings with model '{self._model}': {e}"
             )
             # Check if it's a model-specific error
             if "model is required" in str(e).lower() or "400" in str(e):

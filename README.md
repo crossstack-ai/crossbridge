@@ -1382,6 +1382,45 @@ run-20260215_125653.log      # Detailed operation logs
 run-20260215_121204.log      # Previous runs
 ```
 
+**CLI Logs in Sidecar (Remote Execution):** 🆕
+
+When running CLI commands with a sidecar configured (`CROSSBRIDGE_API_HOST` set), CLI logs are automatically forwarded to the sidecar for centralized visibility:
+
+```bash
+# Configure sidecar
+export CROSSBRIDGE_API_HOST=localhost
+export CROSSBRIDGE_API_PORT=8765
+
+# Run CLI command - logs will appear in sidecar logs
+crossbridge search duplicates --framework robot --threshold 0.95 \
+    --test-dir ./tests --output-file output.xml
+
+# View logs in sidecar container
+docker logs crossbridge-sidecar --tail 50
+```
+
+**What Gets Forwarded:**
+- ✅ **AI Operations**: HTTP requests to Ollama/OpenAI embedding APIs
+- ✅ **CLI Commands**: Memory search, duplicate detection operations
+- ✅ **INFO+ Levels**: Only INFO, WARNING, ERROR, CRITICAL (not DEBUG)
+- ✅ **AI & CLI Categories**: Focused on AI and CLI operations (not adapter/execution logs)
+
+**Example Sidecar Logs:**
+
+```
+INFO:     127.0.0.1:52130 - "GET /health HTTP/1.1" 200 OK
+INFO | [CLI:ai] HTTP Request: POST http://10.60.75.145:11434/api/embeddings (model='nomic-embed-text', text_length=150)
+INFO | [CLI:ai] Generated 45 embeddings using local model 'nomic-embed-text'
+INFO | [CLI:cli] Found 8 potential duplicates (threshold=0.95)
+```
+
+**Benefits:**
+- 🔄 **Centralized Logging**: All CLI operations visible in one place
+- 🤖 **AI Transparency**: See exactly what requests are sent to AI services
+- 🏗️ **Distributed Architecture**: CLI can run anywhere, logs centralized
+- 🐳 **Docker-Friendly**: Perfect for containerized CI/CD pipelines
+- 📊 **Non-Blocking**: Log forwarding never blocks CLI operations
+
 **View Logs:**
 
 ```bash
