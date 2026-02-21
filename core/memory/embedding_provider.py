@@ -111,6 +111,10 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             all_embeddings = []
             for i in range(0, len(texts), self.batch_size):
                 batch = texts[i : i + self.batch_size]
+                logger.info(
+                    f"HTTP Request: POST https://api.openai.com/v1/embeddings (model='{self._model}', batch_size={len(batch)})",
+                    category=LogCategory.AI
+                )
                 response = self.client.embeddings.create(
                     model=self._model, input=batch
                 )
@@ -184,6 +188,10 @@ class LocalEmbeddingProvider(EmbeddingProvider):
         try:
             embeddings = []
             for text in texts:
+                logger.info(
+                    f"HTTP Request: POST {self.base_url}/api/embeddings (model='{self._model}', text_length={len(text)})",
+                    category=LogCategory.AI
+                )
                 logger.debug(
                     f"Generating embedding with model='{self._model}' for text of length {len(text)}",
                     category=LogCategory.AI
