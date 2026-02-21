@@ -130,12 +130,16 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         
         for attempt in range(self.max_retries):
             try:
+                logger.info(
+                    f"HTTP Request: POST https://api.openai.com/v1/embeddings (model='{self.model}', text_length={len(text)})"
+                )
                 response = self.client.embeddings.create(
                     input=text,
                     model=self.model
                 )
                 
                 embedding = response.data[0].embedding
+                logger.info(f"Generated embedding using OpenAI (dimensions={len(embedding)})")
                 logger.debug(f"Generated embedding", dimensions=len(embedding))
                 return embedding
                 
@@ -159,12 +163,16 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             raise EmbeddingError("Cannot embed batch with all empty texts")
         
         try:
+            logger.info(
+                f"HTTP Request: POST https://api.openai.com/v1/embeddings (model='{self.model}', batch_size={len(non_empty_texts)})"
+            )
             response = self.client.embeddings.create(
                 input=non_empty_texts,
                 model=self.model
             )
             
             embeddings = [item.embedding for item in response.data]
+            logger.info(f"Generated {len(embeddings)} embeddings using OpenAI")
             logger.debug(f"Generated batch embeddings", count=len(embeddings))
             return embeddings
             
@@ -239,12 +247,16 @@ class AnthropicEmbeddingProvider(EmbeddingProvider):
         
         for attempt in range(self.max_retries):
             try:
+                logger.info(
+                    f"HTTP Request: POST https://api.voyageai.com/v1/embeddings (model='{self.model}', text_length={len(text)})"
+                )
                 result = self.client.embed(
                     texts=[text],
                     model=self.model
                 )
                 
                 embedding = result.embeddings[0]
+                logger.info(f"Generated embedding using Voyage (dimensions={len(embedding)})")
                 logger.debug(f"Generated embedding", dimensions=len(embedding))
                 return embedding
                 
@@ -267,12 +279,16 @@ class AnthropicEmbeddingProvider(EmbeddingProvider):
             raise EmbeddingError("Cannot embed batch with all empty texts")
         
         try:
+            logger.info(
+                f"HTTP Request: POST https://api.voyageai.com/v1/embeddings (model='{self.model}', batch_size={len(non_empty_texts)})"
+            )
             result = self.client.embed(
                 texts=non_empty_texts,
                 model=self.model
             )
             
             embeddings = result.embeddings
+            logger.info(f"Generated {len(embeddings)} embeddings using Voyage")
             logger.debug(f"Generated batch embeddings", count=len(embeddings))
             return embeddings
             
