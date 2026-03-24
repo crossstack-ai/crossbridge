@@ -69,9 +69,19 @@ crossbridge:
     enabled: true
     provider_type: local
     
-    # Local embedding configuration (sentence-transformers)
+    # Local embedding configuration (Ollama with nomic-embed-text)
     local:
-      model: all-MiniLM-L6-v2
+      model: nomic-embed-text
+      base_url: http://10.60.76.195:11434
+    
+    # HuggingFace local embedding (no server needed - runs locally)
+    huggingface:
+      model: sentence-transformers/all-MiniLM-L6-v2
+      device: cpu
+    
+    # HuggingFace configuration (local, no server needed)
+    huggingface:
+      model: sentence-transformers/all-MiniLM-L6-v2
       device: cpu
     
     # OpenAI configuration (disabled - using local instead)
