@@ -871,7 +871,7 @@ def _handle_credential_action(
                     api_key=api_key or "",
                     endpoint_url=endpoint_url,
                     model_name=model_name,
-                    force_prompt=False
+                    force_prompt=True  # Force update even if credentials exist
                 )
                 
                 console.print("\n[bold green]✓ Self-hosted AI credentials cached successfully![/bold green]\n")
